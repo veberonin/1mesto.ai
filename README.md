@@ -1,12 +1,26 @@
 # 🎙 1mesto Flow — клон Wispr Flow (Hackathon Edition)
 
 > **Не печатай. Просто говори.** Рабочая копия [Wispr Flow](https://wisprflow.ai):
-> мгновенная диктовка в браузере, умная очистка речи от слов-паразитов,
-> живая звуковая волна, WPM-аналитика и демо-режим без микрофона.
+> мгновенная диктовка (голос → грамотный текст), умная очистка речи от слов-паразитов,
+> голосовые команды пунктуации, офлайн-распознавание whisper.cpp, живая волна и WPM-аналитика.
 
 **🌐 Живое демо (без установки): [veberonin.github.io/1mesto.ai](https://veberonin.github.io/1mesto.ai/)**
-Открывается на любом компе, микрофон работает по HTTPS, а без микрофона есть кнопка «Демо RU/EN».
+Веб-версия: Chrome/Edge + интернет. Десктоп-приложение работает офлайн (whisper.cpp).
+
 Готовишься к оценочному стенду? → [docs/STAND_DEMO.md](docs/STAND_DEMO.md) — чеклист и сценарий на 90 секунд.
+
+## ⚡ Быстрые команды
+
+```bash
+npm test            # тесты одной командой (node --test tests/)
+npm run test:ui     # SSR-дым всех экранов (vitest, веб + десктоп-ветки)
+npm run bench       # микробенчмарк форматтера (ops/sec, p50/p95)
+npm run app         # собрать и запустить десктоп-приложение
+```
+
+Установка одной командой: macOS/Linux —
+`curl -fsSL https://raw.githubusercontent.com/veberonin/1mesto.ai/main/scripts/install.sh | bash`
+Windows (PowerShell) — `irm https://raw.githubusercontent.com/veberonin/1mesto.ai/main/scripts/install.ps1 | iex`
 
 ## ⬇️ Скачать приложение (AH-01)
 

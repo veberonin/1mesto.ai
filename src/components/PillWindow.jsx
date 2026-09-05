@@ -125,6 +125,8 @@ export default function PillWindow() {
         name: s.name,
         dict: pairs.dict,
         macros: pairs.macros,
+        voiceCommands: s.voiceCommands !== false,
+        restoreYo: !!s.restoreYo,
       }).text;
       try {
         if (s.provider && s.provider !== 'none') {

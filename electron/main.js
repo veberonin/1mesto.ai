@@ -44,6 +44,8 @@ const DEFAULTS = {
   backgroundMode: true,     // закрытие окна = жить в трее
   startToTray: false,       // запуск свёрнутым в трей
   geminiKey: '',            // ключ Gemini для резервного распознавания (ASR)
+  voiceCommands: true,      // K: голосовые команды пунктуации («запятая», «новый абзац»…)
+  restoreYo: false,         // Ё: восстановление «ё» (опция)
   onboarded: false, // B-01: первый запуск
 };
 
@@ -324,6 +326,8 @@ ipcMain.handle('ai:format', async (_e, payload = {}) => {
     name: payload.name || s.name,
     dict: payload.dict && typeof payload.dict === 'object' ? payload.dict : null,
     macros: payload.macros && typeof payload.macros === 'object' ? payload.macros : null,
+    voiceCommands: payload.voiceCommands !== false,
+    restoreYo: !!payload.restoreYo,
   });
   return { formattedText: local.text, meta: local.meta, source: 'local' };
 });
@@ -338,8 +342,10 @@ async function transcribeWhisper(wavPath, lang) {
   if (!model && fs.existsSync(defaultModelPath())) model = defaultModelPath();
   if (!bin || !model) return null;
 
+  const args = ['-m', model, '-nt', wavPath];
+  if (lang && lang !== 'auto') args.splice(2, 0, '-l', lang); // авто-язык: whisper определит сам
   return new Promise((resolve) => {
-    execFile(bin, ['-m', model, '-l', lang, '-nt', wavPath], { timeout: 300000 }, (err, stdout) => {
+    execFile(bin, args, { timeout: 300000 }, (err, stdout) => {
       if (err) {
         console.error('whisper failed:', err.message);
         return resolve(null);
@@ -368,7 +374,12 @@ async function transcribeGeminiBytes(bytes, lang) {
         contents: [
           {
             parts: [
-              { text: `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.` },
+              {
+                text:
+                  lang === 'auto'
+                    ? 'Определи язык аудио самостоятельно и транскрибируй речь дословно. Только текст.'
+                    : `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.`,
+              },
               { inlineData: { mimeType: 'audio/wav', data: b64 } },
             ],
           },

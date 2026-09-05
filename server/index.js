@@ -248,6 +248,8 @@ app.post('/api/format', async (req, res) => {
       name: req.body?.name || '',
       dict: req.body?.dict && typeof req.body.dict === 'object' ? req.body.dict : null,
       macros: req.body?.macros && typeof req.body.macros === 'object' ? req.body.macros : null,
+      voiceCommands: req.body?.voiceCommands !== false,
+      restoreYo: !!req.body?.restoreYo,
     });
     return res.json({ formattedText: local.text, meta: local.meta, source: 'local' });
   } catch (e) {

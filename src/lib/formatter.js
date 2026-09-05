@@ -32,6 +32,11 @@ const RU = {
     ['двоеточие', ':'],
     ['тире', '—'],
     ['дефис', '-'],
+    ['многоточие', '…'],
+    ['знак вопроса', '?'],
+    ['знак восклицания', '!'],
+    ['запятая', ','],
+    ['точка', '.'],
     ['точка', '.'],
     ['запятая', ','],
   ],
@@ -52,13 +57,19 @@ const EN = {
     ['question mark', '?'],
     ['exclamation mark', '!'],
     ['exclamation point', '!'],
-    ['new paragraph', '\n\n'],
-    ['new line', '\n'],
-    ['semicolon', ';'],
-    ['colon', ':'],
     ['full stop', '.'],
     ['period', '.'],
     ['comma', ','],
+    ['colon', ':'],
+    ['semicolon', ';'],
+    ['dash', '—'],
+    ['hyphen', '-'],
+    ['ellipsis', '…'],
+    ['new line', '\n'],
+    ['newline', '\n'],
+    ['new paragraph', '\n\n'],
+    ['open quote', '“'],
+    ['close quote', '”'],
   ],
   commaBefore: ['but', 'however', 'because', 'which', 'although', 'so that'],
   breakWords: ['then', 'also', 'by the way', 'after that', 'anyway'],
@@ -318,6 +329,34 @@ function applySpokenPunctuation(text, pack) {
   return out;
 }
 
+
+/** Ёфикация: е → ё в словах, где ё всегда (опция restoreYo) */
+const YO_PAIRS = [
+  ['еще', 'ещё'], ['елка', 'ёлка'], ['елки', 'ёлки'], ['елке', 'ёлке'], ['елку', 'ёлку'], ['елок', 'ёлок'],
+  ['объем', 'объём'], ['объемы', 'объёмы'], ['объеме', 'объёме'],
+  ['трех', 'трёх'], ['четырех', 'четырёх'],
+  ['черный', 'чёрный'], ['черная', 'чёрная'], ['черное', 'чёрное'], ['черные', 'чёрные'],
+  ['желтый', 'жёлтый'], ['желтая', 'жёлтая'], ['желтое', 'жёлтое'],
+  ['зеленый', 'зелёный'], ['зеленая', 'зелёная'], ['зеленое', 'зелёное'],
+  ['тяжелый', 'тяжёлый'], ['тяжелая', 'тяжёлая'], ['надежный', 'надёжный'], ['надежная', 'надёжная'],
+];
+
+function restoreYoLetters(text) {
+  let fixed = 0;
+  let out = text;
+  for (const [from, to] of YO_PAIRS) {
+    const re = new RegExp(`${L}(${esc(from)})${R}`, 'giu');
+    out = out.replace(re, (m, word) => {
+      fixed += 1;
+      if (word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) {
+        return to[0].toUpperCase() + to.slice(1);
+      }
+      return to;
+    });
+  }
+  return { text: out, fixed };
+}
+
 /** Шаг 2: удаление слов-паразитов */
 function removeFillers(text, pack) {
   let removed = 0;
@@ -335,6 +374,8 @@ function removeFillers(text, pack) {
 /** Шаг 3: чистка пробелов вокруг пунктуации (не разбиваем домены/мейлы: бро@почта.ру) */
 function tidyPunctuation(text) {
   return text
+    .replace(/«[ \t]+/g, '«')
+    .replace(/[ \t]+»/g, '»')
     .replace(/[ \t]+([,.!?;:…])/g, '$1')
     .replace(/([,.!?;:])(?=[^\s\d.,!?;:)])/g, (m, _p, off, str) => {
       if (m === '.') {
@@ -462,6 +503,8 @@ export function formatText(raw, opts = {}) {
     autoPunct = true,
     normalizeNumbers: normNums = true,
     autoLists = true,
+    voiceCommands = true,
+    restoreYo = false,
   } = opts;
 
   if (!raw || !raw.trim()) {
@@ -470,6 +513,7 @@ export function formatText(raw, opts = {}) {
   const pack = lang === 'en' ? EN : RU;
 
   let text = raw.replace(/\s+/g, ' ').trim();
+  let yoFixed = 0;
   text = applySelfCorrection(text); // F-21
   text = collapseRepeats(text); // F-19
   text = removeFillers(text, pack).text; // F-20
@@ -480,9 +524,16 @@ export function formatText(raw, opts = {}) {
   if (autoLists && lang !== 'en') {
     text = applyListCommands(text); // G-10/G-11
   }
-  text = applySpokenPunctuation(text, pack);
+  if (voiceCommands) {
+    text = applySpokenPunctuation(text, pack); // K: голосовые команды пунктуации/разметки
+  }
   const dictRes = applyDictionary(text, dict, macros); // H + AJ
   text = dictRes.text;
+  if (lang !== 'en' && restoreYo) {
+    const yo = restoreYoLetters(text); // Ё: е→ё там, где она всегда
+    text = yo.text;
+    yoFixed = yo.fixed;
+  }
   text = normalizeQuantities(text); // F-12..F-14, G-18
   text = tidyPunctuation(text);
   if (autoPunct) {
@@ -512,6 +563,7 @@ export function formatText(raw, opts = {}) {
       mode,
       words: countWords(finalText),
       dictHits: dictRes.hits,
+      yoFixed,
     },
   };
 }

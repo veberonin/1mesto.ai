@@ -8,6 +8,7 @@ import DictationTab from './components/DictationTab.jsx';
 import HistoryTab from './components/HistoryTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
 import AboutTab from './components/AboutTab.jsx';
+import ScratchpadTab from './components/ScratchpadTab.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import Toasts from './components/Toasts.jsx';
 
@@ -38,6 +39,9 @@ const DEFAULT_SETTINGS = {
   whisperModel: '',
   dictText: '',
   macrosText: '',
+  language: 'ru',
+  voiceCommands: true,
+  restoreYo: false,
   onboarded: false,
 };
 
@@ -120,6 +124,19 @@ export default function App() {
     }
   }, [settings, language, mode]);
 
+  // язык из настроек (auto/ru/en) — пилюля и дашборд синхронны
+  useEffect(() => {
+    const l = settings.language;
+    if ((l === 'ru' || l === 'en' || l === 'auto') && l !== language) setLanguage(l);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.language]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('flow-language-v1', language);
+    } catch { /* noop */ }
+  }, [language]);
+
   useEffect(() => {
     if (!isDesktop()) return;
     desktopAPI
@@ -146,6 +163,8 @@ export default function App() {
       mode, lang: language, name: settings.name,
       autoPunct: settings.autoPunct !== false,
       normalizeNumbers: settings.normalizeNumbers !== false,
+      voiceCommands: settings.voiceCommands !== false,
+      restoreYo: !!settings.restoreYo,
       dict: pairsRef.current.dict,
       macros: pairsRef.current.macros,
     });
@@ -153,7 +172,7 @@ export default function App() {
     lastMetaRef.current = { ...meta, source: prevSourceRef.current };
     setFormatted(text);
     setFormatMeta(lastMetaRef.current);
-  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name, settings.dictText, settings.macrosText]);
+  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name, settings.dictText, settings.macrosText, settings.voiceCommands, settings.restoreYo]);
 
   const lastMetaRef = useRef(null);
   const prevSourceRef = useRef('local');
@@ -335,7 +354,7 @@ export default function App() {
         }
       },
     });
-    const ok = engineRef.current.start(langRef.current === 'ru' ? 'ru-RU' : 'en-US');
+    const ok = engineRef.current.start(langRef.current === 'en' ? 'en-US' : 'ru-RU'); // auto → ru-RU (веб)
     if (!ok && !isDesktop()) {
       abortRecording();
       toast('Не удалось запустить распознавание', 'error');
@@ -393,6 +412,7 @@ export default function App() {
           text: transcriptRef.current, mode, language,
           provider: settings.provider, apiKey: settings.apiKey, name: settings.name,
           dict: pairsRef.current.dict, macros: pairsRef.current.macros,
+          voiceCommands: settings.voiceCommands !== false, restoreYo: !!settings.restoreYo,
         });
         if (!data || !data.formattedText) throw new Error('empty');
       } else {
@@ -406,6 +426,7 @@ export default function App() {
           body: JSON.stringify({
             text: transcriptRef.current, mode, language,
             dict: pairsRef.current.dict, macros: pairsRef.current.macros,
+            voiceCommands: settings.voiceCommands !== false, restoreYo: !!settings.restoreYo,
           }),
         });
         data = await res.json();
@@ -543,6 +564,12 @@ export default function App() {
               refreshKey={journalTick}
               onToast={toast}
             />
+          )}
+
+          {tab === 'scratchpad' && (
+            <div className="pt-2">
+              <ScratchpadTab lastResult={formatted} onToast={toast} />
+            </div>
           )}
 
           {tab === 'history' && (

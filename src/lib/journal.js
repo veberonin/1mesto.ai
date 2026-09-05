@@ -115,6 +115,31 @@ export function exportJSONL() {
 }
 
 /** AL-12/T-08: экспорт в CSV (id,ts,app,words,wpm,durSec,mode,lang,source) */
+/** Экспорт журнала в JSON (полная копия данных) */
+export function exportJSON() {
+  return JSON.stringify(loadJournal(), null, 2);
+}
+
+/** Экспорт журнала в Markdown-таблицу (для отчётов и заметок) */
+export function exportMarkdown() {
+  const recs = loadJournal();
+  const lines = [
+    '# Журнал диктовки — 1mesto Flow',
+    '',
+    `Реплик: ${recs.length}`,
+    '',
+    '| Дата | Приложение | Слов | WPM | Длит. | Режим | Язык |',
+    '|---|---|---|---|---|---|---|',
+  ];
+  for (const r of recs) {
+    const date = new Date(r.ts).toLocaleString('ru-RU');
+    const dur = `${Math.round(r.durSec || 0)} c`;
+    const cells = [date, r.app || '—', r.words ?? 0, r.wpm ?? 0, dur, r.mode || '—', r.lang || '—'];
+    lines.push(`| ${cells.join(' | ')} |`);
+  }
+  return lines.join('\n');
+}
+
 export function exportCSV() {
   const head = 'id,ts,app,words,wpm,durSec,mode,lang,source';
   const rows = loadJournal().map((r) =>

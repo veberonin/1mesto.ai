@@ -105,3 +105,27 @@ test('M-14: ротация — не больше 10000 записей', () => {
   assert.ok(list.length <= 10000, `ротация не сработала: ${list.length}`);
   assert.equal(list[list.length - 1].text, 'свежая', 'свежая запись остаётся');
 });
+
+
+// ---------------------------------------------------------------------------
+// Экспорты: JSON / Markdown (в добавок к CSV/JSONL)
+// ---------------------------------------------------------------------------
+test('exportJSON валидный JSON со всеми репликами', async () => {
+  const { exportJSON, addUtterance, clearJournal } = await import('../src/lib/journal.js');
+  clearJournal();
+  addUtterance({ text: 'тест экспорта', words: 2, wpm: 100, durSec: 2, app: 'web', mode: 'clean', lang: 'ru', source: 'local', latencies: {}, dictHits: [], fillersRemoved: 0 });
+  const parsed = JSON.parse(exportJSON());
+  assert.ok(Array.isArray(parsed));
+  assert.ok(parsed.length >= 1);
+  assert.equal(parsed[parsed.length - 1].text, 'тест экспорта');
+});
+
+test('exportMarkdown — заголовок, шапка таблицы, строки', async () => {
+  const { exportMarkdown, addUtterance, clearJournal } = await import('../src/lib/journal.js');
+  clearJournal();
+  addUtterance({ text: 'маркдаун', words: 1, wpm: 60, durSec: 1, app: 'pill', mode: 'email', lang: 'ru', source: 'local', latencies: {}, dictHits: [], fillersRemoved: 0 });
+  const md = exportMarkdown();
+  assert.match(md, /^# Журнал диктовки/);
+  assert.match(md, /\| Дата \| Приложение \|/);
+  assert.match(md, /\| .* \| pill \| 1 \| 60 \|/);
+});

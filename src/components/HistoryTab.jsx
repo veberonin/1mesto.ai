@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Search, Copy, RotateCcw, Trash2, Download, ShieldOff, RefreshCw } from 'lucide-react';
 import {
   listUtterances, searchUtterances, filterUtterances, deleteUtterance,
-  clearJournal, exportJSONL, exportCSV, downloadFile, journalSummary,
+  clearJournal, exportJSONL, exportCSV, exportJSON, exportMarkdown, downloadFile, journalSummary,
 } from '../lib/journal.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 
@@ -120,6 +120,18 @@ export default function HistoryTab({ privacy, onToast }) {
           className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.09] hover:border-white/20"
         >
           <Download className="w-3.5 h-3.5" /> CSV
+        </button>
+        <button
+          onClick={() => { downloadFile('flow-history.md', exportMarkdown(), 'text/markdown'); onToast('Markdown выгружен', 'success'); }}
+          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.09] hover:border-white/20"
+        >
+          <Download className="w-3.5 h-3.5" /> Markdown
+        </button>
+        <button
+          onClick={() => { downloadFile('flow-history.json', exportJSON(), 'application/json'); onToast('JSON выгружен', 'success'); }}
+          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-[12px] font-semibold bg-white/[0.04] border border-white/[0.09] hover:border-white/20"
+        >
+          <Download className="w-3.5 h-3.5" /> JSON
         </button>
         <button
           onClick={() => {

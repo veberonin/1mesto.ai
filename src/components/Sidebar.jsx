@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React from 'react';
-import { Mic, History, Settings, Info, Download, Github } from 'lucide-react';
+import { Mic, History, Settings, Info, Download, Github, StickyNote } from 'lucide-react';
 
 const ITEMS = [
   { id: 'dictation', label: 'Диктовка', icon: Mic },
+  { id: 'scratchpad', label: 'Черновик', icon: StickyNote },
   { id: 'history', label: 'История', icon: History },
   { id: 'settings', label: 'Настройки', icon: Settings },
   { id: 'about', label: 'О проекте', icon: Info },

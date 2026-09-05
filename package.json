@@ -19,7 +19,8 @@
     "test:watch": "node --test --watch tests/",
     "summary": "node scripts/summary.mjs",
     "flow": "node scripts/flow-cli.mjs",
-    "test:ui": "vitest run src/__tests__"
+    "test:ui": "vitest run src/__tests__",
+    "bench": "node scripts/bench.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -54,7 +55,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "src/lib/formatter.js",
+      "src/lib/**/*",
       "!electron/icons/icon-raw.png"
     ],
     "win": {

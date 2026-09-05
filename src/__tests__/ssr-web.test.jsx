@@ -14,6 +14,7 @@ import AboutTab from '../components/AboutTab.jsx';
 import Onboarding from '../components/Onboarding.jsx';
 import Toasts from '../components/Toasts.jsx';
 import DictationPill from '../components/DictationPill.jsx';
+import ScratchpadTab from '../components/ScratchpadTab.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 
 const settings = {
@@ -124,5 +125,6 @@ describe('SSR (веб): все экраны рендерятся без краш
       )
     ).toBeTruthy();
     expect(renderToString(<ErrorBoundary><div>ок</div></ErrorBoundary>)).toContain('ок');
+    expect(renderToString(<ScratchpadTab lastResult="результат" onToast={noop} />)).toContain('Черновик');
   });
 });

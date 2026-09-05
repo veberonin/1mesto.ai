@@ -165,6 +165,43 @@ describe('redesign: светлая система как в оригинале',
     assert.match(st, /Работать в фоне/);
   });
 
+  it('голосовые команды/ёфикация доезжают до форматтера (App/пилюля/сервер)', () => {
+    for (const f of ['App.jsx', 'components/PillWindow.jsx']) {
+      const s = read(f);
+      assert.match(s, /voiceCommands/, `${f}: voiceCommands`);
+      assert.match(s, /restoreYo/, `${f}: restoreYo`);
+    }
+    const srv = readFileSync(join(process.cwd(), 'server', 'index.js'), 'utf8');
+    assert.match(srv, /restoreYo: !!req\.body\?\.restoreYo/);
+  });
+
+  it('авто-язык: whisper без -l, Gemini сам определяет, селектор в UI', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /lang !== 'auto'/);
+    assert.match(mj, /Определи язык аудио самостоятельно/);
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /Язык распознавания/);
+    assert.match(st, /'auto'/);
+  });
+
+  it('черновик (Scratchpad): вкладка + автосохранение', () => {
+    assert.match(read('components/ScratchpadTab.jsx'), /flow-scratchpad-v1/);
+    assert.match(read('components/Sidebar.jsx'), /Черновик/);
+    assert.match(read('App.jsx'), /ScratchpadTab/);
+  });
+
+  it('экспорты истории: Markdown и JSON рядом с CSV', () => {
+    const h = read('components/HistoryTab.jsx');
+    assert.match(h, /exportMarkdown/);
+    assert.match(h, /exportJSON/);
+    assert.match(readFileSync(join(process.cwd(), 'src', 'lib', 'journal.js'), 'utf8'), /export function exportMarkdown/);
+  });
+
+  it('packaging: весь src/lib в asar (фикс ERR_MODULE_NOT_FOUND)', () => {
+    const pkg = readFileSync(join(process.cwd(), 'package.json'), 'utf8');
+    assert.match(pkg, /src\/lib\/\*\*\/\*/);
+  });
+
   it('Onboarding: 3 шага и флаг onboarded', () => {
     const ob = read('components/Onboarding.jsx');
     assert.match(ob, /ШАГ/);

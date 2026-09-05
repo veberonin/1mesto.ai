@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown, Moon, Power } from 'lucide-react';
+import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown, Moon, Power, Languages } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
@@ -107,6 +107,37 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
       {/* Словарь и макросы + импорт из файла (H-01) */}
       <DictCard settings={settings} onChange={set} onToast={onToast} />
 
+      {/* Язык распознавания */}
+      <div className="rounded-3xl glass p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-3">
+          <Languages className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Язык распознавания</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { id: 'auto', label: 'Авто', desc: 'определяется сам' },
+            { id: 'ru', label: 'Русский', desc: 'ru-RU' },
+            { id: 'en', label: 'English', desc: 'en-US' },
+          ].map((l) => (
+            <button
+              key={l.id}
+              onClick={() => set({ language: l.id })}
+              className={`p-3.5 rounded-2xl text-left border transition-all ${
+                (settings.language || 'ru') === l.id
+                  ? 'border-accent/50 bg-accent-soft'
+                  : 'border-line bg-card hover:border-mute/40'
+              }`}
+            >
+              <div className="text-[13px] font-bold">{l.label}</div>
+              <div className="text-[10.5px] text-mute mt-0.5">{l.desc}</div>
+            </button>
+          ))}
+        </div>
+        <p className="text-[11.5px] text-mute mt-2">
+          В «Авто» язык определяет распознаватель (whisper/Gemini). Пилюля и дашборд используют одну настройку.
+        </p>
+      </div>
+
       {/* Поведение */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-2">
@@ -143,6 +174,18 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             desc="«пять тысяч» → 5000 (F-10)"
             value={settings.normalizeNumbers !== false}
             onChange={(v) => set({ normalizeNumbers: v })}
+          />
+          <Toggle
+            label="Голосовые команды"
+            desc="«запятая», «точка», «новый абзац», «тире» превращаются в знаки"
+            value={settings.voiceCommands !== false}
+            onChange={(v) => set({ voiceCommands: v })}
+          />
+          <Toggle
+            label="Буква «ё»"
+            desc="Восстанавливать ё там, где она всегда: «еще» → «ещё»"
+            value={!!settings.restoreYo}
+            onChange={(v) => set({ restoreYo: v })}
           />
           <Toggle
             label="Приватный режим"
