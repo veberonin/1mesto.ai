@@ -28,8 +28,12 @@ export default function StatRail({ stats }) {
   return (
     <div className="space-y-3">
       <div className="glass p-5">
-        <div className="text-[26px] font-bold leading-none">{stats.totalWords || 0} <span className="text-[13px] font-medium text-mute">всего слов</span></div>
-        <div className="mt-3 text-[26px] font-bold leading-none">{sum.avgWpm || 0} <span className="text-[13px] font-medium text-mute">wpm среднее</span></div>
+        <div className="text-[26px] font-bold leading-none">
+          {stats.totalWords || 0} <span className="text-[13px] font-medium text-mute">всего слов</span>
+        </div>
+        <div className="mt-3 text-[26px] font-bold leading-none">
+          {sum.avgWpm || 0} <span className="text-[13px] font-medium text-mute">wpm среднее</span>
+        </div>
         <div className="mt-3 text-[26px] font-bold leading-none flex items-center gap-2">
           {streak} <span className="text-[13px] font-medium text-mute">дней подряд</span>
           <Flame className="w-4 h-4 text-accent" />
@@ -47,7 +51,9 @@ export default function StatRail({ stats }) {
         </div>
         <div className="mt-2 text-[11px] text-mute flex items-center gap-1.5">
           <Zap className="w-3 h-3 text-accent" />
-          {profilePct >= 100 ? 'Полностью открыт ✨' : `Откроется в 2К слов · ещё ${2000 - (stats.totalWords || 0)}`}
+          {profilePct >= 100
+            ? 'Полностью открыт ✨'
+            : `Откроется в 2К слов · ещё ${2000 - (stats.totalWords || 0)}`}
         </div>
       </div>
     </div>

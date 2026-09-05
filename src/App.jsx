@@ -19,6 +19,7 @@ import { sound } from './lib/sound.js';
 import { formatText, countWordsIn } from './lib/formatter.js';
 import { parsePairsText } from './lib/dictio.js';
 import { hotkeyMatches, DEFAULT_HOTKEY } from './lib/hotkey.js';
+import { speakText, stopSpeaking } from './lib/voicecheck.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
 import { addUtterance } from './lib/journal.js';
 import { isDesktop, desktopAPI } from './lib/desktop.js';
@@ -42,6 +43,9 @@ const DEFAULT_SETTINGS = {
   language: 'ru',
   voiceCommands: true,
   restoreYo: false,
+  voiceCheck: false,
+  hotkeyStyle: 'Ctrl+Alt+S',
+  aiTimeoutMs: 25000,
   onboarded: false,
 };
 
@@ -117,7 +121,9 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     sound.enabled = settings.soundOn;
     if (isDesktop()) {
       desktopAPI.saveSettings({ ...settings, language, mode }).catch(() => {});
@@ -128,13 +134,14 @@ export default function App() {
   useEffect(() => {
     const l = settings.language;
     if ((l === 'ru' || l === 'en' || l === 'auto') && l !== language) setLanguage(l);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.language]);
 
   useEffect(() => {
     try {
       localStorage.setItem('flow-language-v1', language);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, [language]);
 
   useEffect(() => {
@@ -148,7 +155,6 @@ export default function App() {
         if (typeof s.mode === 'string') setMode(s.mode);
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------- живой формат ----------
@@ -160,7 +166,9 @@ export default function App() {
       return;
     }
     const { text, meta } = formatText(transcript, {
-      mode, lang: language, name: settings.name,
+      mode,
+      lang: language,
+      name: settings.name,
       autoPunct: settings.autoPunct !== false,
       normalizeNumbers: settings.normalizeNumbers !== false,
       voiceCommands: settings.voiceCommands !== false,
@@ -172,7 +180,19 @@ export default function App() {
     lastMetaRef.current = { ...meta, source: prevSourceRef.current };
     setFormatted(text);
     setFormatMeta(lastMetaRef.current);
-  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name, settings.dictText, settings.macrosText, settings.voiceCommands, settings.restoreYo]);
+  }, [
+    transcript,
+    mode,
+    language,
+    settings.autoFormat,
+    settings.autoPunct,
+    settings.normalizeNumbers,
+    settings.name,
+    settings.dictText,
+    settings.macrosText,
+    settings.voiceCommands,
+    settings.restoreYo,
+  ]);
 
   const lastMetaRef = useRef(null);
   const prevSourceRef = useRef('local');
@@ -195,7 +215,6 @@ export default function App() {
 
   useEffect(() => {
     if (!isSpeechSupported() && !isDesktop()) setMicDenied('unsupported');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------- таймер ----------
@@ -284,6 +303,7 @@ export default function App() {
       setStats({ ...s });
       toast(`${words} слов за ${durSec} c · ${wpm} wpm`, 'success');
       if (settings.autoCopy) copyText(formattedRef.current || transcriptRef.current, true);
+      if (settings.voiceCheck) speakText(finalText, langRef.current === 'en' ? 'en' : 'ru'); // AK
       if (settings.provider !== 'none' && settings.apiKey) aiPolish();
     } else if (!transcriptRef.current.trim()) {
       toast('Ничего не расслышал — попробуй ещё раз', 'error');
@@ -315,7 +335,9 @@ export default function App() {
 
     // Волна
     startMicMeter(({ bars: b }) => setBars(b))
-      .then((m) => { meterRef.current = m; })
+      .then((m) => {
+        meterRef.current = m;
+      })
       .catch(() => {});
 
     // Десктоп: параллельно пишем WAV для локального распознавания
@@ -398,7 +420,6 @@ export default function App() {
   const toggleRecording = useCallback(() => {
     if (recordingRef.current) stopRecording();
     else startRecording();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, mode]);
 
   // ---------- AI ----------
@@ -409,10 +430,16 @@ export default function App() {
       let data;
       if (isDesktop()) {
         data = await desktopAPI.aiFormat({
-          text: transcriptRef.current, mode, language,
-          provider: settings.provider, apiKey: settings.apiKey, name: settings.name,
-          dict: pairsRef.current.dict, macros: pairsRef.current.macros,
-          voiceCommands: settings.voiceCommands !== false, restoreYo: !!settings.restoreYo,
+          text: transcriptRef.current,
+          mode,
+          language,
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          name: settings.name,
+          dict: pairsRef.current.dict,
+          macros: pairsRef.current.macros,
+          voiceCommands: settings.voiceCommands !== false,
+          restoreYo: !!settings.restoreYo,
         });
         if (!data || !data.formattedText) throw new Error('empty');
       } else {
@@ -424,9 +451,13 @@ export default function App() {
             'x-api-key': settings.apiKey,
           },
           body: JSON.stringify({
-            text: transcriptRef.current, mode, language,
-            dict: pairsRef.current.dict, macros: pairsRef.current.macros,
-            voiceCommands: settings.voiceCommands !== false, restoreYo: !!settings.restoreYo,
+            text: transcriptRef.current,
+            mode,
+            language,
+            dict: pairsRef.current.dict,
+            macros: pairsRef.current.macros,
+            voiceCommands: settings.voiceCommands !== false,
+            restoreYo: !!settings.restoreYo,
           }),
         });
         data = await res.json();
@@ -434,7 +465,10 @@ export default function App() {
       if (data && data.formattedText) {
         formattedRef.current = data.formattedText;
         setFormatted(data.formattedText);
-        setFormatMeta((m) => ({ ...(m || { removedFillers: 0 }), source: data.source === 'ai' ? 'ai' : 'local' }));
+        setFormatMeta((m) => ({
+          ...(m || { removedFillers: 0 }),
+          source: data.source === 'ai' ? 'ai' : 'local',
+        }));
         prevSourceRef.current = data.source === 'ai' ? 'ai' : 'local';
         sound.success();
         toast('Текст отполирован ✨', 'success');
@@ -469,7 +503,8 @@ export default function App() {
         ok = false;
       }
     }
-    if (!silent) toast(ok ? 'Скопировано в буфер ✓' : 'Браузер не дал доступ к буферу', ok ? 'success' : 'error');
+    if (!silent)
+      toast(ok ? 'Скопировано в буфер ✓' : 'Браузер не дал доступ к буферу', ok ? 'success' : 'error');
   };
 
   // ---------- экшены ----------
@@ -513,11 +548,11 @@ export default function App() {
 
   useEffect(
     () => () => {
+      stopSpeaking(); // AK
       if (engineRef.current) engineRef.current.stop();
       if (meterRef.current) meterRef.current.stop();
       if (captureRef.current) captureRef.current.stop();
       stopTimer();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     []
   );
@@ -592,6 +627,10 @@ export default function App() {
                 onResetStats={() => {
                   setStats(resetStats());
                   toast('Статистика сброшена', 'info');
+                }}
+                onResetSettings={() => {
+                  setSettings({ ...DEFAULT_SETTINGS, onboarded: true });
+                  toast('Настройки сброшены к значениям по умолчанию', 'success');
                 }}
                 onToast={toast}
               />

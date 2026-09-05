@@ -42,7 +42,9 @@ test('Y-01-пост/Y-02: --text --json выдаёт валидный JSON', asy
 
 test('Y-08: текст из stdin', async () => {
   const r = await new Promise((resolve) => {
-    const p = execFile(process.execPath, [CLI, '--stdin'], (err, stdout) => resolve({ code: err ? 1 : 0, stdout }));
+    const p = execFile(process.execPath, [CLI, '--stdin'], (err, stdout) =>
+      resolve({ code: err ? 1 : 0, stdout })
+    );
     p.stdin.write('купи хлеб запятая молоко');
     p.stdin.end();
   });

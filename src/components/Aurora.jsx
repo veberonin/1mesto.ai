@@ -13,7 +13,14 @@ export default function Aurora() {
       />
       <div
         className="aurora-blob animate-blob"
-        style={{ width: 480, height: 480, bottom: -180, left: '30%', background: 'rgba(56,189,248,0.10)', animationDelay: '-6s' }}
+        style={{
+          width: 480,
+          height: 480,
+          bottom: -180,
+          left: '30%',
+          background: 'rgba(56,189,248,0.10)',
+          animationDelay: '-6s',
+        }}
       />
       {/* тонкая сетка-виньетка */}
       <div

@@ -4,8 +4,10 @@ import { Mic, BarChart2, Settings, Info, History, Globe, Github } from 'lucide-r
 
 function Logo() {
   return (
-    <div className="w-9 h-9 rounded-xl flex items-end justify-center gap-[2.5px] pb-[9px] shadow-glow-sm"
-      style={{ background: 'linear-gradient(135deg,#ff8a5c 0%,#f43f6e 55%,#8b5cf6 130%)' }}>
+    <div
+      className="w-9 h-9 rounded-xl flex items-end justify-center gap-[2.5px] pb-[9px] shadow-glow-sm"
+      style={{ background: 'linear-gradient(135deg,#ff8a5c 0%,#f43f6e 55%,#8b5cf6 130%)' }}
+    >
       {[10, 16, 8, 14].map((h, i) => (
         <span key={i} className="w-[3px] rounded-full bg-white/95" style={{ height: h }} />
       ))}
@@ -67,14 +69,20 @@ export default function Header({ tab, setTab, language, onToggleLanguage, server
           </button>
 
           <div
-            title={serverOnline ? 'Бэкенд подключён — статистика синхронизируется' : 'Бэкенд недоступен — статистика хранится локально'}
+            title={
+              serverOnline
+                ? 'Бэкенд подключён — статистика синхронизируется'
+                : 'Бэкенд недоступен — статистика хранится локально'
+            }
             className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border ${
               serverOnline
                 ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
                 : 'text-zinc-500 border-white/[0.06] bg-white/[0.03]'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${serverOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${serverOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`}
+            />
             {serverOnline ? 'Сервер' : 'Локально'}
           </div>
 

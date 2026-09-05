@@ -58,7 +58,17 @@ function err(msg, code = 1) {
 }
 
 function parseArgs(argv) {
-  const opts = { _: [], json: false, lang: 'ru', batch: false, post: true, stdin: false, text: null, model: null, device: null };
+  const opts = {
+    _: [],
+    json: false,
+    lang: 'ru',
+    batch: false,
+    post: true,
+    stdin: false,
+    text: null,
+    model: null,
+    device: null,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--json') opts.json = true;
@@ -69,9 +79,13 @@ function parseArgs(argv) {
     else if (a === '--no-post') opts.post = false;
     else if (a === '--stdin') opts.stdin = true;
     else if (a === '--text') opts.text = argv[++i] ?? '';
-    else if (a === '--version') { console.log(VERSION); process.exit(0); }
-    else if (a === '--help' || a === '-h') { help(); process.exit(0); }
-    else if (a.startsWith('--')) err(`неизвестный флаг ${a} (см. --help)`, 2);
+    else if (a === '--version') {
+      console.log(VERSION);
+      process.exit(0);
+    } else if (a === '--help' || a === '-h') {
+      help();
+      process.exit(0);
+    } else if (a.startsWith('--')) err(`неизвестный флаг ${a} (см. --help)`, 2);
     else opts._.push(a);
   }
   return opts;
@@ -102,7 +116,13 @@ async function transcribeGemini(file, opts) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
   const audio = fs.readFileSync(file).toString('base64');
-  const mime = { '.wav': 'audio/wav', '.mp3': 'audio/mp3', '.m4a': 'audio/m4a', '.ogg': 'audio/ogg', '.flac': 'audio/flac' }[path.extname(file).toLowerCase()];
+  const mime = {
+    '.wav': 'audio/wav',
+    '.mp3': 'audio/mp3',
+    '.m4a': 'audio/m4a',
+    '.ogg': 'audio/ogg',
+    '.flac': 'audio/flac',
+  }[path.extname(file).toLowerCase()];
   progress('распознаю через Gemini Audio…');
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${(process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim()}:generateContent?key=${key}`,
@@ -110,7 +130,14 @@ async function transcribeGemini(file, opts) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Транскрибируй речь дословно на ${opts.lang === 'en' ? 'английском' : 'русском'}.` }, { inlineData: { mimeType: mime, data: audio } }] }],
+        contents: [
+          {
+            parts: [
+              { text: `Транскрибируй речь дословно на ${opts.lang === 'en' ? 'английском' : 'русском'}.` },
+              { inlineData: { mimeType: mime, data: audio } },
+            ],
+          },
+        ],
       }),
     }
   );
@@ -171,7 +198,10 @@ async function main() {
   }
 
   // --- аудио-режим ---
-  if (!opts._.length) { help(); err('укажи файл, каталог, --text или --stdin', 2); }
+  if (!opts._.length) {
+    help();
+    err('укажи файл, каталог, --text или --stdin', 2);
+  }
   const files = collectFiles(opts._[0], opts);
   const results = [];
   for (let i = 0; i < files.length; i++) {

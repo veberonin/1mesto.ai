@@ -7,8 +7,10 @@ export default function AboutTab() {
     <div className="space-y-5 max-w-3xl mx-auto">
       <div className="rounded-3xl glass p-8 shadow-card text-center relative overflow-hidden">
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-brand-flame/15 blur-3xl rounded-full pointer-events-none" />
-        <div className="mx-auto w-16 h-16 rounded-2xl flex items-end justify-center gap-1 pb-4 shadow-glow"
-          style={{ background: 'linear-gradient(135deg,#ff8a5c 0%,#f43f6e 55%,#8b5cf6 130%)' }}>
+        <div
+          className="mx-auto w-16 h-16 rounded-2xl flex items-end justify-center gap-1 pb-4 shadow-glow"
+          style={{ background: 'linear-gradient(135deg,#ff8a5c 0%,#f43f6e 55%,#8b5cf6 130%)' }}
+        >
           {[16, 26, 12, 22].map((h, i) => (
             <span key={i} className="w-1 rounded-full bg-white/95" style={{ height: h / 1.6 }} />
           ))}
@@ -19,8 +21,8 @@ export default function AboutTab() {
         <p className="text-[13px] text-zinc-500 mt-1">v2.0 · хакатон · open source (MIT)</p>
         <p className="text-[13.5px] text-zinc-300 leading-relaxed max-w-xl mx-auto mt-4">
           Рабочий клон <b>Wispr Flow</b>, собранный за хакатон: мгновенная диктовка через Web Speech API,
-          умная очистка речи от слов-паразитов, живая звуковая волна, WPM-аналитика и демо-режим,
-          который работает даже без микрофона.
+          умная очистка речи от слов-паразитов, живая звуковая волна, WPM-аналитика и демо-режим, который
+          работает даже без микрофона.
         </p>
         <div className="flex flex-wrap justify-center gap-2 mt-5">
           <a
@@ -45,19 +47,23 @@ export default function AboutTab() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
           {
-            icon: Zap, title: 'Скорость мысли',
+            icon: Zap,
+            title: 'Скорость мысли',
             text: 'Web Speech API распознаёт речь в реальном времени, локальный форматер полирует текст на лету — задержка почти нулевая.',
           },
           {
-            icon: Cpu, title: 'Локальный AI-форматер',
+            icon: Cpu,
+            title: 'Локальный AI-форматер',
             text: 'Убирает «эм», «ну», «как бы», расставляет точки и запятые по грамматике, понимает голосовые команды «точка», «новая строка».',
           },
           {
-            icon: Sparkles, title: '5 режимов стиля',
+            icon: Sparkles,
+            title: '5 режимов стиля',
             text: 'Чистый текст, деловое письмо с подписью, маркированный список, дружелюбный чат и техзаметка с подсветкой терминов.',
           },
           {
-            icon: BarChart2, title: 'WPM-аналитика',
+            icon: BarChart2,
+            title: 'WPM-аналитика',
             text: 'Живая скорость, личные рекорды, график сессий и подсчёт сэкономленных минут против клавиатуры.',
           },
         ].map((f) => (
@@ -75,9 +81,8 @@ export default function AboutTab() {
           <h3 className="font-bold">Хакатон</h3>
         </div>
         <p className="text-[13px] text-zinc-300 leading-relaxed">
-          Главный приз — механическая клавиатура за 50 000 ₽. Наш конёк: полный цикл
-          «голос → чистый текст» работает прямо в браузере без установки, плюс честное демо
-          без микрофона для жюри.
+          Главный приз — механическая клавиатура за 50 000 ₽. Наш конёк: полный цикл «голос → чистый текст»
+          работает прямо в браузере без установки, плюс честное демо без микрофона для жюри.
         </p>
       </div>
 

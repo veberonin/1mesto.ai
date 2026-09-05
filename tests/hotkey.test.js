@@ -3,8 +3,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  parseHotkey, normalizeAccelerator, isValidAccelerator, toElectronAccelerator,
-  hotkeyFromEvent, hotkeyMatches, DEFAULT_HOTKEY,
+  normalizeAccelerator,
+  isValidAccelerator,
+  toElectronAccelerator,
+  hotkeyFromEvent,
+  hotkeyMatches,
+  DEFAULT_HOTKEY,
 } from '../src/lib/hotkey.js';
 
 describe('hotkey: parse/normalize', () => {

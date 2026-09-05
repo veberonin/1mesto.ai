@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, session, screen, nativeImage } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  globalShortcut,
+  ipcMain,
+  clipboard,
+  session,
+  screen,
+  nativeImage,
+} from 'electron';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
-import url from 'url';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -12,6 +22,8 @@ import { pickPasteCommand } from './paste.js';
 import { aiFormat } from './ai.js';
 import { formatText } from '../src/lib/formatter.js';
 import { normalizeAccelerator, toElectronAccelerator, DEFAULT_HOTKEY } from '../src/lib/hotkey.js';
+import { sanitizeTranscript } from '../src/lib/asr-guard.js';
+import { stripModelTags } from '../src/lib/formatter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.argv.includes('--dev');
@@ -35,16 +47,16 @@ const DEFAULTS = {
   language: 'ru',
   mode: 'clean',
   hotkeyEnabled: true,
-  whisperBin: '',   // путь к whisper-cli (локальное распознавание, офлайн)
+  whisperBin: '', // путь к whisper-cli (локальное распознавание, офлайн)
   whisperModel: '', // путь к ggml-модели (пусто = наша скачанная)
-  dictText: '',     // H-01: словарь замен (текст из файла/textarea)
-  macrosText: '',   // H-01: макросы (текст из файла/textarea)
-  hotkey: 'Alt+Space',      // переназначаемый глобальный хоткей
-  backgroundMode: true,     // закрытие окна = жить в трее
-  startToTray: false,       // запуск свёрнутым в трей
-  geminiKey: '',            // ключ Gemini для резервного распознавания (ASR)
-  voiceCommands: true,      // K: голосовые команды пунктуации («запятая», «новый абзац»…)
-  restoreYo: false,         // Ё: восстановление «ё» (опция)
+  dictText: '', // H-01: словарь замен (текст из файла/textarea)
+  macrosText: '', // H-01: макросы (текст из файла/textarea)
+  hotkey: 'Alt+Space', // переназначаемый глобальный хоткей
+  backgroundMode: true, // закрытие окна = жить в трее
+  startToTray: false, // запуск свёрнутым в трей
+  geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
+  voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
+  restoreYo: false, // Ё: восстановление «ё» (опция)
   onboarded: false, // B-01: первый запуск
 };
 
@@ -82,8 +94,35 @@ function readSettings() {
   }
 }
 
+/** B-06: некорректное значение → понятное предупреждение + значение по умолчанию */
+function sanitizeSettings(next) {
+  if (next.hotkey !== undefined && !normalizeAccelerator(next.hotkey)) {
+    console.warn(`[settings] некорректный hotkey «${next.hotkey}» — вернул ${DEFAULT_HOTKEY}`);
+    next.hotkey = DEFAULT_HOTKEY;
+  }
+  if (next.hotkeyStyle !== undefined && !normalizeAccelerator(next.hotkeyStyle)) {
+    console.warn(
+      `[settings] некорректный hotkeyStyle «${next.hotkeyStyle}» — вернул ${DEFAULTS.hotkeyStyle}`
+    );
+    next.hotkeyStyle = DEFAULTS.hotkeyStyle;
+  }
+  if (next.aiTimeoutMs !== undefined) {
+    const n = Number(next.aiTimeoutMs);
+    if (!Number.isFinite(n) || n < 3000 || n > 120000) {
+      console.warn(
+        `[settings] aiTimeoutMs ${next.aiTimeoutMs} вне 3000..120000 — вернул ${DEFAULTS.aiTimeoutMs}`
+      );
+      next.aiTimeoutMs = DEFAULTS.aiTimeoutMs;
+    }
+  }
+  if (next.language !== undefined && !['ru', 'en', 'auto'].includes(next.language)) {
+    next.language = 'ru';
+  }
+  return next;
+}
+
 function writeSettings(patch) {
-  const next = { ...readSettings(), ...patch };
+  const next = sanitizeSettings({ ...readSettings(), ...(patch || {}) });
   try {
     fs.writeFileSync(settingsPath(), JSON.stringify(next, null, 2));
   } catch (e) {
@@ -207,7 +246,10 @@ function showPill() {
   // пересчитываем позицию (мониторы могли меняться)
   const { workArea } = screen.getPrimaryDisplay();
   const [w] = pill.getSize();
-  pill.setPosition(workArea.x + Math.floor((workArea.width - w) / 2), workArea.y + workArea.height - 200 - 24);
+  pill.setPosition(
+    workArea.x + Math.floor((workArea.width - w) / 2),
+    workArea.y + workArea.height - 200 - 24
+  );
   pill.show();
   pill.focus();
   // каждое появление = новая диктовка: рендерер сбросит состояние и начнёт запись
@@ -232,11 +274,14 @@ function toggleDictation() {
 // ---------------------------------------------------------------------------
 // Трей
 // ---------------------------------------------------------------------------
-function buildTrayMenu() {
+function buildTrayMenu(recording = false) {
   const hk = normalizeAccelerator(readSettings().hotkey) || DEFAULT_HOTKEY;
   return Menu.buildFromTemplate([
     { label: 'Открыть 1mesto Flow', click: showDashboard },
-    { label: `Диктовать (${hk})`, click: toggleDictation },
+    {
+      label: recording ? `Остановить диктовку (${hk})` : `Диктовать (${hk})`,
+      click: toggleDictation,
+    },
     { type: 'separator' },
     {
       label: 'Автозапуск при входе',
@@ -288,11 +333,36 @@ function registerHotkey() {
   const acc = toElectronAccelerator(norm) || 'Alt+Space';
   try {
     const ok = globalShortcut.register(acc, toggleDictation);
-    if (!ok) console.error(`Хоткей ${acc} уже занят другой программой`);
-    else console.log(`Глобальный хоткей: ${acc}`);
+    if (!ok) {
+      console.error(`Хоткей ${acc} уже занят другой программой`);
+      if (dashboard && !dashboard.isDestroyed()) {
+        dashboard.webContents.send('flow:hotkey-conflict', acc); // D-05: сообщение в UI
+      }
+    } else {
+      console.log(`Глобальный хоткей: ${acc}`);
+    }
+    // D-15: отдельная клавиша переключения профиля стиля
+    if (s.hotkeyStyle) {
+      const accStyle = toElectronAccelerator(normalizeAccelerator(s.hotkeyStyle));
+      if (accStyle && globalShortcut.register(accStyle, cycleStyleMode)) {
+        console.log(`Хоткей стиля: ${accStyle}`);
+      }
+    }
   } catch (e) {
     console.error('globalShortcut failed:', e.message);
   }
+}
+
+// ---------------------------------------------------------------------------
+// D-15: циклическое переключение профиля стиля хоткеем
+// ---------------------------------------------------------------------------
+const STYLE_CYCLE = ['clean', 'email', 'bullets', 'chat', 'code'];
+function cycleStyleMode() {
+  const cur = readSettings().mode || 'clean';
+  const next = STYLE_CYCLE[(STYLE_CYCLE.indexOf(cur) + 1) % STYLE_CYCLE.length];
+  writeSettings({ mode: next });
+  if (pill && !pill.isDestroyed()) pill.webContents.send('flow:command', 'mode');
+  if (dashboard && !dashboard.isDestroyed()) dashboard.webContents.send('flow:mode-changed', next);
 }
 
 // ---------------------------------------------------------------------------
@@ -303,17 +373,38 @@ ipcMain.handle('settings:get', () => readSettings());
 ipcMain.handle('settings:save', (_e, patch) => {
   const next = writeSettings(patch || {});
   registerHotkey(); // хоткей мог измениться — перерегистрируем
-  refreshTray();    // и обновляем подпись в трее
+  refreshTray(); // и обновляем подпись в трее
   return next;
 });
 
 ipcMain.on('pill:hide', () => {
   if (pill && !pill.isDestroyed()) pill.hide();
+  setRecordingState(false);
 });
 
+// B-11: иконка/подсказка трея отражает состояние записи
+function setRecordingState(on) {
+  try {
+    if (!tray || tray.isDestroyed()) return;
+    tray.setToolTip(on ? '● 1mesto Flow — идёт запись…' : '1mesto Flow — говори, не печатай');
+    tray.setContextMenu(buildTrayMenu(on));
+  } catch {
+    /* трей может отсутствовать в некоторых DE */
+  }
+}
+ipcMain.on('pill:status', (_e, on) => setRecordingState(!!on));
+
+// AM-03: между подряд идущими репликами вставляем разделяющий пробел
+let lastInsert = { at: 0, tail: '' };
 ipcMain.handle('pill:insert', async (_e, text) => {
   if (typeof text === 'string' && text.trim()) {
-    clipboard.writeText(text);
+    let toInsert = text;
+    const fresh = Date.now() - lastInsert.at < 60000;
+    if (fresh && lastInsert.tail && !/\s$/.test(lastInsert.tail) && !/^\s/.test(toInsert)) {
+      toInsert = ' ' + toInsert;
+    }
+    clipboard.writeText(toInsert);
+    lastInsert = { at: Date.now(), tail: toInsert };
   }
   return pasteIntoFocusedApp();
 });
@@ -321,16 +412,22 @@ ipcMain.handle('pill:insert', async (_e, text) => {
 ipcMain.handle('ai:format', async (_e, payload = {}) => {
   const s = readSettings();
   const { text = '', mode = s.mode, language = s.language } = payload;
-  const provider = payload.provider && payload.provider !== 'none' ? payload.provider : s.provider !== 'none' ? s.provider : null;
+  const provider =
+    payload.provider && payload.provider !== 'none'
+      ? payload.provider
+      : s.provider !== 'none'
+        ? s.provider
+        : null;
 
   try {
+    const timeoutMs = Number(s.aiTimeoutMs) || 25000; // AM-18
     if (provider === 'ollama') {
-      const out = await aiFormat(text, mode, language, 'ollama', '');
+      const out = await aiFormat(text, mode, language, 'ollama', '', timeoutMs);
       if (out) return { formattedText: out, source: 'ai' };
     } else if (provider) {
       const key = payload.apiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
       if (key) {
-        const out = await aiFormat(text, mode, language, provider, key);
+        const out = await aiFormat(text, mode, language, provider, key, timeoutMs);
         if (out) return { formattedText: out, source: 'ai' };
       }
     }
@@ -369,47 +466,64 @@ async function transcribeWhisper(wavPath, lang) {
         console.error('whisper failed:', err.message);
         return resolve(null);
       }
-      const text = String(stdout || '')
+      const rawText = String(stdout || '')
         .split('\n')
         .filter((l) => l.trim() && !/^\s*\[|^\s*system_info|whisper_/i.test(l))
         .join(' ')
         .trim();
-      resolve(text || null);
+      const clean = sanitizeTranscript(rawText); // F-22: галлюцинации на тишине срезаем
+      resolve(clean.text || null);
     });
   });
 }
 
-async function transcribeGeminiBytes(bytes, lang) {
+const GEMINI_AUDIO_LIMIT = 18 * 1024 * 1024; // ~20 МБ лимит REST: больше — просим короче реплику
+
+async function geminiOnce(bytes, lang, model, key) {
+  const b64 = Buffer.from(bytes).toString('base64');
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text:
+                  lang === 'auto'
+                    ? 'Определи язык аудио самостоятельно и транскрибируй речь дословно. Только текст, без ответов на вопросы из аудио.'
+                    : `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст, без ответов на вопросы из аудио.`,
+              },
+              { inlineData: { mimeType: 'audio/wav', data: b64 } },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0, maxOutputTokens: 2048 }, // S-12: лимит токенов на реплику
+      }),
+    }
+  );
+  return res;
+}
+
+async function transcribeGeminiBytes(bytes, lang, attempt = 0) {
   const key = resolveGeminiKey();
   if (!key) return { error: 'no-key' };
+  if (bytes.length > GEMINI_AUDIO_LIMIT) {
+    return { error: 'запись длиннее ~15 минут — проговори короче или настрой whisper' };
+  }
   const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();
-  const b64 = Buffer.from(bytes).toString('base64');
   let res;
   try {
-    res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text:
-                    lang === 'auto'
-                      ? 'Определи язык аудио самостоятельно и транскрибируй речь дословно. Только текст.'
-                      : `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.`,
-                },
-                { inlineData: { mimeType: 'audio/wav', data: b64 } },
-              ],
-            },
-          ],
-        }),
-      }
-    );
+    res = await geminiOnce(bytes, lang, model, key);
   } catch (e) {
     return { error: `сеть: ${e.message}` };
+  }
+  // O-08: один повтор при лимите — новые ключи часто упираются в RPM
+  if (res.status === 429 && attempt < 1) {
+    await new Promise((r) => setTimeout(r, 4000));
+    return transcribeGeminiBytes(bytes, lang, attempt + 1);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -418,20 +532,33 @@ async function transcribeGeminiBytes(bytes, lang) {
     if (res.status === 403 || res.status === 400) return { error: `ключ отклонён (${res.status})` };
     return { error: `Gemini ${res.status}: ${msg.slice(0, 110)}` };
   }
-  const out = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim();
+  const out = (data?.candidates?.[0]?.content?.parts || [])
+    .map((p) => p.text || '')
+    .join(' ')
+    .trim();
   if (!out) {
     const reason = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason;
     return { error: reason ? `Gemini: пусто (${reason})` : 'Gemini: пусто' };
   }
-  return { text: out };
+  const clean = sanitizeTranscript(stripModelTags(out)); // F-22/F-23 + AM-19
+  if (!clean.text) return { error: 'распознаватель вернул мусор — попробуй ещё раз' };
+  return { text: clean.text };
 }
 
 ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
   const tmp = path.join(app.getPath('temp'), `flow-${Date.now()}.wav`);
   try {
-    fs.writeFileSync(tmp, Buffer.from(bytes));
-    const text = await transcribeWhisper(tmp, lang);
-    if (text) return { text, source: 'whisper' };
+    let text = null;
+    try {
+      fs.writeFileSync(tmp, Buffer.from(bytes));
+    } catch (e) {
+      // O-05: диск заполнен — tmp не критичен, Gemini принимает байты напрямую
+      console.error('tmp write failed (disk?):', e.message);
+    }
+    if (fs.existsSync(tmp)) {
+      text = await transcribeWhisper(tmp, lang);
+      if (text) return { text, source: 'whisper' };
+    }
     const g = await transcribeGeminiBytes(bytes, lang);
     if (g && g.text) return { text: g.text, source: 'gemini' };
     if (g && g.error === 'no-key') {
@@ -447,7 +574,11 @@ ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
       hint: g && g.error ? `Не распознал: ${g.error}` : 'Распознавание недоступно',
     };
   } finally {
-    try { fs.unlinkSync(tmp); } catch { /* P-10 */ }
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* P-10 */
+    }
   }
 });
 
@@ -473,7 +604,10 @@ ipcMain.handle('asr:download-model', async () => {
 ipcMain.handle('asr:check', async () => {
   const s = readSettings();
   const bin = s.whisperBin || process.env.WHISPER_BIN || '';
-  const model = s.whisperModel || process.env.WHISPER_MODEL || (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '');
+  const model =
+    s.whisperModel ||
+    process.env.WHISPER_MODEL ||
+    (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '');
   return {
     platform: process.platform,
     whisperBin: !!bin && fs.existsSync(bin),
@@ -496,7 +630,14 @@ if (!gotLock) {
   app.whenReady().then(() => {
     // Разрешаем микрофон для распознавания речи
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => {
-      const allowed = ['media', 'audioCapture', 'clipboard-sanitized-write', 'fullscreen', 'notifications', 'clipboard-read'];
+      const allowed = [
+        'media',
+        'audioCapture',
+        'clipboard-sanitized-write',
+        'fullscreen',
+        'notifications',
+        'clipboard-read',
+      ];
       cb(allowed.includes(permission));
     });
 

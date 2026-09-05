@@ -30,6 +30,8 @@ test('неизвестная платформа: без команды (толь
 });
 
 test('paste.js не импортирует Electron (тестируемость)', async () => {
-  const src = await import('node:fs').then((fs) => fs.readFileSync(new URL('../electron/paste.js', import.meta.url), 'utf8'));
+  const src = await import('node:fs').then((fs) =>
+    fs.readFileSync(new URL('../electron/paste.js', import.meta.url), 'utf8')
+  );
   assert.ok(!src.includes("require('electron") && !src.includes("from 'electron'"));
 });

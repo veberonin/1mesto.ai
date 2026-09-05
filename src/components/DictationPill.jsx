@@ -7,7 +7,17 @@ import Keycaps, { hotkeyParts } from './Keycaps.jsx';
 /**
  * Чёрная плавающая пилюля — как в оригинале Wispr Flow.
  */
-export default function DictationPill({ state, bars, elapsed, liveWpm, language, interim, onToggle, disabled, hotkey }) {
+export default function DictationPill({
+  state,
+  bars,
+  elapsed,
+  liveWpm,
+  language,
+  interim,
+  onToggle,
+  disabled,
+  hotkey,
+}) {
   const recording = state === 'recording';
   const processing = state === 'processing';
 
@@ -30,7 +40,9 @@ export default function DictationPill({ state, bars, elapsed, liveWpm, language,
           <span className="absolute inset-0 rounded-full border border-white/30 animate-pulse-ring pointer-events-none" />
         )}
 
-        <span className={`ml-0.5 w-9 h-9 rounded-full flex items-center justify-center ${recording ? 'bg-white/10' : 'bg-white'}`}>
+        <span
+          className={`ml-0.5 w-9 h-9 rounded-full flex items-center justify-center ${recording ? 'bg-white/10' : 'bg-white'}`}
+        >
           {processing ? (
             <Loader2 className="w-4 h-4 text-white animate-spin" />
           ) : recording ? (
@@ -55,14 +67,14 @@ export default function DictationPill({ state, bars, elapsed, liveWpm, language,
             ))}
           </span>
         ) : (
-          <span className="text-[13px] font-semibold text-white">
-            {processing ? 'Форматирую…' : 'Flow'}
-          </span>
+          <span className="text-[13px] font-semibold text-white">{processing ? 'Форматирую…' : 'Flow'}</span>
         )}
 
         {recording ? (
           <span className="flex items-center gap-2 text-[11px] font-semibold tabular-nums text-white/90">
-            <span>{mm}:{ss}</span>
+            <span>
+              {mm}:{ss}
+            </span>
             <span className="w-1 h-1 rounded-full bg-white/30" />
             <span className="text-accent-soft">{liveWpm} wpm</span>
             <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/10 text-white/80">

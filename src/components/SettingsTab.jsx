@@ -1,9 +1,29 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown, Moon, Power, Languages } from 'lucide-react';
+import {
+  Wand2,
+  User,
+  Volume2,
+  Keyboard,
+  Server,
+  Trash2,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Cpu,
+  Download,
+  RefreshCw,
+  BookA,
+  Upload,
+  FileDown,
+  Moon,
+  Power,
+  Languages,
+} from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
+import { exportProfile, importProfile } from '../lib/profile.js';
 import { normalizeAccelerator, hotkeyFromEvent, isValidAccelerator, DEFAULT_HOTKEY } from '../lib/hotkey.js';
 
 function Toggle({ label, desc, value, onChange }) {
@@ -30,8 +50,17 @@ const PROVIDERS = [
 const inputCls =
   'w-full bg-paper/70 border border-line rounded-xl px-4 py-2.5 text-[13px] focus:outline-none focus:border-accent';
 
-export default function SettingsTab({ settings, onChange, serverOnline, onCheckServer, onResetStats, onToast }) {
+export default function SettingsTab({
+  settings,
+  onChange,
+  serverOnline,
+  onCheckServer,
+  onResetStats,
+  onResetSettings,
+  onToast,
+}) {
   const [showKey, setShowKey] = useState(false);
+  const profileRef = useRef(null);
 
   const set = (patch) => onChange({ ...settings, ...patch });
 
@@ -44,8 +73,8 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
           <h3 className="font-bold">AI-полировка текста</h3>
         </div>
         <p className="text-[12px] text-mute mb-4">
-          Локальный форматер уже убирает паразитов и ставит пунктуацию. Внешний AI добавит глубину:
-          перепишет корявые фразы и подгонит тон.
+          Локальный форматер уже убирает паразитов и ставит пунктуацию. Внешний AI добавит глубину: перепишет
+          корявые фразы и подгонит тон.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
@@ -67,9 +96,11 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
 
         {settings.provider === 'ollama' && (
           <div className="p-3.5 rounded-2xl border border-accent/20 bg-accent-soft/60 text-[12px] text-ink-800 leading-relaxed">
-            <b>Ollama локально.</b> Запусти <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama serve</code> и
-            скачай модель: <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama pull llama3.1</code>. Сервер сам
-            найдёт Ollama на <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">localhost:11434</code>. Ключ не нужен.
+            <b>Ollama локально.</b> Запусти{' '}
+            <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama serve</code> и скачай модель:{' '}
+            <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama pull llama3.1</code>. Сервер сам
+            найдёт Ollama на <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">localhost:11434</code>.
+            Ключ не нужен.
           </div>
         )}
 
@@ -134,7 +165,8 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
           ))}
         </div>
         <p className="text-[11.5px] text-mute mt-2">
-          В «Авто» язык определяет распознаватель (whisper/Gemini). Пилюля и дашборд используют одну настройку.
+          В «Авто» язык определяет распознаватель (whisper/Gemini). Пилюля и дашборд используют одну
+          настройку.
         </p>
       </div>
 
@@ -186,6 +218,12 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             desc="Восстанавливать ё там, где она всегда: «еще» → «ещё»"
             value={!!settings.restoreYo}
             onChange={(v) => set({ restoreYo: v })}
+          />
+          <Toggle
+            label="Проверка вслух"
+            desc="После вставки перечитать результат системным голосом — проверка без рук"
+            value={!!settings.voiceCheck}
+            onChange={(v) => set({ voiceCheck: v })}
           />
           <Toggle
             label="Приватный режим"
@@ -242,6 +280,78 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
         <p className="text-[11.5px] text-mute mt-3">
           Статистика хранится локально, а при живом бэкенде ещё и зеркалится на сервер (Express + JSON).
         </p>
+      </div>
+
+      {/* Профиль настроек: экспорт/импорт/сброс (B-15/B-07) */}
+      <div className="rounded-3xl glass p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-3">
+          <Server className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Профиль настроек</h3>
+        </div>
+        <p className="text-[12px] text-mute mb-3">
+          Перенос конфигурации между машинами одним файлом. API-ключи в профиль не попадают.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              try {
+                const blob = new Blob([exportProfile(settings)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'flow-profile.json';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+                onToast('Профиль выгружен ✓', 'success');
+              } catch {
+                onToast('Не удалось выгрузить профиль', 'error');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-line bg-card hover:border-accent"
+          >
+            Экспортировать профиль
+          </button>
+          <input
+            ref={profileRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files && e.target.files[0];
+              if (!f) return;
+              try {
+                const { values, errors } = importProfile(await f.text());
+                const n = Object.keys(values).length;
+                if (!n) {
+                  onToast('В файле нет известных настроек', 'error');
+                } else {
+                  onChange({ ...settings, ...values });
+                  onToast(
+                    `Профиль применён: ${n} настроек${errors.length ? ` (пропущено: ${errors.length})` : ''}`,
+                    'success'
+                  );
+                }
+              } catch {
+                onToast('Не удалось прочитать файл профиля', 'error');
+              } finally {
+                if (profileRef.current) profileRef.current.value = '';
+              }
+            }}
+          />
+          <button
+            onClick={() => profileRef.current && profileRef.current.click()}
+            className="px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-line bg-card hover:border-accent"
+          >
+            Импортировать профиль
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('Сбросить все настройки к значениям по умолчанию?')) onResetSettings();
+            }}
+            className="px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-line text-mute hover:text-red-600"
+          >
+            Сбросить настройки
+          </button>
+        </div>
       </div>
 
       {/* Горячие клавиши (переназначаемые) */}
@@ -348,7 +458,8 @@ function DictCard({ settings, onChange, onToast }) {
         </div>
         {parsed.errors.length > 0 && (
           <div className="text-[11.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-            Не разобрал {parsed.errors.length} строк: «{parsed.errors[0].slice(0, 40)}» — нужен формат «слово = замена»
+            Не разобрал {parsed.errors.length} строк: «{parsed.errors[0].slice(0, 40)}» — нужен формат «слово
+            = замена»
           </div>
         )}
 
@@ -389,7 +500,10 @@ function AsrCard({ settings, onChange, onToast }) {
 
   const refresh = () => {
     if (!isDesktop()) return;
-    desktopAPI.asrCheck().then(setInfo).catch(() => {});
+    desktopAPI
+      .asrCheck()
+      .then(setInfo)
+      .catch(() => {});
   };
   useEffect(() => {
     refresh();
@@ -431,8 +545,7 @@ function AsrCard({ settings, onChange, onToast }) {
         </button>
       </div>
       <p className="text-[12px] text-mute mt-1 mb-4 leading-relaxed">
-        Локальный движок whisper.cpp работает офлайн и не зависит от блокировок.
-        Статус: <b>{engineLabel}</b>
+        Локальный движок whisper.cpp работает офлайн и не зависит от блокировок. Статус: <b>{engineLabel}</b>
       </p>
 
       <div className="space-y-3">
@@ -484,7 +597,10 @@ function AsrCard({ settings, onChange, onToast }) {
               onToast('Скачиваю модель ~60 МБ…', 'info');
               try {
                 const r = await desktopAPI.downloadModel();
-                onToast(r.existing ? 'Модель уже на месте ✓' : 'Модель скачана, SHA-256 сходится ✓', 'success');
+                onToast(
+                  r.existing ? 'Модель уже на месте ✓' : 'Модель скачана, SHA-256 сходится ✓',
+                  'success'
+                );
                 refresh();
               } catch (e) {
                 onToast('Ошибка загрузки: ' + (e.message || 'сеть'), 'error');
@@ -500,7 +616,12 @@ function AsrCard({ settings, onChange, onToast }) {
           </button>
           <span className="text-[11px] text-mute">
             проверяется по SHA-256 ·{' '}
-            <a className="underline hover:text-ink" href="https://github.com/ggml-org/whisper.cpp/releases" target="_blank" rel="noreferrer">
+            <a
+              className="underline hover:text-ink"
+              href="https://github.com/ggml-org/whisper.cpp/releases"
+              target="_blank"
+              rel="noreferrer"
+            >
               скачать whisper.cpp для своей ОС
             </a>
           </span>
@@ -513,12 +634,12 @@ function AsrCard({ settings, onChange, onToast }) {
   );
 }
 
-
 /* ------------------------------------------------------------------ */
 /* Переназначение горячих клавиш                                       */
 /* ------------------------------------------------------------------ */
 function HotkeyCard({ settings, onChange, onToast }) {
   const [capturing, setCapturing] = useState(false);
+  const [capturingStyle, setCapturingStyle] = useState(false);
 
   const current = normalizeAccelerator(settings.hotkey) || DEFAULT_HOTKEY;
 
@@ -538,6 +659,24 @@ function HotkeyCard({ settings, onChange, onToast }) {
     onChange({ ...settings, hotkey: hk });
     setCapturing(false);
     onToast(`Хоткей: ${hk} ✓`, 'success');
+  };
+
+  const onStyleKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.code === 'Escape') {
+      setCapturingStyle(false);
+      return;
+    }
+    const hk = hotkeyFromEvent(e);
+    if (!hk) return;
+    if (!isValidAccelerator(hk)) {
+      onToast('Нужен модификатор: Ctrl/Alt/Meta (или F-клавиша)', 'error');
+      return;
+    }
+    onChange({ ...settings, hotkeyStyle: hk });
+    setCapturingStyle(false);
+    onToast(`Хоткей стиля: ${hk} ✓`, 'success');
   };
 
   return (
@@ -568,7 +707,38 @@ function HotkeyCard({ settings, onChange, onToast }) {
             title="Нажми, чтобы переназначить"
           >
             {current.split('+').map((part) => (
-              <span key={part} className="keycap">{part}</span>
+              <span key={part} className="keycap">
+                {part}
+              </span>
+            ))}
+            <span className="text-[11px] text-mute ml-1">изменить</span>
+          </button>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-line/70">
+        <div>
+          <div className="text-[13.5px] font-semibold">Переключение стиля</div>
+          <div className="text-[11.5px] text-mute mt-0.5">
+            циклом: умная очистка → email → список → чат → код (D-15)
+          </div>
+        </div>
+        {capturingStyle ? (
+          <button
+            onKeyDown={onStyleKeyDown}
+            autoFocus
+            className="px-5 py-2.5 rounded-xl text-[12.5px] font-bold bg-accent text-white animate-pulse"
+          >
+            Нажми комбинацию… (Esc — отмена)
+          </button>
+        ) : (
+          <button
+            onClick={() => setCapturingStyle(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-card hover:border-accent"
+          >
+            {(normalizeAccelerator(settings.hotkeyStyle) || 'Ctrl+Alt+S').split('+').map((part, i) => (
+              <span key={`${part}-${i}`} className="keycap">
+                {part}
+              </span>
             ))}
             <span className="text-[11px] text-mute ml-1">изменить</span>
           </button>
@@ -590,7 +760,10 @@ function BackgroundCard({ settings, onChange, onToast }) {
 
   useEffect(() => {
     if (!isDesktop()) return;
-    desktopAPI.getLoginItem().then(setLogin).catch(() => {});
+    desktopAPI
+      .getLoginItem()
+      .then(setLogin)
+      .catch(() => {});
   }, []);
 
   if (!isDesktop()) {
@@ -601,8 +774,8 @@ function BackgroundCard({ settings, onChange, onToast }) {
           <h3 className="font-bold">Фоновый режим</h3>
         </div>
         <p className="text-[12.5px] text-mute leading-relaxed">
-          Работа в фоне, свёрнутый запуск и автостарт — в <b>десктоп-приложении</b>.
-          В браузере Flow активен, пока открыта вкладка.
+          Работа в фоне, свёрнутый запуск и автостарт — в <b>десктоп-приложении</b>. В браузере Flow активен,
+          пока открыта вкладка.
         </p>
       </div>
     );

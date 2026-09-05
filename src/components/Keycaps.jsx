@@ -5,7 +5,10 @@ import React from 'react';
 /** Разбивает акселератор «Ctrl+Shift+K» на части для кейкапов */
 export function hotkeyParts(hotkey) {
   const raw = typeof hotkey === 'string' && hotkey.trim() ? hotkey.trim() : 'Alt+Space';
-  return raw.split('+').map((p) => p.trim()).filter(Boolean);
+  return raw
+    .split('+')
+    .map((p) => p.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -13,9 +16,7 @@ export function hotkeyParts(hotkey) {
  * <Keycaps hotkey={settings.hotkey} /> или тёмный вариант на баннере: dark.
  */
 export default function Keycaps({ hotkey, dark = false, className = '' }) {
-  const base = dark
-    ? 'keycap !border-paper/60 !bg-white/10 !text-paper !shadow-none'
-    : 'keycap';
+  const base = dark ? 'keycap !border-paper/60 !bg-white/10 !text-paper !shadow-none' : 'keycap';
   return (
     <>
       {hotkeyParts(hotkey).map((part, i) => (

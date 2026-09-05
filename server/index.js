@@ -43,13 +43,14 @@ function writeDb(db) {
 // ---------------------------------------------------------------------------
 function buildPrompt(text, mode, language) {
   const langName = language === 'en' ? 'English' : 'Russian';
-  const modeHint = {
-    clean: 'Standard clean text with proper punctuation and grammar.',
-    email: 'Professional email with greeting and sign-off.',
-    bullets: 'Concise bullet-point list of key points.',
-    chat: 'Friendly casual chat message.',
-    code: 'Clean technical note; wrap tech terms in backticks.',
-  }[mode] || 'Standard clean text.';
+  const modeHint =
+    {
+      clean: 'Standard clean text with proper punctuation and grammar.',
+      email: 'Professional email with greeting and sign-off.',
+      bullets: 'Concise bullet-point list of key points.',
+      chat: 'Friendly casual chat message.',
+      code: 'Clean technical note; wrap tech terms in backticks.',
+    }[mode] || 'Standard clean text.';
 
   return `You are Flow, a voice-dictation formatter (like Wispr Flow).
 Rules:
@@ -91,7 +92,12 @@ async function aiFormat(text, mode, language, provider, key) {
       25000
     );
     const out = data?.choices?.[0]?.message?.content;
-    return out ? out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim() : null;
+    return out
+      ? out
+          .replace(/^```[a-z]*\n?/i, '')
+          .replace(/```$/, '')
+          .trim()
+      : null;
   }
 
   if (provider === 'ollama') {
@@ -110,7 +116,10 @@ async function aiFormat(text, mode, language, provider, key) {
               stream: false,
               options: { temperature: 0.2 },
               messages: [
-                { role: 'system', content: 'You are Flow, a voice dictation formatter. Output only the formatted text.' },
+                {
+                  role: 'system',
+                  content: 'You are Flow, a voice dictation formatter. Output only the formatted text.',
+                },
                 { role: 'user', content: prompt },
               ],
             }),
@@ -118,7 +127,12 @@ async function aiFormat(text, mode, language, provider, key) {
         8000
       );
       const out = data?.message?.content;
-      return out ? out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim() : null;
+      return out
+        ? out
+            .replace(/^```[a-z]*\n?/i, '')
+            .replace(/```$/, '')
+            .trim()
+        : null;
     } catch {
       return null; // Ollama не запущена — тихо падаем на локальный форматер
     }
@@ -139,13 +153,23 @@ async function aiFormat(text, mode, language, provider, key) {
               method: 'POST',
               signal,
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.2,
+                  maxOutputTokens: Number(process.env.GEMINI_MAX_TOKENS || 1024),
+                },
+              }),
             }
           ).then((r) => r.json()),
         25000
       );
       const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (out) return out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+      if (out)
+        return out
+          .replace(/^```[a-z]*\n?/i, '')
+          .replace(/```$/, '')
+          .trim();
     } catch {
       /* пробуем следующую модель */
     }
@@ -163,7 +187,7 @@ app.get('/api/health', (req, res) => {
     storage: 'json',
     sessions: db.sessions.length,
     ai: {
-      gemini: !!(process.env.GEMINI_API_KEY || req.headers['x-api-key']),
+      gemini: !!process.env.GEMINI_API_KEY, // V: ключи клиентов не ретранслируются — только env сервера
       openai: !!process.env.OPENAI_API_KEY,
       ollama: !!(process.env.OLLAMA_URL || req.headers['x-ai-provider'] === 'ollama'),
     },
@@ -193,7 +217,10 @@ app.get('/api/summary', (req, res) => {
   const db = readDb();
   const day = new Date().toISOString().slice(0, 10);
   const today = db.sessions.filter((x) => (x.timestamp || '').startsWith(day));
-  const lat = db.sessions.map((x) => x.averageWpm).filter(Boolean).sort((a, b) => a - b);
+  const lat = db.sessions
+    .map((x) => x.averageWpm)
+    .filter(Boolean)
+    .sort((a, b) => a - b);
   const byMode = {};
   for (const x of db.sessions) byMode[x.mode] = (byMode[x.mode] || 0) + 1;
   res.json({
@@ -234,7 +261,9 @@ app.post('/api/format', async (req, res) => {
     const provider =
       req.headers['x-ai-provider'] ||
       (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'none');
-    const key = req.headers['x-api-key'] || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
+    // V-заметка: ключ берётся ТОЛЬКО из env сервера. Клиентский ключ передаётся
+    // провайдеру напрямую из десктоп-приложения, сервер как прокси ключей не используется.
+    const key = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
 
     if (provider !== 'none' && (key || provider === 'ollama')) {
       const aiText = await aiFormat(text, mode, language, provider, key);
@@ -260,7 +289,7 @@ app.post('/api/format', async (req, res) => {
 
 // Транскрибация аудио (WAV base64) через Gemini — фолбэк для веб-версии
 app.post('/api/transcribe', async (req, res) => {
-  const key = req.headers['x-api-key'] || process.env.GEMINI_API_KEY;
+  const key = process.env.GEMINI_API_KEY; // V: без ретрансляции клиентских ключей
   const { audio, lang = 'ru' } = req.body || {};
   if (!audio) return res.status(400).json({ error: 'no audio' });
   if (!key) return res.status(501).json({ error: 'no GEMINI_API_KEY on server' });
@@ -275,7 +304,9 @@ app.post('/api/transcribe', async (req, res) => {
           contents: [
             {
               parts: [
-                { text: `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.` },
+                {
+                  text: `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.`,
+                },
                 { inlineData: { mimeType: 'audio/wav', data: audio } },
               ],
             },
@@ -284,7 +315,10 @@ app.post('/api/transcribe', async (req, res) => {
       }
     );
     const data = await r.json();
-    const text = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim();
+    const text = (data?.candidates?.[0]?.content?.parts || [])
+      .map((p) => p.text || '')
+      .join(' ')
+      .trim();
     if (!text) return res.status(502).json({ error: 'empty' });
     res.json({ text: text.trim(), source: 'gemini' });
   } catch (e) {
@@ -307,6 +341,16 @@ app.get('*', (req, res) => {
 // Слушаем порт только при прямом запуске (не при импорте из тестов)
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (isMain) {
+  // O-13: занятый порт не блокирует старт — вторая копия молча продолжает работу без сервера
+  process.on('uncaughtException', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error('[1mesto Flow] порт занят другой копией — работаю без сервера');
+      process.exit(0);
+    }
+    console.error('[1mesto Flow] непредвиденная ошибка:', err && err.message);
+    process.exit(1);
+  });
+
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[1mesto Flow] API server: http://localhost:${PORT}`);

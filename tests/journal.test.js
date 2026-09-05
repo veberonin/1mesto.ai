@@ -18,7 +18,15 @@ beforeEach(() => {
 });
 
 test('M-01/M-02: каждая реплика в истории с полями схемы', () => {
-  const rec = j.addUtterance({ text: 'привет жюри', words: 2, wpm: 120, durSec: 1, app: 'zed', mode: 'clean', lang: 'ru' });
+  const rec = j.addUtterance({
+    text: 'привет жюри',
+    words: 2,
+    wpm: 120,
+    durSec: 1,
+    app: 'zed',
+    mode: 'clean',
+    lang: 'ru',
+  });
   assert.ok(rec.id.startsWith('u_'));
   assert.match(rec.ts, /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/); // UTC ISO
   assert.equal(rec.app, 'zed');
@@ -95,9 +103,21 @@ test('T-03..T-06: сводка считает день, слова, прилож
 test('M-14: ротация — не больше 10000 записей', () => {
   // наполняем хранилище напрямую — проверяем логику ротации, а не скорость цикла
   const many = Array.from({ length: 10010 }, (_, i) => ({
-    id: `u_${i}`, v: 1, ts: new Date().toISOString(), app: 't', text: `r${i}`,
-    words: 1, wpm: 0, durSec: 0, mode: 'clean', lang: 'ru', source: 'local',
-    latencies: {}, pasteMethod: null, dictHits: [], fillersRemoved: 0,
+    id: `u_${i}`,
+    v: 1,
+    ts: new Date().toISOString(),
+    app: 't',
+    text: `r${i}`,
+    words: 1,
+    wpm: 0,
+    durSec: 0,
+    mode: 'clean',
+    lang: 'ru',
+    source: 'local',
+    latencies: {},
+    pasteMethod: null,
+    dictHits: [],
+    fillersRemoved: 0,
   }));
   store.set('flow-journal-v1', JSON.stringify(many));
   j.addUtterance({ text: 'свежая', words: 1 });
@@ -106,14 +126,25 @@ test('M-14: ротация — не больше 10000 записей', () => {
   assert.equal(list[list.length - 1].text, 'свежая', 'свежая запись остаётся');
 });
 
-
 // ---------------------------------------------------------------------------
 // Экспорты: JSON / Markdown (в добавок к CSV/JSONL)
 // ---------------------------------------------------------------------------
 test('exportJSON валидный JSON со всеми репликами', async () => {
   const { exportJSON, addUtterance, clearJournal } = await import('../src/lib/journal.js');
   clearJournal();
-  addUtterance({ text: 'тест экспорта', words: 2, wpm: 100, durSec: 2, app: 'web', mode: 'clean', lang: 'ru', source: 'local', latencies: {}, dictHits: [], fillersRemoved: 0 });
+  addUtterance({
+    text: 'тест экспорта',
+    words: 2,
+    wpm: 100,
+    durSec: 2,
+    app: 'web',
+    mode: 'clean',
+    lang: 'ru',
+    source: 'local',
+    latencies: {},
+    dictHits: [],
+    fillersRemoved: 0,
+  });
   const parsed = JSON.parse(exportJSON());
   assert.ok(Array.isArray(parsed));
   assert.ok(parsed.length >= 1);
@@ -123,7 +154,19 @@ test('exportJSON валидный JSON со всеми репликами', asyn
 test('exportMarkdown — заголовок, шапка таблицы, строки', async () => {
   const { exportMarkdown, addUtterance, clearJournal } = await import('../src/lib/journal.js');
   clearJournal();
-  addUtterance({ text: 'маркдаун', words: 1, wpm: 60, durSec: 1, app: 'pill', mode: 'email', lang: 'ru', source: 'local', latencies: {}, dictHits: [], fillersRemoved: 0 });
+  addUtterance({
+    text: 'маркдаун',
+    words: 1,
+    wpm: 60,
+    durSec: 1,
+    app: 'pill',
+    mode: 'email',
+    lang: 'ru',
+    source: 'local',
+    latencies: {},
+    dictHits: [],
+    fillersRemoved: 0,
+  });
   const md = exportMarkdown();
   assert.match(md, /^# Журнал диктовки/);
   assert.match(md, /\| Дата \| Приложение \|/);

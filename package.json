@@ -20,7 +20,11 @@
     "summary": "node scripts/summary.mjs",
     "flow": "node scripts/flow-cli.mjs",
     "test:ui": "vitest run src/__tests__",
-    "bench": "node scripts/bench.mjs"
+    "bench": "node scripts/bench.mjs",
+    "lint": "eslint src electron server scripts tests --ext .js,.jsx,.mjs,.cjs --max-warnings 0",
+    "format": "prettier --write src electron server scripts tests",
+    "format:check": "prettier --check src electron server scripts tests",
+    "coverage": "c8 --reporter=text --reporter=lcov --include=src/lib --include=server node --test tests/"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -32,11 +36,14 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
+    "c8": "^10.1.2",
     "concurrently": "^8.2.2",
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8",
+    "eslint": "^8.57.1",
     "lucide-react": "^0.363.0",
     "postcss": "^8.4.38",
+    "prettier": "^3.3.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.4.1",

@@ -11,8 +11,7 @@ const KEY = 'flow-journal-v1';
 const MAX_RECORDS = 10000; // M-14: ротация истории
 const SCHEMA_VERSION = 1;
 
-const newId = () =>
-  `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const newId = () => `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 export function loadJournal() {
   try {
@@ -55,20 +54,20 @@ function persist(records) {
 export function addUtterance(r) {
   const records = loadJournal();
   const rec = {
-    id: newId(),                       // T-13: уникальный идентификатор
+    id: newId(), // T-13: уникальный идентификатор
     v: SCHEMA_VERSION,
-    ts: new Date().toISOString(),      // T-12/M-18: UTC ISO с таймзоной
-    app: r.app || 'unknown',           // M-02/T-06: приложение-цель
-    text: r.privacy ? '' : r.text || '',   // T-10: приватный режим без текста
-    words: r.words || 0,               // T-04/AL-10
-    wpm: r.wpm || 0,                   // AL-02
+    ts: new Date().toISOString(), // T-12/M-18: UTC ISO с таймзоной
+    app: r.app || 'unknown', // M-02/T-06: приложение-цель
+    text: r.privacy ? '' : r.text || '', // T-10: приватный режим без текста
+    words: r.words || 0, // T-04/AL-10
+    wpm: r.wpm || 0, // AL-02
     durSec: r.durSec || 0,
     mode: r.mode || 'clean',
     lang: r.lang || 'ru',
-    source: r.source || 'local',       // S-02: вызывалась ли модель
-    latencies: r.latencies || {},      // Q-18
+    source: r.source || 'local', // S-02: вызывалась ли модель
+    latencies: r.latencies || {}, // Q-18
     pasteMethod: r.pasteMethod || null, // K-25
-    dictHits: r.dictHits || [],        // H-12
+    dictHits: r.dictHits || [], // H-12
     fillersRemoved: r.fillersRemoved || 0,
   };
   records.push(rec);
@@ -111,7 +110,9 @@ export function clearJournal() {
 
 /** M-11: экспорт в JSONL (одна строка — одна реплика, T-01) */
 export function exportJSONL() {
-  return loadJournal().map((r) => JSON.stringify(r)).join('\n');
+  return loadJournal()
+    .map((r) => JSON.stringify(r))
+    .join('\n');
 }
 
 /** AL-12/T-08: экспорт в CSV (id,ts,app,words,wpm,durSec,mode,lang,source) */
@@ -157,7 +158,10 @@ export function journalSummary() {
   const today = records.filter((r) => r.ts.startsWith(day));
   const byApp = {};
   for (const r of records) byApp[r.app] = (byApp[r.app] || 0) + 1;
-  const lat = records.map((r) => r.latencies?.finalMs).filter(Boolean).sort((a, b) => a - b);
+  const lat = records
+    .map((r) => r.latencies?.finalMs)
+    .filter(Boolean)
+    .sort((a, b) => a - b);
   const p = (q) => (lat.length ? Math.round(lat[Math.floor(q * (lat.length - 1))]) : 0);
   return {
     total: records.length,

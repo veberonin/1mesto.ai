@@ -21,7 +21,20 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Тесты одной командой (A-13)
+        run: npm test
+      - name: Линтер без предупреждений (AN-01/AN-07/AN-09)
+        run: npm run lint
+      - name: Форматтер (AN-02)
+        run: npm run format:check
+      - name: Покрытие тестами (AN-06/AB-16)
+        run: npm run coverage
+      - name: Публикуем отчёт покрытия артефактом (AB-16)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
 
   build:
     name: Production build

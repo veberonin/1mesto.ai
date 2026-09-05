@@ -16,10 +16,11 @@ export default function TodayList({ refreshKey, privacy, onToast, recording, hot
 
   const records = useMemo(() => {
     const day = new Date().toISOString().slice(0, 10);
-    let r = listUtterances().filter((x) => x.ts.startsWith(day)).reverse();
+    let r = listUtterances()
+      .filter((x) => x.ts.startsWith(day))
+      .reverse();
     if (query) r = r.filter((x) => (x.text || '').toLowerCase().includes(query.toLowerCase()));
     return r;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, refreshKey, tick]);
 
   const copy = async (r) => {
@@ -66,7 +67,10 @@ export default function TodayList({ refreshKey, privacy, onToast, recording, hot
 
       <div className="divide-y divide-line/70">
         {records.map((r) => (
-          <div key={r.id} className="group flex items-center gap-4 px-5 py-3.5 hover:bg-paper/60 transition-colors">
+          <div
+            key={r.id}
+            className="group flex items-center gap-4 px-5 py-3.5 hover:bg-paper/60 transition-colors"
+          >
             <span className="text-[12px] text-mute tabular-nums w-14 shrink-0">
               {new Date(r.ts).toLocaleTimeString('ru-RU', { hour: 'numeric', minute: '2-digit' })}
             </span>
@@ -74,10 +78,18 @@ export default function TodayList({ refreshKey, privacy, onToast, recording, hot
               {r.text || <span className="text-mute italic">текст скрыт приватным режимом</span>}
             </span>
             <span className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => reinsert(r)} title="Вставить заново" className="p-1.5 rounded-lg hover:bg-accent-soft text-mute hover:text-accent-deep">
+              <button
+                onClick={() => reinsert(r)}
+                title="Вставить заново"
+                className="p-1.5 rounded-lg hover:bg-accent-soft text-mute hover:text-accent-deep"
+              >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => copy(r)} title="Копировать" className="p-1.5 rounded-lg hover:bg-accent-soft text-mute hover:text-accent-deep">
+              <button
+                onClick={() => copy(r)}
+                title="Копировать"
+                className="p-1.5 rounded-lg hover:bg-accent-soft text-mute hover:text-accent-deep"
+              >
                 <Copy className="w-3.5 h-3.5" />
               </button>
               <button
@@ -91,7 +103,9 @@ export default function TodayList({ refreshKey, privacy, onToast, recording, hot
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </span>
-            <span className="text-[12px] font-bold text-accent-deep tabular-nums w-12 text-right">{r.wpm || ''}</span>
+            <span className="text-[12px] font-bold text-accent-deep tabular-nums w-12 text-right">
+              {r.wpm || ''}
+            </span>
           </div>
         ))}
 
@@ -100,8 +114,7 @@ export default function TodayList({ refreshKey, privacy, onToast, recording, hot
             <Mic className="w-6 h-6 text-line mx-auto mb-3" />
             <div className="text-[14px] font-semibold">Пока тихо</div>
             <div className="text-[12.5px] text-mute mt-1">
-              Зажми <Keycaps hotkey={hotkey} className="ml-1" /> и скажи что-нибудь —
-              реплика появится здесь
+              Зажми <Keycaps hotkey={hotkey} className="ml-1" /> и скажи что-нибудь — реплика появится здесь
             </div>
           </div>
         )}

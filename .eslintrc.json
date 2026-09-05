@@ -1,0 +1,52 @@
+{
+  "root": true,
+  "env": {
+    "es2022": true,
+    "browser": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2024,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "ignorePatterns": [
+    "dist/",
+    "release/",
+    "node_modules/",
+    "coverage/"
+  ],
+  "rules": {
+    "no-empty": [
+      "error",
+      {
+        "allowEmptyCatch": true
+      }
+    ],
+    "no-console": "off",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "none",
+        "caughtErrors": "none",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-regex-spaces": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.jsx"
+      ],
+      "rules": {
+        "no-unused-vars": "off"
+      }
+    }
+  ]
+}

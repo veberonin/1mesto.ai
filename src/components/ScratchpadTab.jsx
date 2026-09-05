@@ -60,8 +60,7 @@ export default function ScratchpadTab({ lastResult = '', onToast }) {
       </div>
 
       <p className="text-[13px] text-mute mb-3">
-        Место для мыслей, которые не жалко: буфер между головой и документом.
-        Автосохранение локально, офлайн.
+        Место для мыслей, которые не жалко: буфер между головой и документом. Автосохранение локально, офлайн.
       </p>
 
       <div className="glass overflow-hidden flex flex-col">

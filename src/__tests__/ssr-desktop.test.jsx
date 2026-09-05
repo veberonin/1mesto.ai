@@ -25,8 +25,12 @@ beforeAll(() => {
     asrCheck: async () => {
       calls.asrCheck += 1;
       return {
-        platform: 'win32', whisperBin: true, whisperModel: true,
-        modelDownloaded: true, modelPath: 'C:\\models\\ggml-base-q5_1.bin', geminiKey: false,
+        platform: 'win32',
+        whisperBin: true,
+        whisperModel: true,
+        modelDownloaded: true,
+        modelPath: 'C:\\models\\ggml-base-q5_1.bin',
+        geminiKey: false,
       };
     },
   };
@@ -41,10 +45,20 @@ describe('SSR (десктоп): экраны с flowDesktop рендерятся
     const html = renderToString(
       <SettingsTab
         settings={{
-          provider: 'none', apiKey: '', autoFormat: true, autoCopy: false, soundOn: true,
-          name: '', privacy: false, autoPunct: true, normalizeNumbers: true,
-          whisperBin: 'C:\\whisper\\main.exe', whisperModel: '',
-          dictText: '', macrosText: '', onboarded: true,
+          provider: 'none',
+          apiKey: '',
+          autoFormat: true,
+          autoCopy: false,
+          soundOn: true,
+          name: '',
+          privacy: false,
+          autoPunct: true,
+          normalizeNumbers: true,
+          whisperBin: 'C:\\whisper\\main.exe',
+          whisperModel: '',
+          dictText: '',
+          macrosText: '',
+          onboarded: true,
         }}
         onChange={() => {}}
         serverOnline

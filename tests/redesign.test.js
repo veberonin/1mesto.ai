@@ -17,7 +17,12 @@ describe('redesign: светлая система как в оригинале',
   });
 
   it('в App/Dictation/Sidebar/Pill не осталось тёмно-градиентных классов', () => {
-    for (const f of ['App.jsx', 'components/DictationTab.jsx', 'components/Sidebar.jsx', 'components/DictationPill.jsx']) {
+    for (const f of [
+      'App.jsx',
+      'components/DictationTab.jsx',
+      'components/Sidebar.jsx',
+      'components/DictationPill.jsx',
+    ]) {
       const s = read(f);
       assert.doesNotMatch(s, /from-brand-(orange|flame|violet|rose)/, `${f}: градиентный бренд-класс`);
       assert.doesNotMatch(s, /bg-slate-9|bg-\[#0/, `${f}: тёмный фон`);
@@ -195,7 +200,10 @@ describe('redesign: светлая система как в оригинале',
     const h = read('components/HistoryTab.jsx');
     assert.match(h, /exportMarkdown/);
     assert.match(h, /exportJSON/);
-    assert.match(readFileSync(join(process.cwd(), 'src', 'lib', 'journal.js'), 'utf8'), /export function exportMarkdown/);
+    assert.match(
+      readFileSync(join(process.cwd(), 'src', 'lib', 'journal.js'), 'utf8'),
+      /export function exportMarkdown/
+    );
   });
 
   it('packaging: весь src/lib в asar (фикс ERR_MODULE_NOT_FOUND)', () => {
@@ -206,9 +214,9 @@ describe('redesign: светлая система как в оригинале',
   it('пилюля: каждое появление = новая запись, зомби-состояние прячется', () => {
     const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
     assert.match(mj, /flow:command', 'start'/); // main шлёт start при каждом показе
-    assert.doesNotMatch(mj, /pendingStart/);    // мёртвый флаг удалён
+    assert.doesNotMatch(mj, /pendingStart/); // мёртвый флаг удалён
     const pill = read('components/PillWindow.jsx');
-    assert.match(pill, /cmd === 'start'/);        // рендерер рестартует
+    assert.match(pill, /cmd === 'start'/); // рендерер рестартует
     assert.match(pill, /desktopAPI\.hidePill\(\); \/\/ зомби/); // не-идущее состояние → hide
     assert.match(pill, /const restart = /);
   });
@@ -225,7 +233,11 @@ describe('redesign: светлая система как в оригинале',
     assert.ok(existsSync(join(process.cwd(), 'src', 'components', 'Keycaps.jsx')), 'Keycaps.jsx есть');
     const app = read('App.jsx');
     assert.match(app, /hotkey={settings\.hotkey}/); // Sidebar + Pill + Onboarding
-    for (const f of ['components/DictationTab.jsx', 'components/TodayList.jsx', 'components/Onboarding.jsx']) {
+    for (const f of [
+      'components/DictationTab.jsx',
+      'components/TodayList.jsx',
+      'components/Onboarding.jsx',
+    ]) {
       const src = read(f);
       assert.match(src, /Keycaps/, `${f}: Keycaps`);
       assert.doesNotMatch(src, /keycap">Alt<|keycap ml-1">Alt</, `${f}: захардкоженный Alt`);
@@ -241,11 +253,77 @@ describe('redesign: светлая система как в оригинале',
     assert.match(mj, /if \(!pill\.isVisible\(\)\) \{\n    showPill/);
     assert.match(mj, /flow:command', 'stop'/);
     assert.match(mj, /pill\.hide\(\); \/\/ мгновенно/);
-    assert.match(mj, /refreshTray/);         // подпись трея следует за хоткеем
+    assert.match(mj, /refreshTray/); // подпись трея следует за хоткеем
     assert.match(mj, /Диктовать \(\$\{hk\}\)/);
     const pill = read('components/PillWindow.jsx');
     assert.match(pill, /хвост старой сессии не прячет окно новой записи/);
-    assert.match(pill, /hideDelay = 250/);   // успех → прятать сразу
+    assert.match(pill, /hideDelay = 250/); // успех → прятать сразу
+  });
+
+  it('словарь — один объединённый проход (H-07/H-08, рекомендация организаторов)', () => {
+    const f = read('lib/formatter.js');
+    assert.match(f, /buildCombinedMatcher/);
+    assert.doesNotMatch(f, /function applyOneMap/); // циклы по картам убраны
+  });
+
+  it('V: сервер не ретранслирует клиентские ключи (открытый прокси закрыт)', () => {
+    const srv = readFileSync(join(process.cwd(), 'server', 'index.js'), 'utf8');
+    assert.doesNotMatch(srv, /headers\['x-api-key'\]/);
+    assert.match(srv, /ключей клиентов не ретранслируются|без ретрансляции клиентских ключей/);
+  });
+
+  it('AN: eslint + prettier + coverage настроены и в CI', () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+    for (const script of ['lint', 'format:check', 'coverage']) assert.ok(pkg.scripts[script], script);
+    assert.ok(existsSync(join(process.cwd(), '.eslintrc.json')));
+    assert.ok(existsSync(join(process.cwd(), '.prettierrc.json')));
+    const ci = readFileSync(join(process.cwd(), '.github', 'workflows', 'ci.yml'), 'utf8');
+    assert.match(ci, /npm run lint/);
+    assert.match(ci, /npm run coverage/);
+    assert.match(ci, /name: coverage/); // артефакт отчёта (AB-16)
+  });
+
+  it('B-15/B-07/B-06: профиль настроек — экспорт/импорт/сброс/санитизация', () => {
+    assert.match(read('lib/profile.js'), /PORTABLE_KEYS/);
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /Экспортировать профиль/);
+    assert.match(st, /Импортировать профиль/);
+    assert.match(st, /Сбросить настройки/);
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /sanitizeSettings/);
+    assert.match(mj, /aiTimeoutMs/); // AM-18
+  });
+
+  it('B-11/D-05/D-15: трей-статус, конфликт хоткея, хоткей стиля', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /pill:status/);
+    assert.match(mj, /flow:hotkey-conflict/);
+    assert.match(mj, /cycleStyleMode/);
+    assert.match(mj, /STYLE_CYCLE/);
+    const pl = readFileSync(join(process.cwd(), 'electron', 'preload.cjs'), 'utf8');
+    assert.match(pl, /onHotkeyConflict/);
+    assert.match(pl, /setStatus/);
+  });
+
+  it('AM-03: умный пробел между подряд идущими репликами', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /lastInsert/);
+  });
+
+  it('AK: оригинальная фича «Проверка вслух» — модуль, тесты, настройка, README', () => {
+    assert.ok(existsSync(join(process.cwd(), 'src', 'lib', 'voicecheck.js')));
+    assert.ok(existsSync(join(process.cwd(), 'tests', 'profile-voicecheck.test.js')));
+    assert.match(read('components/SettingsTab.jsx'), /Проверка вслух/);
+    const readme = readFileSync(join(process.cwd(), 'README.md'), 'utf8');
+    assert.match(readme, /Проверка вслух/);
+    assert.doesNotMatch(readme, /Демо RU\/EN/); // документация не опережает код (AC-03)
+  });
+
+  it('O-05/O-13: диск полон и занятый порт обработаны', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /tmp write failed \(disk\?\)/);
+    const srv = readFileSync(join(process.cwd(), 'server', 'index.js'), 'utf8');
+    assert.match(srv, /EADDRINUSE/);
   });
 
   it('Onboarding: 3 шага и флаг onboarded', () => {

@@ -2,9 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  formatText, parseRuNumber, replaceInText, DEMO_SAMPLES,
-} from '../src/lib/formatter.js';
+import { formatText, parseRuNumber, replaceInText, DEMO_SAMPLES } from '../src/lib/formatter.js';
 
 // ---------------------------------------------------------------------------
 // Числа, деньги, время, контакты (F-10..F-18, G-18)

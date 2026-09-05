@@ -6,9 +6,7 @@ import { parsePairsText, serializePairs, mergeIntoText, DICT_TEMPLATE } from '..
 
 describe('dictio: parsePairsText (H-01)', () => {
   it('парсит строки «слово = замена» во всех вариантах разделителя', () => {
-    const { dict, macros, errors } = parsePairsText(
-      '1с = 1С\nбитрикс24: Битрикс24\nпмо, ПМО\nжк;ЖК\tтаб\n'
-    );
+    const { dict, macros, errors } = parsePairsText('1с = 1С\nбитрикс24: Битрикс24\nпмо, ПМО\nжк;ЖК\tтаб\n');
     assert.deepEqual(dict, { '1с': '1С', битрикс24: 'Битрикс24', пмо: 'ПМО', жк: 'ЖК\tтаб' });
     assert.deepEqual(macros, {});
     assert.equal(errors.length, 0);
@@ -35,7 +33,9 @@ describe('dictio: parsePairsText (H-01)', () => {
   });
 
   it('JSON {dict:{}, macros:{}} разделяет секции (макросы без решётки)', () => {
-    const { dict, macros } = parsePairsText('{"dict":{"1с":"1С"},"macros":{"#адрес":"Тверская","подпись":"С уважением"}}');
+    const { dict, macros } = parsePairsText(
+      '{"dict":{"1с":"1С"},"macros":{"#адрес":"Тверская","подпись":"С уважением"}}'
+    );
     assert.deepEqual(dict, { '1с': '1С' });
     assert.deepEqual(macros, { адрес: 'Тверская', подпись: 'С уважением' });
   });

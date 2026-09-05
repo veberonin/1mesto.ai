@@ -111,7 +111,8 @@ test('chat: заканчивается эмодзи', () => {
 
 test('code: оборачивает техтермины в бэктики', () => {
   const { text } = formatText('нам нужен react и docker точка потом vite', {
-    mode: 'code', lang: 'ru',
+    mode: 'code',
+    lang: 'ru',
   });
   assert.ok(text.includes('`react`'));
   assert.ok(text.includes('`docker`'));

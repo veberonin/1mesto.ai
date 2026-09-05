@@ -18,9 +18,19 @@ import ScratchpadTab from '../components/ScratchpadTab.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 
 const settings = {
-  provider: 'gemini', apiKey: '', autoFormat: true, autoCopy: false, soundOn: true,
-  name: 'Веберонин', privacy: false, autoPunct: true, normalizeNumbers: true,
-  whisperBin: '', whisperModel: '', dictText: '1с = 1С', macrosText: '#адрес = Тверская 1',
+  provider: 'gemini',
+  apiKey: '',
+  autoFormat: true,
+  autoCopy: false,
+  soundOn: true,
+  name: 'Веберонин',
+  privacy: false,
+  autoPunct: true,
+  normalizeNumbers: true,
+  whisperBin: '',
+  whisperModel: '',
+  dictText: '1с = 1С',
+  macrosText: '#адрес = Тверская 1',
   onboarded: true,
 };
 
@@ -124,7 +134,13 @@ describe('SSR (веб): все экраны рендерятся без краш
         />
       )
     ).toBeTruthy();
-    expect(renderToString(<ErrorBoundary><div>ок</div></ErrorBoundary>)).toContain('ок');
+    expect(
+      renderToString(
+        <ErrorBoundary>
+          <div>ок</div>
+        </ErrorBoundary>
+      )
+    ).toContain('ок');
     expect(renderToString(<ScratchpadTab lastResult="результат" onToast={noop} />)).toContain('Черновик');
   });
 });

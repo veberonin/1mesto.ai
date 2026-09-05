@@ -12,10 +12,26 @@
 
 const RU = {
   fillers: [
-    'эм', 'ээм', 'эээ', 'э-э', 'мм', 'ммм', 'м-м',
-    'ну', 'вот', 'типа', 'как бы', 'это самое', 'как его',
-    'короче', 'в общем', 'скажем так', 'как сказать',
-    'ага', 'угу', 'ну вот',
+    'эм',
+    'ээм',
+    'эээ',
+    'э-э',
+    'мм',
+    'ммм',
+    'м-м',
+    'ну',
+    'вот',
+    'типа',
+    'как бы',
+    'это самое',
+    'как его',
+    'короче',
+    'в общем',
+    'скажем так',
+    'как сказать',
+    'ага',
+    'угу',
+    'ну вот',
   ],
   spokenPunct: [
     ['точка с запятой', ';'],
@@ -40,7 +56,23 @@ const RU = {
     ['точка', '.'],
     ['запятая', ','],
   ],
-  commaBefore: ['но', 'зато', 'однако', 'потому что', 'так как', 'который', 'которая', 'которое', 'которые', 'чтобы', 'хотя', 'ведь', 'что', 'а', 'когда'],
+  commaBefore: [
+    'но',
+    'зато',
+    'однако',
+    'потому что',
+    'так как',
+    'который',
+    'которая',
+    'которое',
+    'которые',
+    'чтобы',
+    'хотя',
+    'ведь',
+    'что',
+    'а',
+    'когда',
+  ],
   // перед «что» не ставим запятую внутри устойчивых связок
   commaGuard: { что: ['потому '] },
   breakWords: ['потом', 'дальше', 'также', 'кстати', 'в итоге', 'кроме того', 'плюс ко всему'],
@@ -49,10 +81,7 @@ const RU = {
 };
 
 const EN = {
-  fillers: [
-    'um', 'uhm', 'uh', 'erm', 'hmm',
-    'you know', "i mean", 'sort of', 'kind of', 'basically',
-  ],
+  fillers: ['um', 'uhm', 'uh', 'erm', 'hmm', 'you know', 'i mean', 'sort of', 'kind of', 'basically'],
   spokenPunct: [
     ['question mark', '?'],
     ['exclamation mark', '!'],
@@ -78,10 +107,33 @@ const EN = {
 };
 
 const TECH_TERMS = [
-  'react', 'vue', 'angular', 'node', 'express', 'python', 'javascript', 'typescript',
-  'postgres', 'postgresql', 'mongodb', 'redis', 'tailwind', 'webpack', 'docker',
-  'kubernetes', 'github', 'websocket', 'openai', 'gemini', 'typescript', 'vite',
-  'vercel', 'kafka', 'graphql', 'rust', 'golang',
+  'react',
+  'vue',
+  'angular',
+  'node',
+  'express',
+  'python',
+  'javascript',
+  'typescript',
+  'postgres',
+  'postgresql',
+  'mongodb',
+  'redis',
+  'tailwind',
+  'webpack',
+  'docker',
+  'kubernetes',
+  'github',
+  'websocket',
+  'openai',
+  'gemini',
+  'typescript',
+  'vite',
+  'vercel',
+  'kafka',
+  'graphql',
+  'rust',
+  'golang',
 ];
 
 const countWords = (t) => (t.trim() ? t.trim().split(/\s+/).filter(Boolean).length : 0);
@@ -97,15 +149,51 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Нормализация чисел, денег, времени, контактов (F-10..F-19)
 // ---------------------------------------------------------------------------
 const NUM_WORDS = {
-  'ноль': 0, 'один': 1, 'одна': 1, 'два': 2, 'две': 2, 'три': 3, 'четыре': 4, 'пять': 5,
-  'шесть': 6, 'семь': 7, 'восемь': 8, 'девять': 9, 'десять': 10,
-  'одиннадцать': 11, 'двенадцать': 12, 'тринадцать': 13, 'четырнадцать': 14, 'пятнадцать': 15,
-  'шестнадцать': 16, 'семнадцать': 17, 'восемнадцать': 18, 'девятнадцать': 19,
-  'двадцать': 20, 'тридцать': 30, 'сорок': 40, 'пятьдесят': 50, 'шестьдесят': 60,
-  'семьдесят': 70, 'восемьдесят': 80, 'девяносто': 90,
-  'сто': 100, 'двести': 200, 'триста': 300, 'четыреста': 400, 'пятьсот': 500,
-  'шестьсот': 600, 'семьсот': 700, 'восемьсот': 800, 'девятьсот': 900,
-  'тысяча': 1000, 'тысячи': 1000, 'тысяч': 1000, 'миллион': 1e6, 'миллиона': 1e6, 'миллионов': 1e6,
+  ноль: 0,
+  один: 1,
+  одна: 1,
+  два: 2,
+  две: 2,
+  три: 3,
+  четыре: 4,
+  пять: 5,
+  шесть: 6,
+  семь: 7,
+  восемь: 8,
+  девять: 9,
+  десять: 10,
+  одиннадцать: 11,
+  двенадцать: 12,
+  тринадцать: 13,
+  четырнадцать: 14,
+  пятнадцать: 15,
+  шестнадцать: 16,
+  семнадцать: 17,
+  восемнадцать: 18,
+  девятнадцать: 19,
+  двадцать: 20,
+  тридцать: 30,
+  сорок: 40,
+  пятьдесят: 50,
+  шестьдесят: 60,
+  семьдесят: 70,
+  восемьдесят: 80,
+  девяносто: 90,
+  сто: 100,
+  двести: 200,
+  триста: 300,
+  четыреста: 400,
+  пятьсот: 500,
+  шестьсот: 600,
+  семьсот: 700,
+  восемьсот: 800,
+  девятьсот: 900,
+  тысяча: 1000,
+  тысячи: 1000,
+  тысяч: 1000,
+  миллион: 1e6,
+  миллиона: 1e6,
+  миллионов: 1e6,
 };
 
 /** «двадцать пять» → 25, «две тысячи пятьсот» → 2500. Возврат: [число, слов-в-группе] */
@@ -186,7 +274,10 @@ function normalizeQuantities(text) {
     return `${hh}:${mm}`;
   });
   // G-18: неразрывный пробел в единицах
-  out = out.replace(new RegExp(`(\\d)\\s(кг|г|т|км|м|см|мм|л|мл|ч|мин|сек|шт|руб|%)${end}`, 'giu'), '$1\u00A0$2');
+  out = out.replace(
+    new RegExp(`(\\d)\\s(кг|г|т|км|м|см|мм|л|мл|ч|мин|сек|шт|руб|%)${end}`, 'giu'),
+    '$1\u00A0$2'
+  );
   return out;
 }
 
@@ -218,53 +309,81 @@ function applySelfCorrection(text) {
 // ---------------------------------------------------------------------------
 const dictCache = new WeakMap();
 
-function buildDictMatcher(map) {
-  const keys = Object.keys(map);
-  if (!keys.length) return null;
-  const cached = dictCache.get(map);
+/**
+ * Объединённый матчер ВСЕХ карт (макросы + встроенные термины + пользовательский
+ * словарь) в ОДНО регулярное выражение — один проход по тексту на реплику (H-07/H-08:
+ * словарь на 5000 позиций обрабатывается без роста задержки). Приоритет: последняя
+ * карта побеждает (dict > DEFAULT_TERMS > macros). Кеш по объекту словаря (WeakMap).
+ */
+function buildCombinedMatcher(maps) {
+  const dictKey = maps[maps.length - 1];
+  const cacheable = dictKey && typeof dictKey === 'object';
+  const cached = cacheable ? dictCache.get(dictKey) : null;
   if (cached) return cached;
-  const lower = new Map(keys.map((k) => [k.toLowerCase(), map[k]]));
-  const re = new RegExp(`${L}(${keys.map(esc).join('|')})${R}`, 'giu');
+  const lower = new Map();
+  for (const m of maps) {
+    if (!m) continue;
+    for (const [k, v] of Object.entries(m)) {
+      if (k && v != null) lower.set(String(k).toLowerCase(), String(v));
+    }
+  }
+  if (!lower.size) return null;
+  const keys = [...lower.keys()].sort((a, b) => b.length - a.length);
+  const re = new RegExp(`${L}(?:${keys.map(esc).join('|')})${R}`, 'giu');
   const matcher = { re, lower };
-  dictCache.set(map, matcher);
+  if (cacheable) dictCache.set(dictKey, matcher);
   return matcher;
 }
 
 // Дефолтные термины: как слышится ← как пишется (пополняется Dictionary-файлом пользователя)
 const DEFAULT_TERMS = {
   'а пи ай': 'API',
-  'джейсон': 'JSON',
-  'реакт': 'React',
-  'джаваскрипт': 'JavaScript',
-  'питон': 'Python',
-  'гитхаб': 'GitHub',
-  'джира': 'Jira',
-  'слак': 'Slack',
-  'нэйшн': 'Notion',
+  джейсон: 'JSON',
+  реакт: 'React',
+  джаваскрипт: 'JavaScript',
+  питон: 'Python',
+  гитхаб: 'GitHub',
+  джира: 'Jira',
+  слак: 'Slack',
+  нэйшн: 'Notion',
   'эс эс эс': 'SSS',
   'ю эс эй': 'USA',
+  // F-28/I-05: Татарстан и Казань — местные топонимы и имена
+  казань: 'Казань',
+  казани: 'Казани',
+  татарстан: 'Татарстан',
+  баумана: 'Баумана',
+  кремлевская: 'Кремлёвская',
+  тукая: 'Тукая',
+  'габдулла тукай': 'Габдулла Тукай',
+  челны: 'Челны',
+  альметьевск: 'Альметьевск',
+  нижнекамск: 'Нижнекамск',
+  зилант: 'Зилант',
+  'чак-чак': 'чак-чак',
+  эчпочмак: 'эчпочмак',
 };
 
-function applyOneMap(text, map, hits) {
-  if (!map || !Object.keys(map).length) return text;
-  const matcher = buildDictMatcher(map);
-  if (!matcher) return text;
-  return text.replace(matcher.re, (m) => {
-    const replacement = matcher.lower.get(m.toLowerCase());
-    if (replacement === undefined) return m;
-    hits.push(m.toLowerCase());
-    if (m[0] === m[0].toUpperCase() && m[0] !== m[0].toLowerCase()) {
-      return capitalize(replacement);
-    }
-    return replacement;
-  });
+/** Одна замена с сохранением регистра первой буквы («тукай» → «Тукай») */
+function replaceMatch(m, matcher, hits) {
+  const replacement = matcher.lower.get(m.toLowerCase());
+  if (replacement === undefined) return m;
+  hits.push(m.toLowerCase());
+  if (m[0] === m[0].toUpperCase() && m[0] !== m[0].toLowerCase()) {
+    return capitalize(replacement);
+  }
+  return replacement;
 }
 
+/**
+ * H + AJ: макросы, встроенные термины и пользовательский словарь применяются
+ * за один проход объединённого регулярного выражения (см. buildCombinedMatcher).
+ */
 function applyDictionary(text, dict, macros) {
   const hits = [];
-  let out = applyOneMap(text, macros, hits); // AJ: макросы — фразы-развороты
-  out = applyOneMap(out, DEFAULT_TERMS, hits); // H: встроенные термины (стабильная ссылка → кеш)
-  out = applyOneMap(out, dict, hits); // H: пользовательский словарь
+  const matcher = buildCombinedMatcher([macros, DEFAULT_TERMS, dict]);
+  if (!matcher) return { text, hits };
+  const out = text.replace(matcher.re, (m) => replaceMatch(m, matcher, hits));
   return { text: out, hits };
 }
 
@@ -329,16 +448,85 @@ function applySpokenPunctuation(text, pack) {
   return out;
 }
 
+/**
+ * I-10: смешанные алфавиты. Слово, где кириллица перемешана с латиницей
+ * («рaботa», «теgст») — почти всегда ошибка распознавания: латинские
+ * двойники заменяются кириллицей, если слово уже содержит кириллицу.
+ */
+const HOMOGLYPHS = {
+  a: 'а',
+  c: 'с',
+  e: 'е',
+  o: 'о',
+  p: 'р',
+  x: 'х',
+  y: 'у',
+  i: 'і',
+  s: 'ѕ',
+  g: 'г',
+  k: 'к',
+  m: 'м',
+  t: 'т',
+  b: 'в',
+  h: 'н',
+};
+const MIXED_WORD = /(?=\p{Script=Cyrillic})(?=.*[a-z])(\p{L}+)/giu;
+const HAS_CYR = /\p{Script=Cyrillic}/u;
+const SOLO_LATIN = /(?<![\p{L}])([aceopyx])(?![\p{L}])/giu;
+
+export function normalizeHomoglyphs(text) {
+  // быстрый выход: в тексте нет кириллицы — это английский, ничего не трогаем
+  if (!HAS_CYR.test(text)) return text;
+  let out = text.replace(MIXED_WORD, (word) =>
+    word.replace(/[a-z]/giu, (ch) => HOMOGLYPHS[ch.toLowerCase()] || ch)
+  );
+  // одиночная латинская буква среди кириллицы («встретимся c тобой») → кириллица
+  out = out.replace(SOLO_LATIN, (m, ch) => {
+    const repl = HOMOGLYPHS[ch.toLowerCase()];
+    return repl ? (ch === ch.toUpperCase() ? repl.toUpperCase() : repl) : m;
+  });
+  return out;
+}
+
+/** AM-19: служебная обвязка моделей не попадает в текст (фенсы, <think>, «Ответ:») */
+export function stripModelTags(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^```[a-z]*\n?/i, '')
+    .replace(/```$/i, '')
+    .replace(/^\s*(ответ|answer)\s*:\s*/i, '')
+    .replace(/\[INST\]|<\|im_start\|>|<\|endoftext\|>/g, '')
+    .trim();
+}
 
 /** Ёфикация: е → ё в словах, где ё всегда (опция restoreYo) */
 const YO_PAIRS = [
-  ['еще', 'ещё'], ['елка', 'ёлка'], ['елки', 'ёлки'], ['елке', 'ёлке'], ['елку', 'ёлку'], ['елок', 'ёлок'],
-  ['объем', 'объём'], ['объемы', 'объёмы'], ['объеме', 'объёме'],
-  ['трех', 'трёх'], ['четырех', 'четырёх'],
-  ['черный', 'чёрный'], ['черная', 'чёрная'], ['черное', 'чёрное'], ['черные', 'чёрные'],
-  ['желтый', 'жёлтый'], ['желтая', 'жёлтая'], ['желтое', 'жёлтое'],
-  ['зеленый', 'зелёный'], ['зеленая', 'зелёная'], ['зеленое', 'зелёное'],
-  ['тяжелый', 'тяжёлый'], ['тяжелая', 'тяжёлая'], ['надежный', 'надёжный'], ['надежная', 'надёжная'],
+  ['еще', 'ещё'],
+  ['елка', 'ёлка'],
+  ['елки', 'ёлки'],
+  ['елке', 'ёлке'],
+  ['елку', 'ёлку'],
+  ['елок', 'ёлок'],
+  ['объем', 'объём'],
+  ['объемы', 'объёмы'],
+  ['объеме', 'объёме'],
+  ['трех', 'трёх'],
+  ['четырех', 'четырёх'],
+  ['черный', 'чёрный'],
+  ['черная', 'чёрная'],
+  ['черное', 'чёрное'],
+  ['черные', 'чёрные'],
+  ['желтый', 'жёлтый'],
+  ['желтая', 'жёлтая'],
+  ['желтое', 'жёлтое'],
+  ['зеленый', 'зелёный'],
+  ['зеленая', 'зелёная'],
+  ['зеленое', 'зелёное'],
+  ['тяжелый', 'тяжёлый'],
+  ['тяжелая', 'тяжёлая'],
+  ['надежный', 'надёжный'],
+  ['надежная', 'надёжная'],
 ];
 
 function restoreYoLetters(text) {
@@ -412,14 +600,20 @@ function insertCommas(text, pack) {
 function sentenceize(paragraph, pack) {
   const out = [];
   // Сначала режем по уже расставленным знакам конца предложения…
-  const chunks = paragraph.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter(Boolean);
+  const chunks = paragraph
+    .split(/(?<=[.!?…])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   // …затем длинные «бесконечные» куски делим по словам-маркерам («потом», «кстати»…)
   for (const chunk of chunks) {
     const words = chunk.split(/[ \t]+/); // берегём nbsp
     let buffer = [];
     for (let i = 0; i < words.length; i++) {
       buffer.push(words[i]);
-      const rest = words.slice(i + 1, i + 4).join(' ').toLowerCase();
+      const rest = words
+        .slice(i + 1, i + 4)
+        .join(' ')
+        .toLowerCase();
       const isBreak = pack.breakWords.some((b) => rest === b || rest.startsWith(b + ' '));
       if (buffer.length >= 10 && isBreak) {
         out.push(buffer.join(' '));
@@ -443,7 +637,10 @@ function sentenceize(paragraph, pack) {
 
 /** Абзацы → массивы предложений. Переносы от «новая строка»/«абзац» сохраняются. */
 function textToBlocks(text, pack) {
-  const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const paragraphs = text
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   return paragraphs.map((p) => sentenceize(p, pack)).filter((b) => b.length);
 }
 
@@ -457,9 +654,10 @@ function applyMode(blocks, mode, lang, opts = {}) {
   switch (mode) {
     case 'email': {
       const body = joinParas('\n\n');
-      const hasGreeting = lang === 'en'
-        ? /^(hi|hello|hey|dear)\b/i.test(body)
-        : /^(привет|здравствуйте|добрый день|добрый вечер|доброе утро)/i.test(body);
+      const hasGreeting =
+        lang === 'en'
+          ? /^(hi|hello|hey|dear)\b/i.test(body)
+          : /^(привет|здравствуйте|добрый день|добрый вечер|доброе утро)/i.test(body);
       const greeting = hasGreeting ? '' : `${pack.emailGreeting}\n\n`;
       return `${greeting}${body}\n\n${pack.emailSignature},\n${signatureName}`;
     }
@@ -513,6 +711,7 @@ export function formatText(raw, opts = {}) {
   const pack = lang === 'en' ? EN : RU;
 
   let text = raw.replace(/\s+/g, ' ').trim();
+  text = normalizeHomoglyphs(text); // I-10: чиним смесь алфавитов до словаря
   let yoFixed = 0;
   text = applySelfCorrection(text); // F-21
   text = collapseRepeats(text); // F-19

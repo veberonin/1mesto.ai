@@ -10,18 +10,46 @@
 export const DEFAULT_HOTKEY = 'Alt+Space';
 
 const MOD_ALIASES = {
-  CTRL: 'ctrl', CONTROL: 'ctrl', CMDORCTRL: 'ctrl', COMMANDORCONTROL: 'ctrl',
-  ALT: 'alt', OPTION: 'alt',
+  CTRL: 'ctrl',
+  CONTROL: 'ctrl',
+  CMDORCTRL: 'ctrl',
+  COMMANDORCONTROL: 'ctrl',
+  ALT: 'alt',
+  OPTION: 'alt',
   SHIFT: 'shift',
-  META: 'meta', SUPER: 'meta', WIN: 'meta', CMD: 'meta', COMMAND: 'meta',
+  META: 'meta',
+  SUPER: 'meta',
+  WIN: 'meta',
+  CMD: 'meta',
+  COMMAND: 'meta',
 };
 
 const NAMED_KEYS = new Set([
-  'Space', 'Tab', 'Enter', 'Backspace', 'Delete', 'Insert',
-  'Home', 'End', 'PageUp', 'PageDown',
-  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-  'Comma', 'Period', 'Slash', 'Semicolon', 'Quote', 'Backquote',
-  'Minus', 'Equal', 'BracketLeft', 'BracketRight', 'Backslash',
+  'Space',
+  'Tab',
+  'Enter',
+  'Backspace',
+  'Delete',
+  'Insert',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Comma',
+  'Period',
+  'Slash',
+  'Semicolon',
+  'Quote',
+  'Backquote',
+  'Minus',
+  'Equal',
+  'BracketLeft',
+  'BracketRight',
+  'Backslash',
 ]);
 
 // 'PAGEUP' → 'PageUp', 'COMMA' → 'Comma', …
@@ -31,7 +59,10 @@ for (const k of NAMED_KEYS) NAMED_BY_UPPER[k.toUpperCase()] = k;
 /** Строка-акселератор → { ctrl, alt, shift, meta, key } | null */
 export function parseHotkey(input) {
   if (!input || typeof input !== 'string') return null;
-  const parts = input.split('+').map((p) => p.trim()).filter(Boolean);
+  const parts = input
+    .split('+')
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (!parts.length) return null;
   const acc = { ctrl: false, alt: false, shift: false, meta: false, key: null };
   for (let i = 0; i < parts.length; i++) {
@@ -97,7 +128,11 @@ export function toElectronAccelerator(input) {
 /** DOM-событие → каноническая строка (для поля «нажми комбинацию») */
 export function hotkeyFromEvent(e) {
   const acc = {
-    ctrl: !!e.ctrlKey, alt: !!e.altKey, shift: !!e.shiftKey, meta: !!e.metaKey, key: null,
+    ctrl: !!e.ctrlKey,
+    alt: !!e.altKey,
+    shift: !!e.shiftKey,
+    meta: !!e.metaKey,
+    key: null,
   };
   acc.key = codeToKey(e.code);
   if (!acc.key) return null;

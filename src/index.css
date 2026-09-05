@@ -9,8 +9,8 @@
   body {
     background-color: #f5f2eb;
     color: #17140f;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
-      'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   ::selection {

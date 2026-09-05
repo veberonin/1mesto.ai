@@ -41,8 +41,13 @@ export default function PillWindow() {
   const finishRef = useRef(null);
   const startFnRef = useRef(null);
   const settingsRef = useRef({
-    language: 'ru', mode: 'clean', name: '', provider: 'none', apiKey: '',
-    dictText: '', macrosText: '',
+    language: 'ru',
+    mode: 'clean',
+    name: '',
+    provider: 'none',
+    apiKey: '',
+    dictText: '',
+    macrosText: '',
   });
 
   const stopMachines = () => {
@@ -73,6 +78,7 @@ export default function PillWindow() {
     doneRef.current = true;
     recordingRef.current = false;
     stopMachines();
+    desktopAPI.setStatus(false); // B-11
     setRecording(false);
     setInterim('');
 
@@ -209,6 +215,7 @@ export default function PillWindow() {
         return;
       }
 
+      desktopAPI.setStatus(true); // B-11: трей показывает «идёт запись»
       sound.start();
       startRef.current = Date.now();
       wordsRef.current = 0;
@@ -306,6 +313,15 @@ export default function PillWindow() {
       if (cmd === 'start') restart();
       if (cmd === 'stop') finishRef.current && finishRef.current(false);
       if (cmd === 'cancel') finishRef.current && finishRef.current(true);
+      if (cmd === 'mode') {
+        // D-15: профиль стиля переключён хоткеем — подтягиваем настройки
+        desktopAPI
+          .getSettings()
+          .then((st) => {
+            if (st) settingsRef.current = Object.assign({}, settingsRef.current, st);
+          })
+          .catch(() => {});
+      }
     });
 
     // Самолечение: любая непойманная ошибка не должна оставлять висящую пилюлю
@@ -334,7 +350,6 @@ export default function PillWindow() {
       releaseCapture();
       document.documentElement.style.background = '';
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const mm = Math.floor(elapsed / 60);

@@ -4,16 +4,18 @@
  * AI-полировка из main-процесса (десктоп): Gemini / OpenAI / Ollama.
  * Чистый fetch без зависимостей. При ошибке вызывающий код падает на локальный форматер.
  */
+import { stripModelTags } from '../src/lib/formatter.js';
 
 function buildPrompt(text, mode, language) {
   const langName = language === 'en' ? 'English' : 'Russian';
-  const modeHint = {
-    clean: 'Standard clean text with proper punctuation and grammar.',
-    email: 'Professional email with greeting and sign-off.',
-    bullets: 'Concise bullet-point list of key points.',
-    chat: 'Friendly casual chat message.',
-    code: 'Clean technical note; wrap tech terms in backticks.',
-  }[mode] || 'Standard clean text.';
+  const modeHint =
+    {
+      clean: 'Standard clean text with proper punctuation and grammar.',
+      email: 'Professional email with greeting and sign-off.',
+      bullets: 'Concise bullet-point list of key points.',
+      chat: 'Friendly casual chat message.',
+      code: 'Clean technical note; wrap tech terms in backticks.',
+    }[mode] || 'Standard clean text.';
 
   return `You are Flow, a voice-dictation formatter (like Wispr Flow).
 Rules:
@@ -26,7 +28,7 @@ Rules:
 Transcript: """${text}"""`;
 }
 
-const strip = (s) => (s ? s.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim() : null);
+const strip = (s) => stripModelTags(s);
 
 async function withTimeout(promiseFn, ms) {
   const controller = new AbortController();
@@ -38,7 +40,7 @@ async function withTimeout(promiseFn, ms) {
   }
 }
 
-export async function aiFormat(text, mode, language, provider, key) {
+export async function aiFormat(text, mode, language, provider, key, timeoutMs = 25000) {
   const prompt = buildPrompt(text, mode, language);
 
   if (provider === 'openai') {
@@ -54,7 +56,7 @@ export async function aiFormat(text, mode, language, provider, key) {
             messages: [{ role: 'user', content: prompt }],
           }),
         }).then((r) => r.json()),
-      25000
+      timeoutMs
     );
     return strip(data?.choices?.[0]?.message?.content);
   }
@@ -73,12 +75,15 @@ export async function aiFormat(text, mode, language, provider, key) {
             stream: false,
             options: { temperature: 0.2 },
             messages: [
-              { role: 'system', content: 'You are Flow, a voice dictation formatter. Output only the formatted text.' },
+              {
+                role: 'system',
+                content: 'You are Flow, a voice dictation formatter. Output only the formatted text.',
+              },
               { role: 'user', content: prompt },
             ],
           }),
         }).then((r) => r.json()),
-      30000
+      Math.max(timeoutMs, 30000)
     );
     return strip(data?.message?.content);
   }
@@ -101,9 +106,14 @@ export async function aiFormat(text, mode, language, provider, key) {
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
             }
           ).then((r) => r.json()),
-        25000
+        timeoutMs
       );
-      const out = strip((data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim());
+      const out = strip(
+        (data?.candidates?.[0]?.content?.parts || [])
+          .map((p) => p.text || '')
+          .join(' ')
+          .trim()
+      );
       if (out) return out;
     } catch {
       /* следующая модель */

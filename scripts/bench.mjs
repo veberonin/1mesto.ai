@@ -16,7 +16,11 @@ const DICT = parsePairsText('1с = 1С\nпмо = ПМО\n#адрес = г. Мо�
 const CASES = [
   ['clean ru', DEMO_SAMPLES.ru, {}],
   ['clean en', DEMO_SAMPLES.en, { lang: 'en' }],
-  ['email + dict', `${DEMO_SAMPLES.ru} напиши в 1с и в пмо`, { mode: 'email', dict: DICT.dict, macros: DICT.macros }],
+  [
+    'email + dict',
+    `${DEMO_SAMPLES.ru} напиши в 1с и в пмо`,
+    { mode: 'email', dict: DICT.dict, macros: DICT.macros },
+  ],
   ['voice commands', 'привет запятая коллеги точка новый абзац итог тире пять тысяч', {}],
   ['ёфикация', 'еще объем трех черный зеленый надежный', { restoreYo: true }],
 ];
@@ -43,5 +47,7 @@ for (const [name, text, opts] of CASES) {
     `${name.padEnd(16)} ${String(Math.round(ops)).padStart(7)} ops/s · p50 ${pct(lat, 0.5).toFixed(3)} мс · p95 ${pct(lat, 0.95).toFixed(3)} мс`
   );
 }
-console.log(`\nхудший кейс: ${Math.round(worst)} ops/s — форматтер как минимум на ~${Math.round(worst)}x быстрее речи (130 wpm)`);
+console.log(
+  `\nхудший кейс: ${Math.round(worst)} ops/s — форматтер как минимум на ~${Math.round(worst)}x быстрее речи (130 wpm)`
+);
 if (countWordsIn(DEMO_SAMPLES.ru) < 5) process.exit(1); // санити

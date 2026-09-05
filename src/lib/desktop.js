@@ -25,4 +25,6 @@ export const desktopAPI =
         asrCheck: noop,
         getLoginItem: async () => false,
         setLoginItem: async () => false,
+        setStatus: async () => {},
+        onHotkeyConflict: () => {},
       };

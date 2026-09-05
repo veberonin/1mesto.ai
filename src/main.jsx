@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import PillWindow from './components/PillWindow.jsx'
-import ErrorBoundary from './components/ErrorBoundary.jsx'
-import './index.css'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import PillWindow from './components/PillWindow.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+import './index.css';
 
 // ?pill=1 → режим плавающей пилюли (отдельное прозрачное окно в десктоп-приложении)
-const pillMode = new URLSearchParams(window.location.search).get('pill') === '1'
+const pillMode = new URLSearchParams(window.location.search).get('pill') === '1';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>{pillMode ? <PillWindow /> : <App />}</ErrorBoundary>
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);

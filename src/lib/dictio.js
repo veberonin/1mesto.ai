@@ -39,7 +39,8 @@ function absorbJson(data, put) {
     if (isPlainObject(data.dict) || isPlainObject(data.macros)) {
       for (const [k, v] of Object.entries(data.dict || {})) if (typeof v === 'string') put(k, v);
       // в секции macros всё принудительно становится макросом (решётка нормализуется)
-      for (const [k, v] of Object.entries(data.macros || {})) if (typeof v === 'string') put(`#${String(k).replace(/^#/, '')}`, v);
+      for (const [k, v] of Object.entries(data.macros || {}))
+        if (typeof v === 'string') put(`#${String(k).replace(/^#/, '')}`, v);
     } else {
       for (const [k, v] of Object.entries(data)) if (typeof v === 'string') put(k, v);
     }
