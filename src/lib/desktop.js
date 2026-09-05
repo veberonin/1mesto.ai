@@ -20,4 +20,7 @@ export const desktopAPI =
         aiFormat: noop,
         hidePill: noop,
         onCommand: noop,
+        transcribe: noop,
+        downloadModel: noop,
+        asrCheck: noop,
       };

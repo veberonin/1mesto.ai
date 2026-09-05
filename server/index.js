@@ -247,6 +247,39 @@ app.post('/api/format', async (req, res) => {
   }
 });
 
+// Транскрибация аудио (WAV base64) через Gemini — фолбэк для веб-версии
+app.post('/api/transcribe', async (req, res) => {
+  const key = process.env.GEMINI_API_KEY;
+  const { audio, lang = 'ru' } = req.body || {};
+  if (!audio) return res.status(400).json({ error: 'no audio' });
+  if (!key) return res.status(501).json({ error: 'no GEMINI_API_KEY on server' });
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.` },
+                { inlineData: { mimeType: 'audio/wav', data: audio } },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+    const data = await r.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return res.status(502).json({ error: 'empty' });
+    res.json({ text: text.trim(), source: 'gemini' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Статика фронтенда (prod-сборка) + SPA fallback
 // ---------------------------------------------------------------------------

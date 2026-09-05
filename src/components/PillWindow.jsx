@@ -230,8 +230,8 @@ export default function PillWindow() {
               (done
                 ? 'bg-emerald-500/90'
                 : recording
-                  ? 'bg-gradient-to-br from-brand-flame to-brand-rose shadow-glow-sm'
-                  : 'bg-gradient-to-br from-brand-orange via-brand-flame to-brand-violet')
+                  ? 'bg-white/10'
+                  : 'bg-white')
             }
           >
             {done ? (
@@ -239,7 +239,7 @@ export default function PillWindow() {
             ) : recording ? (
               <span className="w-3.5 h-3.5 bg-white rounded-[4px]" />
             ) : (
-              <Mic className="w-5 h-5 text-white" />
+              <Mic className="w-5 h-5 text-ink-950 !text-ink-950" style={{ color: '#121110' }} />
             )}
           </span>
 
@@ -248,7 +248,7 @@ export default function PillWindow() {
               {(bars.length ? bars : [0.3, 0.6, 0.4, 0.8, 0.5, 0.7, 0.35]).map((v, i) => (
                 <span
                   key={i}
-                  className="w-[3.5px] rounded-full bg-gradient-to-t from-brand-flame via-brand-rose to-brand-violet"
+                  className="w-[3.5px] rounded-full bg-white"
                   style={{ height: Math.max(12, v * 100) + '%', transition: 'height 90ms linear' }}
                 />
               ))}

@@ -2,6 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, session, screen, nativeImage } from 'electron';
 import path from 'path';
+import crypto from 'crypto';
 import fs from 'fs';
 import url from 'url';
 import { execFile } from 'child_process';
@@ -34,7 +35,29 @@ const DEFAULTS = {
   language: 'ru',
   mode: 'clean',
   hotkeyEnabled: true,
+  whisperBin: '',   // путь к whisper-cli (локальное распознавание, офлайн)
+  whisperModel: '', // путь к ggml-модели (пусто = наша скачанная)
+  onboarded: false, // B-01: первый запуск
 };
+
+// Локальная модель Whisper: скачивается приложением, проверяется по SHA-256 (A-08/A-09)
+const MODEL = {
+  url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin',
+  sha256: '422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898',
+  file: 'ggml-base-q5_1.bin',
+};
+const modelsDir = () => path.join(app.getPath('userData'), 'models');
+const defaultModelPath = () => path.join(modelsDir(), MODEL.file);
+
+function sha256File(p) {
+  return new Promise((resolve, reject) => {
+    const h = crypto.createHash('sha256');
+    fs.createReadStream(p)
+      .on('data', (d) => h.update(d))
+      .on('end', () => resolve(h.digest('hex')))
+      .on('error', reject);
+  });
+}
 
 const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 
@@ -280,6 +303,109 @@ ipcMain.handle('ai:format', async (_e, payload = {}) => {
   // локальный умный форматер — всегда
   const local = formatText(text, { mode, lang: language === 'en' ? 'en' : 'ru', name: payload.name || s.name });
   return { formattedText: local.text, meta: local.meta, source: 'local' };
+});
+
+// ---------------------------------------------------------------------------
+// Локальное распознавание речи (ASR): whisper.cpp → Gemini → понятная ошибка
+// ---------------------------------------------------------------------------
+async function transcribeWhisper(wavPath, lang) {
+  const s = readSettings();
+  const bin = s.whisperBin || process.env.WHISPER_BIN || '';
+  let model = s.whisperModel || process.env.WHISPER_MODEL || '';
+  if (!model && fs.existsSync(defaultModelPath())) model = defaultModelPath();
+  if (!bin || !model) return null;
+
+  return new Promise((resolve) => {
+    execFile(bin, ['-m', model, '-l', lang, '-nt', wavPath], { timeout: 300000 }, (err, stdout) => {
+      if (err) {
+        console.error('whisper failed:', err.message);
+        return resolve(null);
+      }
+      const text = String(stdout || '')
+        .split('\n')
+        .filter((l) => l.trim() && !/^\s*\[|^\s*system_info|whisper_/i.test(l))
+        .join(' ')
+        .trim();
+      resolve(text || null);
+    });
+  });
+}
+
+async function transcribeGeminiBytes(bytes, lang) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const b64 = Buffer.from(bytes).toString('base64');
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.` },
+              { inlineData: { mimeType: 'audio/wav', data: b64 } },
+            ],
+          },
+        ],
+      }),
+    }
+  );
+  const data = await res.json();
+  const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  return out ? out.trim() : null;
+}
+
+ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
+  const tmp = path.join(app.getPath('temp'), `flow-${Date.now()}.wav`);
+  try {
+    fs.writeFileSync(tmp, Buffer.from(bytes));
+    let text = await transcribeWhisper(tmp, lang);
+    if (text) return { text, source: 'whisper' };
+    text = await transcribeGeminiBytes(bytes, lang);
+    if (text) return { text, source: 'gemini' };
+    return {
+      text: '',
+      error: 'no-engine',
+      hint: 'Установи whisper.cpp (Settings → Распознавание) или задай GEMINI_API_KEY',
+    };
+  } finally {
+    try { fs.unlinkSync(tmp); } catch { /* P-10 */ }
+  }
+});
+
+ipcMain.handle('asr:download-model', async () => {
+  fs.mkdirSync(modelsDir(), { recursive: true });
+  const dest = defaultModelPath();
+  if (fs.existsSync(dest)) {
+    const hash = await sha256File(dest);
+    if (hash === MODEL.sha256) return { ok: true, existing: true, path: dest };
+  }
+  const res = await fetch(MODEL.url);
+  if (!res.ok) throw new Error(`HF ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(dest, buf);
+  const hash = await sha256File(dest);
+  if (hash !== MODEL.sha256) {
+    fs.unlinkSync(dest);
+    throw new Error(`SHA-256 mismatch: ${hash}`);
+  }
+  return { ok: true, path: dest, sha256: hash };
+});
+
+ipcMain.handle('asr:check', async () => {
+  const s = readSettings();
+  const bin = s.whisperBin || process.env.WHISPER_BIN || '';
+  const model = s.whisperModel || process.env.WHISPER_MODEL || (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '');
+  return {
+    platform: process.platform,
+    whisperBin: !!bin && fs.existsSync(bin),
+    whisperModel: !!model && fs.existsSync(model),
+    modelDownloaded: fs.existsSync(defaultModelPath()),
+    modelPath: defaultModelPath(),
+    geminiKey: !!process.env.GEMINI_API_KEY,
+  };
 });
 
 // ---------------------------------------------------------------------------

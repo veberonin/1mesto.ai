@@ -7,36 +7,46 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: #08080b;
-    color: #f4f4f5;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto,
+    background-color: #f5f2eb;
+    color: #17140f;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
       'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   ::selection {
-    background: rgba(255, 107, 74, 0.8);
-    color: #fff;
+    background: rgba(221, 91, 10, 0.25);
+  }
+}
+
+@layer components {
+  /* Карточка в стиле оригинала: белая, тонкая линия, мягкая тень */
+  .glass {
+    background: #ffffff;
+    border: 1px solid #e8e2d6;
+    border-radius: 1rem;
+  }
+  /* Клавиша-хоткей как у Wispr Flow: оранжевая обводка */
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 10px;
+    border: 1.5px solid #dd5b0a;
+    border-radius: 9px;
+    background: #fff7f0;
+    color: #b34a00;
+    font-weight: 700;
+    box-shadow: 0 2px 0 rgba(221, 91, 10, 0.2);
+  }
+  .text-gradient {
+    color: #17140f;
+  }
+  .text-gradient-soft {
+    color: #7b7365;
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    background: linear-gradient(100deg, #ff8a5c 0%, #f43f6e 48%, #8b5cf6 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .text-gradient-soft {
-    background: linear-gradient(100deg, #ffd7c2 0%, #ffb1c8 50%, #d6bfff 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .glass {
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(14px);
-  }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -46,43 +56,28 @@
   }
 }
 
-/* ---------- Custom scrollbar ---------- */
+/* ---------- Скроллбары ---------- */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #26262f;
+  background: #ddd5c6;
   border-radius: 8px;
-  border: 2px solid #08080b;
+  border: 3px solid #f5f2eb;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f4d;
+  background: #c9bfa9;
 }
 
-/* ---------- Aurora background ---------- */
-.aurora-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(110px);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* ---------- Fake waveform bars (CSS fallback) ---------- */
-.fake-bar {
-  transform-origin: center bottom;
-  animation: bounceBar 1s ease-in-out infinite;
-}
-
-/* ---------- Blinking caret for live text ---------- */
+/* ---------- Курсор живого текста ---------- */
 .caret::after {
   content: '▍';
   margin-left: 2px;
-  color: #ff6b4a;
+  color: #dd5b0a;
   animation: caretBlink 0.9s steps(1) infinite;
 }
 @keyframes caretBlink {
@@ -91,34 +86,36 @@
   }
 }
 
-/* ---------- Shimmer skeleton ---------- */
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.04) 75%
-  );
-  background-size: 800px 100%;
-  animation: shimmer 1.6s linear infinite;
+/* ---------- Фейковые бары волны ---------- */
+.fake-bar {
+  transform-origin: center bottom;
+  animation: bounceBar 1s ease-in-out infinite;
+}
+@keyframes bounceBar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
-/* ---------- Toggle switch ---------- */
+/* ---------- Переключатели ---------- */
 .switch {
   position: relative;
   width: 42px;
   height: 24px;
   border-radius: 999px;
-  background: #26262f;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #e0d9cb;
+  border: 1px solid rgba(23, 20, 15, 0.08);
   transition: all 0.2s ease;
   cursor: pointer;
   flex-shrink: 0;
 }
 .switch[data-on='true'] {
-  background: linear-gradient(100deg, #ff6b4a, #f43f6e);
-  border-color: transparent;
-  box-shadow: 0 0 16px -4px rgba(244, 63, 110, 0.6);
+  background: #17140f;
+  border-color: #17140f;
 }
 .switch span {
   position: absolute;
@@ -129,7 +126,7 @@
   border-radius: 999px;
   background: #fff;
   transition: transform 0.2s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 .switch[data-on='true'] span {
   transform: translateX(18px);

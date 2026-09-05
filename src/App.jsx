@@ -2,19 +2,18 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-import Aurora from './components/Aurora.jsx';
-import Header from './components/Header.jsx';
-import Hero from './components/Hero.jsx';
+import Sidebar from './components/Sidebar.jsx';
 import DictationPill from './components/DictationPill.jsx';
 import DictationTab from './components/DictationTab.jsx';
-import AnalyticsTab from './components/AnalyticsTab.jsx';
+import HistoryTab from './components/HistoryTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
 import AboutTab from './components/AboutTab.jsx';
-import HistoryTab from './components/HistoryTab.jsx';
+import Onboarding from './components/Onboarding.jsx';
 import Toasts from './components/Toasts.jsx';
 
 import { isSpeechSupported, SpeechEngine } from './lib/speech.js';
 import { startMicMeter } from './lib/audio.js';
+import { WavCapture } from './lib/recorder.js';
 import { sound } from './lib/sound.js';
 import { formatText, countWordsIn, DEMO_SAMPLES } from './lib/formatter.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
@@ -24,15 +23,18 @@ import { isDesktop, desktopAPI } from './lib/desktop.js';
 const SETTINGS_KEY = 'flow-settings-v1';
 
 const DEFAULT_SETTINGS = {
-  provider: 'none', // none | gemini | openai
+  provider: 'none',
   apiKey: '',
   autoFormat: true,
   autoCopy: false,
   soundOn: true,
   name: '',
-  privacy: false,      // P-12: не писать текст реплик
-  autoPunct: true,     // G-16: автопунктуация вкл/выкл
-  normalizeNumbers: true, // F-10: числа словами → цифры
+  privacy: false,
+  autoPunct: true,
+  normalizeNumbers: true,
+  whisperBin: '',
+  whisperModel: '',
+  onboarded: false,
 };
 
 function loadSettings() {
@@ -40,13 +42,12 @@ function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
   } catch {
-    /* iframe без allow-same-origin кидает SecurityError — молча работаем в памяти */
+    /* noop */
   }
   return DEFAULT_SETTINGS;
 }
 
 export default function App() {
-  // ---------- навигация / базовые состояния ----------
   const [tab, setTab] = useState('dictation');
   const [language, setLanguage] = useState('ru');
   const [mode, setMode] = useState('clean');
@@ -54,10 +55,9 @@ export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-  // ---------- диктовка ----------
   const [recording, setRecording] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
-  const [micDenied, setMicDenied] = useState(null); // null | 'denied' | 'unsupported'
+  const [micDenied, setMicDenied] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
   const [formatted, setFormatted] = useState('');
@@ -68,12 +68,10 @@ export default function App() {
   const [peakWpm, setPeakWpm] = useState(0);
   const [bars, setBars] = useState([]);
   const [stats, setStats] = useState(loadStats);
+  const [journalTick, setJournalTick] = useState(0);
 
-  // ---------- refs (против stale closures) ----------
   const transcriptRef = useRef('');
   const formattedRef = useRef('');
-  const firstFinalRef = useRef(0);
-  const lastMetaRef = useRef(null);
   const recordingRef = useRef(false);
   const startRef = useRef(0);
   const wordsRef = useRef(0);
@@ -81,8 +79,11 @@ export default function App() {
   const timerRef = useRef(null);
   const engineRef = useRef(null);
   const meterRef = useRef(null);
+  const captureRef = useRef(null); // WAV-фолбэк для десктопа
+  const engineDeadRef = useRef(false);
   const demoRef = useRef(null);
   const toastId = useRef(0);
+  const lastToastRef = useRef({ msg: '', t: 0 });
   const langRef = useRef(language);
   langRef.current = language;
   const settingsRef = useRef(settings);
@@ -90,26 +91,27 @@ export default function App() {
   const formatMetaRef = useRef(null);
   formatMetaRef.current = formatMeta;
 
-  // ---------- тосты ----------
+  // ---------- тосты (с дедупликацией — больше не спамят пачками) ----------
   const toast = useCallback((msg, type = 'info') => {
+    const now = Date.now();
+    if (lastToastRef.current.msg === msg && now - lastToastRef.current.t < 3000) return;
+    lastToastRef.current = { msg, t: now };
     const id = ++toastId.current;
     setToasts((t) => [...t.slice(-3), { id, msg, type }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
   }, []);
 
-  // ---------- persist настроек + звук ----------
+  // ---------- persist + звук + синк с десктопом ----------
   useEffect(() => {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch { /* noop */ }
     sound.enabled = settings.soundOn;
-    // В десктопе настройки синхронизируются с main-процессом (общие с пилюлей)
     if (isDesktop()) {
       desktopAPI.saveSettings({ ...settings, language, mode }).catch(() => {});
     }
   }, [settings, language, mode]);
 
-  // ---------- в десктопе подтягиваем настройки из main ----------
   useEffect(() => {
     if (!isDesktop()) return;
     desktopAPI
@@ -124,7 +126,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------- живой локальный формат ----------
+  // ---------- живой формат ----------
   useEffect(() => {
     if (!settings.autoFormat) return;
     if (!transcript.trim()) {
@@ -138,12 +140,15 @@ export default function App() {
       normalizeNumbers: settings.normalizeNumbers !== false,
     });
     formattedRef.current = text;
+    lastMetaRef.current = { ...meta, source: prevSourceRef.current };
     setFormatted(text);
-    lastMetaRef.current = { ...meta, source: prev?.source === 'ai' ? 'ai' : 'local' };
     setFormatMeta(lastMetaRef.current);
   }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name]);
 
-  // ---------- health-check сервера ----------
+  const lastMetaRef = useRef(null);
+  const prevSourceRef = useRef('local');
+
+  // ---------- health ----------
   const checkServer = useCallback(() => {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 2500);
@@ -153,7 +158,6 @@ export default function App() {
       .catch(() => setServerOnline(false))
       .finally(() => clearTimeout(t));
   }, []);
-
   useEffect(() => {
     checkServer();
     const iv = setInterval(checkServer, 30000);
@@ -161,11 +165,11 @@ export default function App() {
   }, [checkServer]);
 
   useEffect(() => {
-    if (!isSpeechSupported()) setMicDenied('unsupported');
+    if (!isSpeechSupported() && !isDesktop()) setMicDenied('unsupported');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------- таймер сессии ----------
+  // ---------- таймер ----------
   const startTimer = () => {
     stopTimer();
     timerRef.current = setInterval(() => {
@@ -184,7 +188,6 @@ export default function App() {
     timerRef.current = null;
   };
 
-  // ---------- текст ----------
   const appendTranscript = (piece) => {
     const next = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
     transcriptRef.current = next;
@@ -197,8 +200,31 @@ export default function App() {
     setTranscript(text);
   };
 
-  // ---------- завершение сессии (общее для микрофона и демо) ----------
-  const finishSession = () => {
+  // ---------- завершение сессии ----------
+  const finishSession = async () => {
+    // Десктоп-фолбэк: если браузерное распознавание не дало текст — локальный ASR по записи
+    if (isDesktop() && !transcriptRef.current.trim() && captureRef.current) {
+      try {
+        toast('Распознаю локально…', 'info');
+        const wav = captureRef.current.stop();
+        captureRef.current = null;
+        const res = await desktopAPI.transcribe(wav, langRef.current);
+        if (res && res.text) {
+          replaceTranscript(res.text);
+          prevSourceRef.current = res.source === 'gemini' ? 'ai' : 'local';
+          toast(`Распознано (${res.source}) ✓`, 'success');
+        } else {
+          toast(res?.hint || 'Распознаватель не настроен — см. Настройки', 'error');
+        }
+      } catch {
+        toast('Не удалось распознать запись', 'error');
+      }
+    }
+    if (captureRef.current) {
+      captureRef.current.stop();
+      captureRef.current = null;
+    }
+
     const durSec = Math.max(1, Math.round((Date.now() - startRef.current) / 1000));
     const words = wordsRef.current;
     const wpm = durSec >= 3 ? Math.round(words / (durSec / 60)) : 0;
@@ -219,38 +245,30 @@ export default function App() {
         mode,
         lang: langRef.current,
         source: formatMetaRef.current?.source === 'ai' ? 'ai' : 'local',
-        latencies: { firstHypothesisMs: firstFinalRef.current || undefined },
+        latencies: {},
         dictHits: lastMetaRef.current?.dictHits || [],
         fillersRemoved: lastMetaRef.current?.removedFillers || 0,
         privacy: !!settingsRef.current.privacy,
       });
-      firstFinalRef.current = 0;
-      const s = saveSession({
-        words,
-        wpm,
-        peakWpm: peakRef.current,
-        durSec,
-        mode,
-        lang: langRef.current,
-      });
+      setJournalTick((t) => t + 1);
+      const s = saveSession({ words, wpm, peakWpm: peakRef.current, durSec, mode, lang: langRef.current });
       setStats({ ...s });
       toast(`${words} слов за ${durSec} c · ${wpm} wpm`, 'success');
-
       if (settings.autoCopy) copyText(formattedRef.current || transcriptRef.current, true);
       if (settings.provider !== 'none' && settings.apiKey) aiPolish();
-    } else {
+    } else if (!transcriptRef.current.trim()) {
       toast('Ничего не расслышал — попробуй ещё раз', 'error');
     }
     setLiveWpm(0);
     setElapsed(0);
   };
 
-  // ---------- реальная запись ----------
+  // ---------- запись ----------
   const startRecording = async () => {
     stopDemo(true);
-    if (!isSpeechSupported()) {
+    if (!isSpeechSupported() && !isDesktop()) {
       setMicDenied('unsupported');
-      toast('Web Speech API доступен в Chrome/Edge — попробуй демо', 'error');
+      toast('Распознавание доступно в Chrome/Edge — или скачай приложение', 'error');
       return;
     }
 
@@ -258,6 +276,8 @@ export default function App() {
     startRef.current = Date.now();
     wordsRef.current = countWordsIn(transcriptRef.current);
     peakRef.current = 0;
+    engineDeadRef.current = false;
+    prevSourceRef.current = 'local';
     setPeakWpm(0);
     setElapsed(0);
     setLiveWpm(0);
@@ -265,29 +285,40 @@ export default function App() {
     recordingRef.current = true;
     startTimer();
 
-    // Живая волна (не блокируем запись, если камеры/микрофона нет)
+    // Волна
     startMicMeter(({ bars: b }) => setBars(b))
-      .then((meter) => {
-        meterRef.current = meter;
-      })
-      .catch(() => {
-        meterRef.current = null; // пилюля перейдёт на CSS-анимацию
-      });
+      .then((m) => { meterRef.current = m; })
+      .catch(() => {});
+
+    // Десктоп: параллельно пишем WAV для локального распознавания
+    if (isDesktop()) {
+      try {
+        captureRef.current = new WavCapture();
+        await captureRef.current.start(() => {});
+      } catch {
+        captureRef.current = null;
+      }
+    }
 
     engineRef.current = new SpeechEngine({
-      onFinal: (piece) => {
-        if (!firstFinalRef.current) firstFinalRef.current = Date.now() - startRef.current;
-        appendTranscript(piece);
-      },
+      onFinal: (piece) => appendTranscript(piece),
       onInterim: (text) => setInterim(text),
       onError: (code) => {
         if (code === 'denied') {
           setMicDenied('denied');
           sound.error();
-          toast('Доступ к микрофону запрещён — открой превью в новой вкладке', 'error');
+          toast('Доступ к микрофону запрещён', 'error');
           abortRecording();
-        } else if (code === 'network') {
-          toast('Speech API: нет сети. Демо-режим всё равно работает', 'error');
+        } else if (code === 'network' || code === 'service-not-allowed' || code === 'not-allowed') {
+          // В Electron Web Speech без ключа не работает — не страшно: пишем WAV → локальный ASR
+          engineDeadRef.current = true;
+          setInterim('');
+          if (isDesktop()) {
+            toast('Браузерное распознавание недоступно — пишу аудио для локального распознавания', 'info');
+          } else {
+            toast('Speech API: нет сети. Демо-режим всё равно работает', 'error');
+            abortRecording();
+          }
         } else if (code === 'no-mic') {
           setMicDenied('denied');
           sound.error();
@@ -296,7 +327,7 @@ export default function App() {
       },
     });
     const ok = engineRef.current.start(langRef.current === 'ru' ? 'ru-RU' : 'en-US');
-    if (!ok) {
+    if (!ok && !isDesktop()) {
       abortRecording();
       toast('Не удалось запустить распознавание', 'error');
     }
@@ -315,7 +346,6 @@ export default function App() {
     finishSession();
   };
 
-  /** тихая отмена при ошибках — без сохранения сессии */
   const abortRecording = () => {
     if (engineRef.current) {
       engineRef.current.stop();
@@ -324,6 +354,10 @@ export default function App() {
     if (meterRef.current) {
       meterRef.current.stop();
       meterRef.current = null;
+    }
+    if (captureRef.current) {
+      captureRef.current.stop();
+      captureRef.current = null;
     }
     stopTimer();
     recordingRef.current = false;
@@ -337,9 +371,9 @@ export default function App() {
     if (recordingRef.current) stopRecording();
     else startRecording();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, formatted, mode]);
+  }, [settings, mode]);
 
-  // ---------- демо-режим (полный пайплайн без микрофона) ----------
+  // ---------- демо ----------
   const stopDemo = (silent = false) => {
     if (demoRef.current) {
       clearInterval(demoRef.current);
@@ -351,14 +385,13 @@ export default function App() {
   const runDemo = (lang) => {
     if (recordingRef.current) abortRecording();
     stopDemo(true);
-
     if (lang !== language) setLanguage(lang);
     langRef.current = lang;
-
     replaceTranscript('');
     setFormatted('');
     formattedRef.current = '';
     setFormatMeta(null);
+    lastMetaRef.current = null;
     sound.start();
 
     const words = DEMO_SAMPLES[lang].split(/\s+/);
@@ -376,20 +409,14 @@ export default function App() {
 
     demoRef.current = setInterval(() => {
       const step = Math.random() < 0.35 ? 2 : 1;
-      for (let k = 0; k < step && i < words.length; k++) {
-        acc += (acc ? ' ' : '') + words[i++];
-      }
+      for (let k = 0; k < step && i < words.length; k++) acc += (acc ? ' ' : '') + words[i++];
       if (Math.random() < 0.25) sound.tick();
-
-      // псевдо-волна
       for (let b = 0; b < smooth.length; b++) {
         smooth[b] = Math.min(1, Math.max(0.08, smooth[b] + (Math.random() - 0.5) * 0.75));
       }
       setBars([...smooth]);
-
       replaceTranscript(acc);
       setInterim(words[i] || '');
-
       if (i >= words.length) {
         clearInterval(demoRef.current);
         demoRef.current = null;
@@ -400,21 +427,16 @@ export default function App() {
     }, 160);
   };
 
-  // ---------- AI-полировка ----------
+  // ---------- AI ----------
   const aiPolish = async () => {
     if (!transcriptRef.current.trim()) return;
     setProcessing(true);
     try {
       let data;
       if (isDesktop()) {
-        // десктоп: через main-процесс (ключи могут лежать и в env приложения)
         data = await desktopAPI.aiFormat({
-          text: transcriptRef.current,
-          mode,
-          language,
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          name: settings.name,
+          text: transcriptRef.current, mode, language,
+          provider: settings.provider, apiKey: settings.apiKey, name: settings.name,
         });
         if (!data || !data.formattedText) throw new Error('empty');
       } else {
@@ -433,6 +455,7 @@ export default function App() {
         formattedRef.current = data.formattedText;
         setFormatted(data.formattedText);
         setFormatMeta((m) => ({ ...(m || { removedFillers: 0 }), source: data.source === 'ai' ? 'ai' : 'local' }));
+        prevSourceRef.current = data.source === 'ai' ? 'ai' : 'local';
         sound.success();
         toast('Текст отполирован ✨', 'success');
       } else {
@@ -445,7 +468,7 @@ export default function App() {
     }
   };
 
-  // ---------- буфер обмена ----------
+  // ---------- буфер ----------
   const copyText = async (text, silent = false) => {
     if (!text) return;
     let ok = false;
@@ -469,7 +492,7 @@ export default function App() {
     if (!silent) toast(ok ? 'Скопировано в буфер ✓' : 'Браузер не дал доступ к буферу', ok ? 'success' : 'error');
   };
 
-  // ---------- прочие экшены ----------
+  // ---------- экшены ----------
   const handleClear = () => {
     abortRecording();
     stopDemo(true);
@@ -478,6 +501,7 @@ export default function App() {
     setFormatted('');
     formattedRef.current = '';
     setFormatMeta(null);
+    lastMetaRef.current = null;
     setElapsed(0);
     setLiveWpm(0);
   };
@@ -490,15 +514,13 @@ export default function App() {
     setLanguage((l) => (l === 'ru' ? 'en' : 'ru'));
   };
 
-  // ---------- горячие клавиши ----------
+  // ---------- хоткеи ----------
   const toggleRef = useRef(toggleRecording);
   toggleRef.current = toggleRecording;
-
   useEffect(() => {
     const handler = (e) => {
-      // В десктопе Alt+Space глобально обрабатывает main-процесс (пилюля поверх всех окон)
       if ((e.altKey || e.ctrlKey) && e.code === 'Space') {
-        if (isDesktop()) return; // не мешаем системному хоткею
+        if (isDesktop()) return;
         e.preventDefault();
         toggleRef.current();
       }
@@ -512,21 +534,25 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // ---------- размонтирование ----------
-  useEffect(() => () => {
-    if (engineRef.current) engineRef.current.stop();
-    if (meterRef.current) meterRef.current.stop();
-    stopTimer();
-    stopDemo(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(
+    () => () => {
+      if (engineRef.current) engineRef.current.stop();
+      if (meterRef.current) meterRef.current.stop();
+      if (captureRef.current) captureRef.current.stop();
+      stopTimer();
+      stopDemo(true);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    []
+  );
 
   const pillState = recording || demoActive ? 'recording' : processing ? 'processing' : 'idle';
   const today = getToday(stats);
 
   return (
-    <div className="min-h-screen relative">
-      <Aurora />
+    <div className="min-h-screen bg-paper text-ink">
+      <Sidebar tab={tab} setTab={setTab} />
+
       <DictationPill
         state={pillState}
         bars={bars}
@@ -537,101 +563,75 @@ export default function App() {
         onToggle={toggleRecording}
       />
 
-      <div className="relative z-10">
-        <Header
-          tab={tab}
-          setTab={setTab}
-          language={language}
-          onToggleLanguage={handleToggleLanguage}
-          serverOnline={serverOnline}
-        />
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
+      <div className="md:pl-60">
+        <main className="max-w-6xl mx-auto px-4 sm:px-8 pb-16 pt-6 md:pt-10">
           {tab === 'dictation' && (
-            <>
-              <Hero />
-              <div className="mt-10">
-                <DictationTab
-                  recording={recording}
-                  demoActive={demoActive}
-                  micDenied={micDenied}
-                  language={language}
-                  mode={mode}
-                  transcript={transcript}
-                  onTranscriptChange={replaceTranscript}
-                  interim={interim}
-                  formatted={formatted}
-                  formatMeta={formatMeta}
-                  processing={processing}
-                  elapsed={elapsed}
-                  liveWpm={liveWpm}
-                  peakWpm={peakWpm}
-                  onToggleRecording={toggleRecording}
-                  onDemo={runDemo}
-                  onModeChange={setMode}
-                  onClear={handleClear}
-                  onAiFormat={aiPolish}
-                  onCopy={copyText}
-                  aiEnabled={settings.provider !== 'none' && !!settings.apiKey}
-                  stats={{ ...stats, today }}
-                />
-              </div>
-            </>
+            <DictationTab
+              recording={recording}
+              demoActive={demoActive}
+              language={language}
+              mode={mode}
+              transcript={transcript}
+              onTranscriptChange={replaceTranscript}
+              interim={interim}
+              formatted={formatted}
+              formatMeta={formatMeta}
+              processing={processing}
+              elapsed={elapsed}
+              liveWpm={liveWpm}
+              onToggleRecording={toggleRecording}
+              onDemo={runDemo}
+              onModeChange={setMode}
+              onClear={handleClear}
+              onAiFormat={aiPolish}
+              onCopy={copyText}
+              settings={settings}
+              stats={{ ...stats, today }}
+              refreshKey={journalTick}
+              onToast={toast}
+            />
           )}
 
-          {tab === 'analytics' && (
-            <div className="pt-8">
-              <AnalyticsTab
-                stats={stats}
-                serverOnline={serverOnline}
-                onRefresh={() => {
-                  setStats(loadStats());
-                  checkServer();
-                  toast('Статистика обновлена', 'info');
-                }}
-                onReset={() => {
-                  setStats(resetStats());
-                  toast('Статистика сброшена', 'info');
-                }}
-              />
+          {tab === 'history' && (
+            <div className="pt-2">
+              <HistoryTab privacy={settings.privacy} onToast={toast} />
             </div>
           )}
 
           {tab === 'settings' && (
-            <div className="pt-8">
+            <div className="pt-2">
               <SettingsTab
                 settings={settings}
                 onChange={setSettings}
                 serverOnline={serverOnline}
                 onCheckServer={() => {
                   checkServer();
-                  toast(serverOnline ? 'Сервер на связи ✓' : 'Проверяю… если бэкенд запущен — статус станет зелёным', serverOnline ? 'success' : 'info');
+                  toast(serverOnline ? 'Сервер на связи ✓' : 'Проверяю…', serverOnline ? 'success' : 'info');
                 }}
                 onResetStats={() => {
                   setStats(resetStats());
                   toast('Статистика сброшена', 'info');
                 }}
+                onToast={toast}
               />
             </div>
           )}
 
-          {tab === 'history' && (
-            <div className="pt-8">
-              <HistoryTab privacy={settings.privacy} onToast={toast} />
-            </div>
-          )}
-
           {tab === 'about' && (
-            <div className="pt-8">
+            <div className="pt-2">
               <AboutTab />
             </div>
           )}
         </main>
-
-        <footer className="border-t border-white/[0.05] py-6 text-center text-[11.5px] text-zinc-600">
-          Сделано с ❤️ на хакатоне · 1mesto Flow — клон Wispr Flow · голосом по клавиатуре
-        </footer>
       </div>
+
+      {!settings.onboarded && (
+        <Onboarding
+          onDone={() => {
+            setSettings((s) => ({ ...s, onboarded: true }));
+          }}
+        />
+      )}
 
       <Toasts toasts={toasts} />
     </div>

@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2026 1mesto Flow team (veberonin)
 // Preload для Electron — безопасный мост (contextIsolation: true).
 // ВАЖНО: preload обязан быть CommonJS, поэтому файл .cjs
 const { contextBridge, ipcRenderer } = require('electron');
@@ -12,4 +10,8 @@ contextBridge.exposeInMainWorld('flowDesktop', {
   aiFormat: (payload) => ipcRenderer.invoke('ai:format', payload),
   hidePill: () => ipcRenderer.send('pill:hide'),
   onCommand: (cb) => ipcRenderer.on('flow:command', (_e, cmd) => cb(cmd)),
+  // Локальное распознавание: WAV-байты → текст (whisper.cpp / Gemini)
+  transcribe: (bytes, lang) => ipcRenderer.invoke('asr:transcribe', bytes, lang),
+  downloadModel: () => ipcRenderer.invoke('asr:download-model'),
+  asrCheck: () => ipcRenderer.invoke('asr:check'),
 });

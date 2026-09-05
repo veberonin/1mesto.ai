@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { isDesktop, desktopAPI } from '../lib/desktop.js';
 
 function Toggle({ label, desc, value, onChange }) {
   return (
@@ -97,6 +98,10 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
           </div>
         )}
       </div>
+
+
+      {/* Распознавание речи (локальное) */}
+      <AsrCard settings={settings} onChange={set} onToast={onToast} />
 
       {/* Поведение */}
       <div className="rounded-3xl glass p-6 shadow-card">
@@ -211,6 +216,110 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             <span className="text-zinc-500">экстренная остановка</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+
+function AsrCard({ settings, onChange, onToast }) {
+  const [info, setInfo] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => {
+    if (!isDesktop()) return;
+    desktopAPI.asrCheck().then(setInfo).catch(() => {});
+  };
+  useEffect(refresh, []);
+
+  if (!isDesktop()) {
+    return (
+      <div className="rounded-3xl glass p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-2">
+          <Cpu className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Распознавание речи</h3>
+        </div>
+        <p className="text-[12.5px] text-mute leading-relaxed">
+          В браузере работает встроенное распознавание Chrome (нужен интернет).
+          <b> Полностью офлайн-распознавание — в десктоп-приложении</b> (whisper.cpp + модель).
+        </p>
+      </div>
+    );
+  }
+
+  const engineLabel = info?.whisperBin && info?.whisperModel ? 'whisper.cpp ✓ офлайн' : info?.geminiKey ? 'Gemini (по ключу)' : 'не настроено';
+
+  return (
+    <div className="rounded-3xl glass p-6 shadow-card">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Распознавание речи</h3>
+        </div>
+        <button onClick={refresh} className="p-1.5 rounded-lg hover:bg-paper text-mute" title="Обновить">
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <p className="text-[12px] text-mute mt-1 mb-4 leading-relaxed">
+        Локальный движок whisper.cpp работает офлайн и не зависит от блокировок.
+        Статус: <b>{engineLabel}</b>
+      </p>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
+            Путь к whisper-cli (main / whisper-cli)
+          </label>
+          <input
+            value={settings.whisperBin || ''}
+            onChange={(e) => onChange({ ...settings, whisperBin: e.target.value })}
+            placeholder="C:\whisper\main.exe · /usr/local/bin/whisper-cli"
+            className="w-full bg-paper/70 border border-line rounded-xl px-4 py-2.5 text-[12.5px] font-mono focus:outline-none focus:border-accent"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
+            ggml-модель (пусто = скачанная)
+          </label>
+          <input
+            value={settings.whisperModel || ''}
+            onChange={(e) => onChange({ ...settings, whisperModel: e.target.value })}
+            placeholder="C:\whisper\models\ggml-base-q5_1.bin"
+            className="w-full bg-paper/70 border border-line rounded-xl px-4 py-2.5 text-[12.5px] font-mono focus:outline-none focus:border-accent"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <button
+            onClick={async () => {
+              setBusy(true);
+              onToast('Скачиваю модель ~60 МБ…', 'info');
+              try {
+                const r = await desktopAPI.downloadModel();
+                onToast(r.existing ? 'Модель уже на месте ✓' : 'Модель скачана, SHA-256 сходится ✓', 'success');
+                refresh();
+              } catch (e) {
+                onToast('Ошибка загрузки: ' + (e.message || 'сеть'), 'error');
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-bold bg-ink text-paper disabled:opacity-60"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {info?.modelDownloaded ? 'Проверить модель (60 МБ)' : 'Скачать модель (60 МБ)'}
+          </button>
+          <span className="text-[11px] text-mute">
+            проверяется по SHA-256 ·{' '}
+            <a className="underline hover:text-ink" href="https://github.com/ggml-org/whisper.cpp/releases" target="_blank" rel="noreferrer">
+              скачать whisper.cpp для своей ОС
+            </a>
+          </span>
+        </div>
+        {info?.modelDownloaded && (
+          <div className="text-[11px] text-mute font-mono truncate">модель: {info.modelPath}</div>
+        )}
       </div>
     </div>
   );
