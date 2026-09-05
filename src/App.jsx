@@ -222,45 +222,48 @@ export default function App() {
   return (
     <div className="min-h-screen bg-wispr-dark text-gray-100 flex flex-col font-sans">
       
-      {/* Top Navbar */}
-      <header className="border-b border-wispr-border bg-wispr-card/80 backdrop-blur sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+        {/* Top Navbar */}
+      <header className="border-b border-wispr-border bg-wispr-card/90 backdrop-blur sticky top-0 z-50 px-6 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-gray-200 to-blue-400 bg-clip-text text-transparent">
-              Wispr Flow
-            </span>
-            <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">
-              Hackathon Edition
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-gray-100 to-blue-400 bg-clip-text text-transparent">
+                Wispr Flow
+              </span>
+              <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-yellow-500 to-amber-600 text-black rounded-full shadow">
+                🏆 Hackathon #1
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400">Голосовой диктант со скоростью мысли</p>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center space-x-1 bg-wispr-dark/70 p-1 rounded-xl border border-wispr-border">
+        <nav className="flex items-center space-x-1.5 bg-wispr-dark/80 p-1.5 rounded-xl border border-wispr-border shadow-inner">
           <button 
             onClick={() => setActiveTab('dictation')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'dictation' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'dictation' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-gray-400 hover:text-white'}`}
           >
             Диктовка
           </button>
           <button 
             onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'analytics' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'analytics' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-gray-400 hover:text-white'}`}
           >
-            Статистика WPM
+            Аналитика WPM
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-gray-400 hover:text-white'}`}
           >
             Настройки AI
           </button>
           <button 
             onClick={() => setActiveTab('about')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'about' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'about' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-gray-400 hover:text-white'}`}
           >
             О проекте
           </button>
@@ -270,15 +273,15 @@ export default function App() {
         <div className="flex items-center space-x-3">
           <button 
             onClick={() => setLanguage(language === 'ru' ? 'en' : 'ru')}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-wispr-card border border-wispr-border text-sm hover:border-blue-500/50 transition"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-wispr-card border border-wispr-border text-xs font-bold hover:border-blue-500/50 transition shadow"
           >
-            <Globe className="w-4 h-4 text-blue-400" />
-            <span className="font-semibold uppercase">{language}</span>
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
+            <span className="uppercase tracking-wider">{language === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}</span>
           </button>
 
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>API Online</span>
+            <span>Online</span>
           </div>
         </div>
       </header>
