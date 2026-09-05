@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Оригинальный Wispr Flow
+    url: https://wisprflow.ai
+    about: Продукт, клон которого мы делаем — сверяйтесь с оригиналом
+  - name: 🦙 Ollama
+    url: https://ollama.com
+    about: Локальные LLM для офлайн AI-полировки
