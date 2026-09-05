@@ -82,5 +82,10 @@
       ],
       "category": "Utility"
     }
+  },
+  "homepage": "https://github.com/veberonin/1mesto.ai",
+  "author": {
+    "name": "1mesto Flow team",
+    "email": "flow@1mesto.ai"
   }
 }
