@@ -5,9 +5,9 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "concurrently \"node server/index.js\" \"npm run client:dev\"",
+    "dev": "npx concurrently \"node server/index.js\" \"npx vite --port 3000\"",
     "client:dev": "vite --port 3000",
-    "build": "npm run client:build && npm run server:install",
+    "build": "npx vite build",
     "client:build": "vite build",
     "server:install": "cd server && npm install"
   },
