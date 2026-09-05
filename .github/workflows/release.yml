@@ -24,13 +24,28 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Build & publish installers to GitHub Releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build installers (без авто-паблиша)
         shell: bash
         run: |
           case "${{ runner.os }}" in
-            Windows) npx electron-builder --win nsis --publish always ;;
-            macOS)   npx electron-builder --mac dmg zip --publish always ;;
-            Linux)   npx electron-builder --linux AppImage deb --publish always ;;
+            Windows) npx electron-builder --win nsis --publish never ;;
+            macOS)   npx electron-builder --mac dmg zip --publish never ;;
+            Linux)   npx electron-builder --linux AppImage deb --publish never ;;
           esac
+
+      - name: Прицепить артефакты к релизу
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [ "$TAG" = "main" ] || [ -z "$TAG" ]; then TAG="v3.0.0"; fi
+          shopt -s nullglob
+          FILES=(release/*.exe release/*.dmg release/*.zip release/*.AppImage release/*.deb release/latest*.yml)
+          if [ ${#FILES[@]} -gt 0 ]; then
+            gh release upload "$TAG" "${FILES[@]}" --clobber
+            echo "Загружено файлов: ${#FILES[@]}"
+          else
+            echo "Для этой ОС артефактов не найдено"
+          fi
