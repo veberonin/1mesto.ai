@@ -17,6 +17,7 @@ function Toggle({ label, desc, value, onChange }) {
 
 const PROVIDERS = [
   { id: 'none', name: 'Без AI', desc: 'Только локальный умный форматер — работает офлайн' },
+  { id: 'ollama', name: 'Ollama', desc: 'Локальная LLM на твоём компе — бесплатно и приватно' },
   { id: 'gemini', name: 'Google Gemini', desc: 'gemini-1.5-flash — быстрый и бесплатный по квоте' },
   { id: 'openai', name: 'OpenAI', desc: 'gpt-4o-mini — дороговато, но блестяще' },
 ];
@@ -39,7 +40,7 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
           перепишет корявые фразы и подгонит тон.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
           {PROVIDERS.map((p) => (
             <button
               key={p.id}
@@ -56,7 +57,18 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
           ))}
         </div>
 
-        {settings.provider !== 'none' && (
+        {settings.provider === 'ollama' && (
+          <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] text-[12px] text-emerald-200/80 leading-relaxed">
+            <b className="text-emerald-300">Ollama локально.</b> На своём компе запусти{' '}
+            <code className="px-1 py-0.5 rounded bg-black/30">ollama serve</code> и скачай модель:{' '}
+            <code className="px-1 py-0.5 rounded bg-black/30">ollama pull llama3.1</code>.
+            Сервер сам найдёт Ollama на <code className="px-1 py-0.5 rounded bg-black/30">localhost:11434</code>.
+            Ключ не нужен. Переменные: <code className="px-1 py-0.5 rounded bg-black/30">OLLAMA_URL</code>,{' '}
+            <code className="px-1 py-0.5 rounded bg-black/30">OLLAMA_MODEL</code>.
+          </div>
+        )}
+
+        {settings.provider !== 'none' && settings.provider !== 'ollama' && (
           <div>
             <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500 block mb-1.5">
               API-ключ ({settings.provider === 'gemini' ? 'Google AI Studio' : 'OpenAI'})

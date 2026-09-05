@@ -4,9 +4,20 @@
 > мгновенная диктовка в браузере, умная очистка речи от слов-паразитов,
 > живая звуковая волна, WPM-аналитика и демо-режим без микрофона.
 
-![stack](https://img.shields.io/badge/React%2018-Vite%205-blue) ![style](https://img.shields.io/badge/Tailwind%203-dark%20theme-8b5cf6) ![api](https://img.shields.io/badge/Express-JSON%20store-green) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![CI](https://github.com/veberonin/1mesto.ai/actions/workflows/ci.yml/badge.svg) ![stack](https://img.shields.io/badge/React%2018-Vite%205-blue) ![style](https://img.shields.io/badge/Tailwind%203-dark%20theme-8b5cf6) ![api](https://img.shields.io/badge/Express-JSON%20store-green) ![tests](https://img.shields.io/badge/tests-27%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
+
+## ✅ Чеклист хакатона
+
+| Критерий | Статус | Где смотреть |
+|---|---|---|
+| Лицензия | ✅ | [LICENSE](LICENSE) — MIT |
+| README | ✅ | этот файл |
+| Зависимости | ✅ | [DEPENDENCIES.md](DEPENDENCIES.md) + `package.json` + `package-lock.json` + `npm ci` |
+| Тесты | ✅ | [tests/](tests) — 27 тестов: `npm test` (встроенный node:test) |
+| CI | ✅ | [.github/workflows/ci.yml](.github/workflows/ci.yml) — тесты на Node 18/20 + сборка на каждый push |
+
 
 ## ✨ Что умеет
 
@@ -66,6 +77,10 @@ npm start            # Express отдаёт dist + API на :5000
 
 ```
 ├── index.html
+├── .github/workflows/ci.yml    # CI: тесты (Node 18/20) + сборка
+├── tests/
+│   ├── formatter.test.js       # юнит-тесты умного форматера
+│   └── server.test.js          # интеграционные тесты API
 ├── src/
 │   ├── App.jsx                  # оркестратор: запись, демо, статистика, тосты
 │   ├── components/
@@ -75,25 +90,42 @@ npm start            # Express отдаёт dist + API на :5000
 │   │   ├── DictationPill.jsx    # 🌟 плавающая пилюля с волной
 │   │   ├── DictationTab.jsx     # рабочее пространство
 │   │   ├── AnalyticsTab.jsx     # графики и история
-│   │   ├── SettingsTab.jsx      # AI, поведение, hotkeys
+│   │   ├── SettingsTab.jsx      # AI (Ollama/Gemini/OpenAI), поведение, hotkeys
 │   │   ├── AboutTab.jsx         # о проекте
 │   │   └── Toasts.jsx
 │   └── lib/
-│       ├── formatter.js         # 🧠 локальный умный форматер
+│       ├── formatter.js         # 🧠 локальный умный форматер (общий для фронта, API и тестов)
 │       ├── speech.js            # Web Speech API + автоперезапуск
 │       ├── audio.js             # живая волна микрофона
 │       ├── sound.js             # блипы UI
 │       └── stats.js             # localStorage + sync на сервер
+├── DEPENDENCIES.md             # манифест зависимостей с лицензиями
+├── CONTRIBUTING.md
 └── server/
-    └── index.js                 # Express: /api/health, /api/stats, /api/format
+    └── index.js                 # Express: /api/health, /api/stats, /api/format (Gemini/OpenAI/Ollama)
 ```
 
 ## 🔑 Опционально: AI-ключи
 
-Локальный форматер работает без ключей. Для AI-полировки:
+Локальный форматер работает без ключей. Для AI-полировки три провайдера:
 
+- **Ollama (рекомендуем, бесплатно и офлайн)** — на своём компе:
+  `ollama serve` + `ollama pull llama3.1`, в настройках выбери «Ollama». Ключ не нужен.
 - В UI: **Настройки → AI-полировка → Gemini/OpenAI → вставь ключ** (хранится только в браузере), или
 - В `.env`: `GEMINI_API_KEY=...` / `OPENAI_API_KEY=...` (см. `.env.example`).
+
+## 🧪 Тесты и CI
+
+```bash
+npm test           # 27 тестов: форматер (RU/EN, пунктуация, режимы) + API
+npm run test:watch # watch-режим
+```
+
+- Раннер — встроенный `node --test`, ноль лишних зависимостей.
+- Тесты покрывают «магию»: слова-паразиты, голосовую пунктуацию, запятые,
+  регистр, все 5 режимов, а также все эндпоинты API.
+- CI (GitHub Actions) на каждый push/PR: матрица **Node 18 + 20** → `npm ci` →
+  `npm test` → `npm run build` → артефакт `dist/`.
 
 ## ⚠️ Заметки
 

@@ -1,7 +1,8 @@
 {
   "name": "1mesto-flow-server",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Backend for 1mesto Flow (Wispr Flow clone): stats storage + AI formatting proxy",
+  "type": "module",
   "main": "index.js",
   "dependencies": {
     "cors": "^2.8.5",

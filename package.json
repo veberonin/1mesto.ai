@@ -1,15 +1,18 @@
 {
   "name": "1mesto-flow",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "1mesto Flow — Wispr Flow clone: effortless voice dictation with AI cleanup, WPM analytics and demo mode",
+  "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,web -c yellow,cyan \"node server/index.js\" \"vite --host 0.0.0.0 --port 3000 --strictPort\"",
     "dev:web": "vite --host 0.0.0.0 --port 3000 --strictPort",
     "dev:server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "node --test tests/",
+    "test:watch": "node --test --watch tests/"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -28,5 +31,8 @@
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=18.13"
   }
 }

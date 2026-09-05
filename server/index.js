@@ -1,8 +1,14 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+// Единый умный форматер с фронтендом — один код для веба, API и тестов
+import { formatText } from '../src/lib/formatter.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(cors());
@@ -31,56 +37,9 @@ function writeDb(db) {
 }
 
 // ---------------------------------------------------------------------------
-// Лёгкий локальный форматер (зеркало клиентского, на случай вызова API напрямую)
+// AI-полировка: Gemini / OpenAI / Ollama (локально). Ключ — из env или заголовка.
 // ---------------------------------------------------------------------------
-const RU_FILLERS = ['эм', 'эээ', 'мм', 'ммм', 'ну', 'вот', 'типа', 'как бы', 'это самое', 'короче', 'в общем'];
-const EN_FILLERS = ['um', 'uh', 'erm', 'hmm', 'like', 'you know', 'i mean', 'basically'];
-
-function localFormat(text, mode, language) {
-  const isRu = language !== 'en';
-  const fillers = isRu ? RU_FILLERS : EN_FILLERS;
-  const Lb = '(?<![\\p{L}\\p{N}])';
-  const Rb = '(?![\\p{L}\\p{N}])';
-  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  let out = ' ' + text + ' ';
-  for (const f of [...fillers].sort((a, b) => b.length - a.length)) {
-    out = out.replace(new RegExp(`${Lb}${esc(f)}${Rb}`, 'giu'), ' ');
-  }
-  out = out
-    .replace(new RegExp(`${Lb}(точка|period|full stop)${Rb}`, 'giu'), ' . ')
-    .replace(new RegExp(`${Lb}(запятая|comma)${Rb}`, 'giu'), ' , ')
-    .replace(new RegExp(`${Lb}(восклицательный знак|exclamation (?:mark|point))${Rb}`, 'giu'), ' ! ')
-    .replace(new RegExp(`${Lb}(вопросительный знак|question mark)${Rb}`, 'giu'), ' ? ')
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([,.!?;:])/g, '$1')
-    .trim();
-
-  const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-  const sentences = out
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => (/[.!?]$/.test(s) ? cap(s) : cap(s) + '.'));
-
-  if (!sentences.length) return '';
-
-  switch (mode) {
-    case 'email':
-      return `${isRu ? 'Добрый день!' : 'Hi there!'}\n\n${sentences.join(' ')}\n\n${isRu ? 'С уважением' : 'Best regards'},\n${isRu ? 'Команда 1mesto' : 'Team 1mesto'}`;
-    case 'bullets':
-      return sentences.map((s) => `•  ${s.replace(/[.]$/, '')}`).join('\n');
-    case 'chat':
-      return sentences.map((s) => s.replace(/\.$/, '')).join('. ') + ' 🙂';
-    default:
-      return sentences.join(' ');
-  }
-}
-
-// ---------------------------------------------------------------------------
-// AI-полировка: Gemini или OpenAI. Ключ — из env или заголовка x-api-key.
-// ---------------------------------------------------------------------------
-async function aiFormat(text, mode, language, provider, key) {
+function buildPrompt(text, mode, language) {
   const langName = language === 'en' ? 'English' : 'Russian';
   const modeHint = {
     clean: 'Standard clean text with proper punctuation and grammar.',
@@ -90,7 +49,7 @@ async function aiFormat(text, mode, language, provider, key) {
     code: 'Clean technical note; wrap tech terms in backticks.',
   }[mode] || 'Standard clean text.';
 
-  const prompt = `You are Flow, a voice-dictation formatter (like Wispr Flow).
+  return `You are Flow, a voice-dictation formatter (like Wispr Flow).
 Rules:
 1. Remove filler words ("эм", "ну", "как бы", "um", "uh", "like", "you know").
 2. Fix punctuation, capitalization and grammar.
@@ -99,51 +58,94 @@ Rules:
 5. Return ONLY the formatted text, no explanations, no markdown fences.
 
 Transcript: """${text}"""`;
+}
 
+async function withTimeout(promiseFn, ms) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
-
+  const timer = setTimeout(() => controller.abort(), ms);
   try {
-    let out = null;
-    if (provider === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0.2,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      const data = await res.json();
-      out = data?.choices?.[0]?.message?.content;
-    } else {
-      const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
-      for (const model of models) {
-        try {
-          const res = await fetch(
+    return await promiseFn(controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function aiFormat(text, mode, language, provider, key) {
+  const prompt = buildPrompt(text, mode, language);
+
+  if (provider === 'openai') {
+    const data = await withTimeout(
+      (signal) =>
+        fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          signal,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            temperature: 0.2,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        }).then((r) => r.json()),
+      25000
+    );
+    const out = data?.choices?.[0]?.message?.content;
+    return out ? out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim() : null;
+  }
+
+  if (provider === 'ollama') {
+    // Локальная модель — бесплатно и офлайн. Нужен запущенный Ollama: `ollama serve`
+    const base = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+    const model = process.env.OLLAMA_MODEL || 'llama3.1';
+    try {
+      const data = await withTimeout(
+        (signal) =>
+          fetch(`${base}/api/chat`, {
+            method: 'POST',
+            signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              stream: false,
+              options: { temperature: 0.2 },
+              messages: [
+                { role: 'system', content: 'You are Flow, a voice dictation formatter. Output only the formatted text.' },
+                { role: 'user', content: prompt },
+              ],
+            }),
+          }).then((r) => r.json()),
+        8000
+      );
+      const out = data?.message?.content;
+      return out ? out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim() : null;
+    } catch {
+      return null; // Ollama не запущена — тихо падаем на локальный форматер
+    }
+  }
+
+  // Gemini (по умолчанию)
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+  for (const model of models) {
+    try {
+      const data = await withTimeout(
+        (signal) =>
+          fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
             {
               method: 'POST',
-              signal: controller.signal,
+              signal,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
             }
-          );
-          const data = await res.json();
-          out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (out) break;
-        } catch (e) {
-          /* пробуем следующую модель */
-        }
-      }
+          ).then((r) => r.json()),
+        25000
+      );
+      const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (out) return out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+    } catch {
+      /* пробуем следующую модель */
     }
-    if (!out) return null;
-    return out.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
-  } finally {
-    clearTimeout(timeout);
   }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +160,7 @@ app.get('/api/health', (req, res) => {
     ai: {
       gemini: !!(process.env.GEMINI_API_KEY || req.headers['x-api-key']),
       openai: !!process.env.OPENAI_API_KEY,
+      ollama: !!(process.env.OLLAMA_URL || req.headers['x-ai-provider'] === 'ollama'),
     },
   });
 });
@@ -205,15 +208,19 @@ app.post('/api/format', async (req, res) => {
     const { text, mode, language } = req.body || {};
     if (!text || !text.trim()) return res.json({ formattedText: '', source: 'local' });
 
-    const provider = req.headers['x-ai-provider'] || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'none');
+    const provider =
+      req.headers['x-ai-provider'] ||
+      (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'none');
     const key = req.headers['x-api-key'] || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
 
-    if (provider !== 'none' && key) {
+    if (provider !== 'none' && (key || provider === 'ollama')) {
       const aiText = await aiFormat(text, mode, language, provider, key);
       if (aiText) return res.json({ formattedText: aiText, source: 'ai' });
     }
 
-    return res.json({ formattedText: localFormat(text, mode, language), source: 'local' });
+    // Локальный умный форматер — всегда доступен, работает офлайн
+    const local = formatText(text, { mode, lang: language === 'en' ? 'en' : 'ru', name: req.body?.name || '' });
+    return res.json({ formattedText: local.text, meta: local.meta, source: 'local' });
   } catch (e) {
     console.error('format error:', e.message);
     res.status(500).json({ error: e.message, formattedText: (req.body && req.body.text) || '' });
@@ -232,7 +239,13 @@ app.get('*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[1mesto Flow] API server: http://localhost:${PORT}`);
-});
+// Слушаем порт только при прямом запуске (не при импорте из тестов)
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[1mesto Flow] API server: http://localhost:${PORT}`);
+  });
+}
+
+export default app;

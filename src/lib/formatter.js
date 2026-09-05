@@ -30,6 +30,8 @@ const RU = {
     ['запятая', ','],
   ],
   commaBefore: ['но', 'зато', 'однако', 'потому что', 'так как', 'который', 'которая', 'которое', 'которые', 'чтобы', 'хотя', 'ведь', 'что', 'а', 'когда'],
+  // перед «что» не ставим запятую внутри устойчивых связок
+  commaGuard: { что: ['потому '] },
   breakWords: ['потом', 'дальше', 'также', 'кстати', 'в итоге', 'кроме того', 'плюс ко всему'],
   emailGreeting: 'Добрый день!',
   emailSignature: 'С уважением',
@@ -113,23 +115,25 @@ function tidyPunctuation(text) {
 /** Шаг 4: расставляем запятые по простым грамматическим правилам */
 function insertCommas(text, pack) {
   let out = text;
-  for (const w of pack.commaBefore) {
-    const re = new RegExp(`(?<=[\\p{L}\\d])\\s+(${esc(w)})(?=\\s)`, 'giu');
+  const sorted = [...pack.commaBefore].sort((a, b) => b.length - a.length);
+  for (const w of sorted) {
+    // guard: не ставим запятую внутри связок вида «потому что»
+    const guards = (pack.commaGuard && pack.commaGuard[w]) || [];
+    const guard = guards.map((g) => `(?<!${esc(g)})`).join('');
+    const re = new RegExp(`(?<=[\\p{L}\\d])\\s+${guard}(${esc(w)})(?=\\s)`, 'giu');
     out = out.replace(re, ', $1');
   }
   return out;
 }
 
-/** Шаг 5: разбиваем «поток сознания» на предложения */
-function sentenceize(text, pack) {
-  let parts = text
-    .split(/(?<=[.!?…])\s+|\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
+/** Шаг 5: разбиваем «поток сознания» на предложения (внутри абзаца) */
+function sentenceize(paragraph, pack) {
   const out = [];
-  for (const part of parts) {
-    const words = part.split(/\s+/);
+  // Сначала режем по уже расставленным знакам конца предложения…
+  const chunks = paragraph.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter(Boolean);
+  // …затем длинные «бесконечные» куски делим по словам-маркерам («потом», «кстати»…)
+  for (const chunk of chunks) {
+    const words = chunk.split(/\s+/);
     let buffer = [];
     for (let i = 0; i < words.length; i++) {
       buffer.push(words[i]);
@@ -155,14 +159,22 @@ function sentenceize(text, pack) {
     .filter(Boolean);
 }
 
+/** Абзацы → массивы предложений. Переносы от «новая строка»/«абзац» сохраняются. */
+function textToBlocks(text, pack) {
+  const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  return paragraphs.map((p) => sentenceize(p, pack)).filter((b) => b.length);
+}
+
 /** Шаг 6: режимы стилизации */
-function applyMode(sentences, mode, lang, opts = {}) {
+function applyMode(blocks, mode, lang, opts = {}) {
   const pack = lang === 'en' ? EN : RU;
   const signatureName = (opts.name || '').trim() || (lang === 'en' ? 'Team 1mesto' : 'Команда 1mesto');
+  const flat = blocks.flat();
+  const joinParas = (sep) => blocks.map((s) => s.join(' ')).join(sep);
 
   switch (mode) {
     case 'email': {
-      const body = sentences.join(' ');
+      const body = joinParas('\n\n');
       const hasGreeting = lang === 'en'
         ? /^(hi|hello|hey|dear)\b/i.test(body)
         : /^(привет|здравствуйте|добрый день|добрый вечер|доброе утро)/i.test(body);
@@ -170,13 +182,13 @@ function applyMode(sentences, mode, lang, opts = {}) {
       return `${greeting}${body}\n\n${pack.emailSignature},\n${signatureName}`;
     }
     case 'bullets': {
-      return sentences.map((s) => `•  ${s.replace(/[.]$/, '')}`).join('\n');
+      return flat.map((s) => `•  ${s.replace(/[.]$/, '')}`).join('\n');
     }
     case 'chat': {
       const emojiPool = ['🙂', '👍', '🚀', '✨', '🔥'];
-      const idx = sentences.join(' ').length % emojiPool.length;
+      const idx = flat.join(' ').length % emojiPool.length;
       // Предложения уже с терминальной пунктуацией — просто склеиваем
-      return `${sentences.join(' ')} ${emojiPool[idx]}`;
+      return `${flat.join(' ')} ${emojiPool[idx]}`;
     }
     case 'code': {
       const markTerms = (s) => {
@@ -186,11 +198,11 @@ function applyMode(sentences, mode, lang, opts = {}) {
         return s;
       };
       const title = lang === 'en' ? '**Tech note**' : '**Техническая заметка**';
-      const bullets = sentences.map((s) => `•  ${markTerms(s)}`).join('\n');
+      const bullets = flat.map((s) => `•  ${markTerms(s)}`).join('\n');
       return `${title}\n\n${bullets}`;
     }
     default:
-      return sentences.join(' ');
+      return joinParas('\n\n');
   }
 }
 
@@ -210,14 +222,14 @@ export function formatText(raw, { mode = 'clean', lang = 'ru', name = '' } = {})
   text = tidyPunctuation(text);
   text = text.replace(/(^|[.!?]\s+)[,.;:]\s*/g, '$1'); // висячие знаки в начале предложений
 
-  const sentences = sentenceize(text, pack);
-  const finalText = applyMode(sentences, mode, lang, { name });
+  const blocks = textToBlocks(text, pack);
+  const finalText = applyMode(blocks, mode, lang, { name });
 
   return {
     text: finalText,
     meta: {
       removedFillers: removed,
-      sentences: sentences.length,
+      sentences: blocks.flat().length,
       mode,
       words: countWords(finalText),
     },
