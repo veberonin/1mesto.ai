@@ -17,6 +17,7 @@ import { WavCapture } from './lib/recorder.js';
 import { sound } from './lib/sound.js';
 import { formatText, countWordsIn } from './lib/formatter.js';
 import { parsePairsText } from './lib/dictio.js';
+import { hotkeyMatches, DEFAULT_HOTKEY } from './lib/hotkey.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
 import { addUtterance } from './lib/journal.js';
 import { isDesktop, desktopAPI } from './lib/desktop.js';
@@ -475,7 +476,7 @@ export default function App() {
   toggleRef.current = toggleRecording;
   useEffect(() => {
     const handler = (e) => {
-      if ((e.altKey || e.ctrlKey) && e.code === 'Space') {
+      if (hotkeyMatches(e, settingsRef.current.hotkey || DEFAULT_HOTKEY)) {
         if (isDesktop()) return;
         e.preventDefault();
         toggleRef.current();

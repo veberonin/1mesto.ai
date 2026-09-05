@@ -105,7 +105,7 @@ async function transcribeGemini(file, opts) {
   const mime = { '.wav': 'audio/wav', '.mp3': 'audio/mp3', '.m4a': 'audio/m4a', '.ogg': 'audio/ogg', '.flac': 'audio/flac' }[path.extname(file).toLowerCase()];
   progress('распознаю через Gemini Audio…');
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${(process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim()}:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

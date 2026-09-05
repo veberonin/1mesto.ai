@@ -121,6 +121,50 @@ describe('redesign: светлая система как в оригинале',
     assert.match(pill, /desktopAPI\.hidePill\(\), delay/); // hide в finally
   });
 
+  it('ASR: модели Gemini актуальны (не 1.5/2.0 — они отозваны)', () => {
+    for (const f of [
+      join(process.cwd(), 'electron', 'ai.js'),
+      join(process.cwd(), 'electron', 'main.js'),
+      join(process.cwd(), 'server', 'index.js'),
+      join(process.cwd(), 'scripts', 'flow-cli.mjs'),
+    ]) {
+      const src = readFileSync(f, 'utf8');
+      assert.doesNotMatch(src, /gemini-(1\.5|2\.0)-flash/, `${f}: устаревшая модель`);
+      assert.match(src, /gemini-flash-latest|GEMINI_MODEL/, `${f}: нет актуальной модели`);
+    }
+  });
+
+  it('ключ Gemini берётся из настроек, не только из env', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /resolveGeminiKey/);
+    assert.match(mj, /geminiKey: ''/);
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /Ключ Gemini для резервного распознавания/);
+  });
+
+  it('переназначение клавиш: либа + UI + main + App', () => {
+    assert.match(read('lib/hotkey.js'), /DEFAULT_HOTKEY/);
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /HotkeyCard/);
+    assert.match(st, /hotkeyFromEvent/);
+    assert.match(read('App.jsx'), /hotkeyMatches/);
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /toElectronAccelerator/);
+  });
+
+  it('фоновый режим: трей-жизнь, старт в трей, автозапуск', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /backgroundMode: true/);
+    assert.match(mj, /startToTray: false/);
+    assert.match(mj, /app:login-item:get/);
+    assert.match(mj, /setLoginItemSettings/);
+    const pl = readFileSync(join(process.cwd(), 'electron', 'preload.cjs'), 'utf8');
+    assert.match(pl, /getLoginItem/);
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /BackgroundCard/);
+    assert.match(st, /Работать в фоне/);
+  });
+
   it('Onboarding: 3 шага и флаг onboarded', () => {
     const ob = read('components/Onboarding.jsx');
     assert.match(ob, /ШАГ/);

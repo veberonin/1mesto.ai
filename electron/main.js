@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { pickPasteCommand } from './paste.js';
 import { aiFormat } from './ai.js';
 import { formatText } from '../src/lib/formatter.js';
+import { normalizeAccelerator, toElectronAccelerator, DEFAULT_HOTKEY } from '../src/lib/hotkey.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.argv.includes('--dev');
@@ -39,8 +40,17 @@ const DEFAULTS = {
   whisperModel: '', // путь к ggml-модели (пусто = наша скачанная)
   dictText: '',     // H-01: словарь замен (текст из файла/textarea)
   macrosText: '',   // H-01: макросы (текст из файла/textarea)
+  hotkey: 'Alt+Space',      // переназначаемый глобальный хоткей
+  backgroundMode: true,     // закрытие окна = жить в трее
+  startToTray: false,       // запуск свёрнутым в трей
+  geminiKey: '',            // ключ Gemini для резервного распознавания (ASR)
   onboarded: false, // B-01: первый запуск
 };
+
+/** Ключ Gemini: настройка → env (для ASR и AI) */
+function resolveGeminiKey(s = readSettings()) {
+  return s.geminiKey || (s.provider === 'gemini' ? s.apiKey : '') || process.env.GEMINI_API_KEY || '';
+}
 
 // Локальная модель Whisper: скачивается приложением, проверяется по SHA-256 (A-08/A-09)
 const MODEL = {
@@ -105,11 +115,13 @@ function pasteIntoFocusedApp() {
 const distIndex = path.join(__dirname, '..', 'dist', 'index.html');
 
 function createDashboard() {
+  const s = readSettings();
   dashboard = new BrowserWindow({
     width: 1200,
     height: 820,
     minWidth: 960,
     minHeight: 640,
+    show: !s.startToTray, // фоновый запуск: окно свёрнуто в трей
     backgroundColor: '#F5F2EB', // светлый фон — тёмный «экран смерти» больше не появится
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icons', 'icon.png'),
@@ -128,9 +140,9 @@ function createDashboard() {
     dashboard.loadFile(distIndex);
   }
 
-  // Закрытие окна = свернуть в трей (как у настоящих менюшных приложений)
+  // Закрытие окна = свернуть в трей (если включён фоновый режим)
   dashboard.on('close', (e) => {
-    if (!quitting) {
+    if (!quitting && readSettings().backgroundMode !== false) {
       e.preventDefault();
       dashboard.hide();
     }
@@ -252,9 +264,12 @@ function registerHotkey() {
   globalShortcut.unregisterAll();
   const s = readSettings();
   if (s.hotkeyEnabled === false) return;
+  const norm = normalizeAccelerator(s.hotkey) || DEFAULT_HOTKEY;
+  const acc = toElectronAccelerator(norm) || 'Alt+Space';
   try {
-    const ok = globalShortcut.register('Alt+Space', toggleDictation);
-    if (!ok) console.error('Alt+Space уже занят другой программой');
+    const ok = globalShortcut.register(acc, toggleDictation);
+    if (!ok) console.error(`Хоткей ${acc} уже занят другой программой`);
+    else console.log(`Глобальный хоткей: ${acc}`);
   } catch (e) {
     console.error('globalShortcut failed:', e.message);
   }
@@ -340,11 +355,12 @@ async function transcribeWhisper(wavPath, lang) {
 }
 
 async function transcribeGeminiBytes(bytes, lang) {
-  const key = process.env.GEMINI_API_KEY;
+  const key = resolveGeminiKey();
   if (!key) return null;
+  const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();
   const b64 = Buffer.from(bytes).toString('base64');
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -361,8 +377,8 @@ async function transcribeGeminiBytes(bytes, lang) {
     }
   );
   const data = await res.json();
-  const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  return out ? out.trim() : null;
+  const out = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim();
+  return out || null;
 }
 
 ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
@@ -376,7 +392,7 @@ ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
     return {
       text: '',
       error: 'no-engine',
-      hint: 'Установи whisper.cpp (Settings → Распознавание) или задай GEMINI_API_KEY',
+      hint: 'Добавь ключ Gemini в Настройках → Распознавание — или укажи whisper-cli для офлайна',
     };
   } finally {
     try { fs.unlinkSync(tmp); } catch { /* P-10 */ }
@@ -412,7 +428,7 @@ ipcMain.handle('asr:check', async () => {
     whisperModel: !!model && fs.existsSync(model),
     modelDownloaded: fs.existsSync(defaultModelPath()),
     modelPath: defaultModelPath(),
-    geminiKey: !!process.env.GEMINI_API_KEY,
+    geminiKey: !!resolveGeminiKey(s),
   };
 });
 
@@ -449,5 +465,19 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
-// Не выходим при закрытии окон — живём в трее
-app.on('window-all-closed', () => {});
+// backgroundMode: живём в трее; выключен — закрываемся вместе с окном
+app.on('window-all-closed', () => {
+  if (readSettings().backgroundMode === false) app.quit();
+});
+
+// Автозапуск при входе в систему (переключается из Настроек)
+ipcMain.handle('app:login-item:get', () => app.getLoginItemSettings().openAtLogin);
+ipcMain.handle('app:login-item:set', (_e, v) => {
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!v });
+    return app.getLoginItemSettings().openAtLogin;
+  } catch (e) {
+    console.error('login item failed:', e.message);
+    return false;
+  }
+});

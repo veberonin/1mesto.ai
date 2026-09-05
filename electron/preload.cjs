@@ -14,4 +14,7 @@ contextBridge.exposeInMainWorld('flowDesktop', {
   transcribe: (bytes, lang) => ipcRenderer.invoke('asr:transcribe', bytes, lang),
   downloadModel: () => ipcRenderer.invoke('asr:download-model'),
   asrCheck: () => ipcRenderer.invoke('asr:check'),
+  // Фоновый режим: автозапуск при входе в систему
+  getLoginItem: () => ipcRenderer.invoke('app:login-item:get'),
+  setLoginItem: (v) => ipcRenderer.invoke('app:login-item:set', v),
 });

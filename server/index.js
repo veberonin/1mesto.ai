@@ -125,7 +125,10 @@ async function aiFormat(text, mode, language, provider, key) {
   }
 
   // Gemini (по умолчанию)
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash'];
+  const models = (process.env.GEMINI_MODEL || 'gemini-flash-latest,gemini-3.6-flash')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
   for (const model of models) {
     try {
       const data = await withTimeout(
@@ -255,13 +258,14 @@ app.post('/api/format', async (req, res) => {
 
 // Транскрибация аудио (WAV base64) через Gemini — фолбэк для веб-версии
 app.post('/api/transcribe', async (req, res) => {
-  const key = process.env.GEMINI_API_KEY;
+  const key = req.headers['x-api-key'] || process.env.GEMINI_API_KEY;
   const { audio, lang = 'ru' } = req.body || {};
   if (!audio) return res.status(400).json({ error: 'no audio' });
   if (!key) return res.status(501).json({ error: 'no GEMINI_API_KEY on server' });
   try {
+    const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -278,7 +282,7 @@ app.post('/api/transcribe', async (req, res) => {
       }
     );
     const data = await r.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim();
     if (!text) return res.status(502).json({ error: 'empty' });
     res.json({ text: text.trim(), source: 'gemini' });
   } catch (e) {

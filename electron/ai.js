@@ -83,8 +83,12 @@ export async function aiFormat(text, mode, language, provider, key) {
     return strip(data?.message?.content);
   }
 
-  // Gemini
-  for (const model of ['gemini-1.5-flash', 'gemini-2.0-flash']) {
+  // Gemini (актуальный алиас; GEMINI_MODEL переопределяет, можно списком через запятую)
+  const models = (process.env.GEMINI_MODEL || 'gemini-flash-latest,gemini-3.6-flash')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  for (const model of models) {
     try {
       const data = await withTimeout(
         (signal) =>
@@ -99,7 +103,7 @@ export async function aiFormat(text, mode, language, provider, key) {
           ).then((r) => r.json()),
         25000
       );
-      const out = strip(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+      const out = strip((data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim());
       if (out) return out;
     } catch {
       /* следующая модель */

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown } from 'lucide-react';
+import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown, Moon, Power } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
+import { normalizeAccelerator, hotkeyFromEvent, isValidAccelerator, DEFAULT_HOTKEY } from '../lib/hotkey.js';
 
 function Toggle({ label, desc, value, onChange }) {
   return (
@@ -200,26 +201,11 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
         </p>
       </div>
 
-      {/* Горячие клавиши */}
-      <div className="rounded-3xl glass p-6 shadow-card">
-        <div className="flex items-center gap-2 mb-3">
-          <Keyboard className="w-4 h-4 text-mute" />
-          <h3 className="font-bold">Горячие клавиши</h3>
-        </div>
-        <div className="space-y-2 text-[13px]">
-          <div className="flex justify-between items-center">
-            <span className="flex gap-1">
-              <span className="keycap">Alt</span>
-              <span className="keycap">Space</span>
-            </span>
-            <span className="text-mute">старт / стоп диктовки</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="keycap">Esc</span>
-            <span className="text-mute">экстренная остановка</span>
-          </div>
-        </div>
-      </div>
+      {/* Горячие клавиши (переназначаемые) */}
+      <HotkeyCard settings={settings} onChange={set} onToast={onToast} />
+
+      {/* Фоновый режим (десктоп) */}
+      <BackgroundCard settings={settings} onChange={set} onToast={onToast} />
     </div>
   );
 }
@@ -430,6 +416,24 @@ function AsrCard({ settings, onChange, onToast }) {
           />
         </div>
 
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
+            Ключ Gemini для резервного распознавания (если whisper не настроен)
+          </label>
+          <input
+            type="password"
+            value={settings.geminiKey || ''}
+            onChange={(e) => onChange({ ...settings, geminiKey: e.target.value })}
+            placeholder="AQ.… или AIza… — хранится только у тебя"
+            className="w-full bg-paper/70 border border-line rounded-xl px-4 py-2.5 text-[12.5px] font-mono focus:outline-none focus:border-accent"
+          />
+          <p className="text-[11px] text-mute mt-1">
+            {info?.geminiKey
+              ? '✓ Резервное распознавание активно'
+              : 'Без ключа и без whisper офлайн-распознавание недоступно'}
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <button
             onClick={async () => {
@@ -461,6 +465,144 @@ function AsrCard({ settings, onChange, onToast }) {
         {info?.modelDownloaded && (
           <div className="text-[11px] text-mute font-mono truncate">модель: {info.modelPath}</div>
         )}
+      </div>
+    </div>
+  );
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Переназначение горячих клавиш                                       */
+/* ------------------------------------------------------------------ */
+function HotkeyCard({ settings, onChange, onToast }) {
+  const [capturing, setCapturing] = useState(false);
+
+  const current = normalizeAccelerator(settings.hotkey) || DEFAULT_HOTKEY;
+
+  const onKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.code === 'Escape') {
+      setCapturing(false);
+      return;
+    }
+    const hk = hotkeyFromEvent(e);
+    if (!hk) return; // нажат только модификатор — ждём
+    if (!isValidAccelerator(hk)) {
+      onToast('Нужен модификатор: Ctrl/Alt/Meta (или F-клавиша)', 'error');
+      return;
+    }
+    onChange({ ...settings, hotkey: hk });
+    setCapturing(false);
+    onToast(`Хоткей: ${hk} ✓`, 'success');
+  };
+
+  return (
+    <div className="rounded-3xl glass p-6 shadow-card">
+      <div className="flex items-center gap-2 mb-3">
+        <Keyboard className="w-4 h-4 text-accent" />
+        <h3 className="font-bold">Горячие клавиши</h3>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-[13.5px] font-semibold">Старт / стоп диктовки</div>
+          <div className="text-[11.5px] text-mute mt-0.5">
+            Глобальная — работает в любом приложении (десктоп) и в окне Flow (браузер)
+          </div>
+        </div>
+        {capturing ? (
+          <button
+            onKeyDown={onKeyDown}
+            autoFocus
+            className="px-5 py-2.5 rounded-xl text-[12.5px] font-bold bg-accent text-white animate-pulse"
+          >
+            Нажми комбинацию… (Esc — отмена)
+          </button>
+        ) : (
+          <button
+            onClick={() => setCapturing(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-card hover:border-accent"
+            title="Нажми, чтобы переназначить"
+          >
+            {current.split('+').map((part) => (
+              <span key={part} className="keycap">{part}</span>
+            ))}
+            <span className="text-[11px] text-mute ml-1">изменить</span>
+          </button>
+        )}
+      </div>
+      <div className="flex justify-between items-center mt-3 pt-3 border-t border-line/70">
+        <span className="keycap">Esc</span>
+        <span className="text-mute text-[13px]">остановить / отменить (неизменяемая)</span>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Фоновый режим (десктоп)                                             */
+/* ------------------------------------------------------------------ */
+function BackgroundCard({ settings, onChange, onToast }) {
+  const [login, setLogin] = useState(false);
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+    desktopAPI.getLoginItem().then(setLogin).catch(() => {});
+  }, []);
+
+  if (!isDesktop()) {
+    return (
+      <div className="rounded-3xl glass p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-2">
+          <Moon className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Фоновый режим</h3>
+        </div>
+        <p className="text-[12.5px] text-mute leading-relaxed">
+          Работа в фоне, свёрнутый запуск и автостарт — в <b>десктоп-приложении</b>.
+          В браузере Flow активен, пока открыта вкладка.
+        </p>
+      </div>
+    );
+  }
+
+  const toggleLogin = async () => {
+    try {
+      const next = await desktopAPI.setLoginItem(!login);
+      setLogin(!!next);
+      onToast(next ? 'Автозапуск включён ✓' : 'Автозапуск выключен', 'success');
+    } catch {
+      onToast('Не удалось изменить автозапуск', 'error');
+    }
+  };
+
+  return (
+    <div className="rounded-3xl glass p-6 shadow-card">
+      <div className="flex items-center gap-2 mb-2">
+        <Moon className="w-4 h-4 text-accent" />
+        <h3 className="font-bold">Фоновый режим</h3>
+      </div>
+      <p className="text-[12px] text-mute mb-3">
+        Flow живёт в трее: диктовка по хоткею доступна из любого приложения, даже если окно закрыто.
+      </p>
+      <div className="divide-y divide-line/70">
+        <Toggle
+          label="Работать в фоне"
+          desc="Закроешь окно — Flow остаётся в трее, хоткей работает"
+          value={settings.backgroundMode !== false}
+          onChange={(v) => onChange({ ...settings, backgroundMode: v })}
+        />
+        <Toggle
+          label="Запускать свёрнутым в трей"
+          desc="При старте приложения окно не открывается"
+          value={!!settings.startToTray}
+          onChange={(v) => onChange({ ...settings, startToTray: v })}
+        />
+        <Toggle
+          label="Автозапуск при входе в систему"
+          desc="Flow стартует вместе с Windows/macOS/Linux"
+          value={login}
+          onChange={toggleLogin}
+        />
       </div>
     </div>
   );

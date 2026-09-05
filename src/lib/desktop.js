@@ -23,4 +23,6 @@ export const desktopAPI =
         transcribe: noop,
         downloadModel: noop,
         asrCheck: noop,
+        getLoginItem: async () => false,
+        setLoginItem: async () => false,
       };
