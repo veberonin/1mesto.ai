@@ -21,7 +21,6 @@ let dashboard = null;
 let pill = null;
 let tray = null;
 let quitting = false;
-let pendingStart = false;
 
 // ---------------------------------------------------------------------------
 // Настройки (общие для дашборда и пилюли) — JSON в userData
@@ -209,9 +208,10 @@ function showPill() {
   const { workArea } = screen.getPrimaryDisplay();
   const [w] = pill.getSize();
   pill.setPosition(workArea.x + Math.floor((workArea.width - w) / 2), workArea.y + workArea.height - 200 - 24);
-  pendingStart = true;
   pill.show();
   pill.focus();
+  // каждое появление = новая диктовка: рендерер сбросит состояние и начнёт запись
+  pill.webContents.send('flow:command', 'start');
 }
 
 /** Горячая клавиша: показать пилюлю+старт OR остановить и вставить */
@@ -362,48 +362,70 @@ async function transcribeWhisper(wavPath, lang) {
 
 async function transcribeGeminiBytes(bytes, lang) {
   const key = resolveGeminiKey();
-  if (!key) return null;
+  if (!key) return { error: 'no-key' };
   const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();
   const b64 = Buffer.from(bytes).toString('base64');
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text:
-                  lang === 'auto'
-                    ? 'Определи язык аудио самостоятельно и транскрибируй речь дословно. Только текст.'
-                    : `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.`,
-              },
-              { inlineData: { mimeType: 'audio/wav', data: b64 } },
-            ],
-          },
-        ],
-      }),
-    }
-  );
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text:
+                    lang === 'auto'
+                      ? 'Определи язык аудио самостоятельно и транскрибируй речь дословно. Только текст.'
+                      : `Транскрибируй речь дословно на ${lang === 'en' ? 'английском' : 'русском'}. Только текст.`,
+                },
+                { inlineData: { mimeType: 'audio/wav', data: b64 } },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+  } catch (e) {
+    return { error: `сеть: ${e.message}` };
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.error?.message || '';
+    if (res.status === 429) return { error: 'лимит Gemini исчерпан (429) — попробуй через минуту' };
+    if (res.status === 403 || res.status === 400) return { error: `ключ отклонён (${res.status})` };
+    return { error: `Gemini ${res.status}: ${msg.slice(0, 110)}` };
+  }
   const out = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(' ').trim();
-  return out || null;
+  if (!out) {
+    const reason = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason;
+    return { error: reason ? `Gemini: пусто (${reason})` : 'Gemini: пусто' };
+  }
+  return { text: out };
 }
 
 ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
   const tmp = path.join(app.getPath('temp'), `flow-${Date.now()}.wav`);
   try {
     fs.writeFileSync(tmp, Buffer.from(bytes));
-    let text = await transcribeWhisper(tmp, lang);
+    const text = await transcribeWhisper(tmp, lang);
     if (text) return { text, source: 'whisper' };
-    text = await transcribeGeminiBytes(bytes, lang);
-    if (text) return { text, source: 'gemini' };
+    const g = await transcribeGeminiBytes(bytes, lang);
+    if (g && g.text) return { text: g.text, source: 'gemini' };
+    if (g && g.error === 'no-key') {
+      return {
+        text: '',
+        error: 'no-engine',
+        hint: 'Добавь ключ Gemini в Настройках → Распознавание — или укажи whisper-cli для офлайна',
+      };
+    }
     return {
       text: '',
       error: 'no-engine',
-      hint: 'Добавь ключ Gemini в Настройках → Распознавание — или укажи whisper-cli для офлайна',
+      hint: g && g.error ? `Не распознал: ${g.error}` : 'Распознавание недоступно',
     };
   } finally {
     try { fs.unlinkSync(tmp); } catch { /* P-10 */ }

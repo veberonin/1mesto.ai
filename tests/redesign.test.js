@@ -202,6 +202,24 @@ describe('redesign: светлая система как в оригинале',
     assert.match(pkg, /src\/lib\/\*\*\/\*/);
   });
 
+  it('пилюля: каждое появление = новая запись, зомби-состояние прячется', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /flow:command', 'start'/); // main шлёт start при каждом показе
+    assert.doesNotMatch(mj, /pendingStart/);    // мёртвый флаг удалён
+    const pill = read('components/PillWindow.jsx');
+    assert.match(pill, /cmd === 'start'/);        // рендерер рестартует
+    assert.match(pill, /desktopAPI\.hidePill\(\); \/\/ зомби/); // не-идущее состояние → hide
+    assert.match(pill, /const restart = /);
+  });
+
+  it('ASR: честные причины отказа (429/ключ/сеть) вместо общего текста', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /лимит Gemini исчерпан/);
+    assert.match(mj, /ключ отклонён/);
+    assert.match(mj, /Не распознал: /);
+    assert.match(mj, /error: 'no-key'/);
+  });
+
   it('Onboarding: 3 шага и флаг onboarded', () => {
     const ob = read('components/Onboarding.jsx');
     assert.match(ob, /ШАГ/);

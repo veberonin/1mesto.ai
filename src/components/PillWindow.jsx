@@ -39,6 +39,7 @@ export default function PillWindow() {
   const recordingRef = useRef(false);
   const doneRef = useRef(false);
   const finishRef = useRef(null);
+  const startFnRef = useRef(null);
   const settingsRef = useRef({
     language: 'ru', mode: 'clean', name: '', provider: 'none', apiKey: '',
     dictText: '', macrosText: '',
@@ -65,7 +66,10 @@ export default function PillWindow() {
   };
 
   const finish = async (cancel = false) => {
-    if (!recordingRef.current || doneRef.current) return;
+    if (!recordingRef.current || doneRef.current) {
+      desktopAPI.hidePill(); // зомби-состояние (показ без записи) — не висим
+      return;
+    }
     doneRef.current = true;
     recordingRef.current = false;
     stopMachines();
@@ -180,6 +184,22 @@ export default function PillWindow() {
   };
   finishRef.current = finish;
 
+  /** Каждое появление окна = новая диктовка: сброс и старт с чистого листа */
+  const restart = () => {
+    if (recordingRef.current) return; // уже пишем
+    doneRef.current = false;
+    transcriptRef.current = '';
+    wordsRef.current = 0;
+    setDone(false);
+    setInserted(null);
+    setError('');
+    setInterim('');
+    setElapsed(0);
+    setLiveWpm(0);
+    setBars([]);
+    startFnRef.current && startFnRef.current();
+  };
+
   const start = async () => {
     try {
       if (!isDesktop()) {
@@ -260,6 +280,7 @@ export default function PillWindow() {
       setTimeout(() => desktopAPI.hidePill(), 2500);
     }
   };
+  startFnRef.current = start; // после объявления start (избегаем TDZ)
 
   // init: настройки из main → автостарт (окно показывается только для диктовки)
   useEffect(() => {
@@ -281,6 +302,7 @@ export default function PillWindow() {
       });
 
     desktopAPI.onCommand((cmd) => {
+      if (cmd === 'start') restart();
       if (cmd === 'stop') finishRef.current && finishRef.current(false);
       if (cmd === 'cancel') finishRef.current && finishRef.current(true);
     });
