@@ -2,9 +2,10 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Check, X } from 'lucide-react';
-import { isSpeechSupported, SpeechEngine } from '../lib/speech.js';
+import { SpeechEngine } from '../lib/speech.js';
 import { startMicMeter } from '../lib/audio.js';
 import { sound } from '../lib/sound.js';
+import { WavCapture } from '../lib/recorder.js';
 import { formatText, countWordsIn } from '../lib/formatter.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { saveSession } from '../lib/stats.js';
@@ -26,6 +27,8 @@ export default function PillWindow() {
 
   const engineRef = useRef(null);
   const meterRef = useRef(null);
+  const captureRef = useRef(null);
+  const transcriptRef = useRef('');
   const timerRef = useRef(null);
   const startRef = useRef(0);
   const wordsRef = useRef(0);
@@ -46,7 +49,7 @@ export default function PillWindow() {
     }
   };
 
-  const finish = (cancel = false) => {
+  const finish = async (cancel = false) => {
     if (!recordingRef.current || doneRef.current) return;
     doneRef.current = true;
     recordingRef.current = false;
@@ -57,11 +60,35 @@ export default function PillWindow() {
     const hideSoon = (ms = 1100) => setTimeout(() => desktopAPI.hidePill(), ms);
 
     if (cancel) {
+      if (captureRef.current) {
+        captureRef.current.stop();
+        captureRef.current = null;
+      }
       hideSoon(50);
       return;
     }
 
-    const raw = transcriptRef.current.trim();
+    let raw = transcriptRef.current.trim();
+
+    // Фолбэк: Speech API не дал текста → локальное распознавание по WAV-записи (whisper.cpp → Gemini)
+    if (!raw && captureRef.current) {
+      try {
+        const wav = captureRef.current.stop();
+        captureRef.current = null;
+        const res = await desktopAPI.transcribe(wav, settingsRef.current.language === 'en' ? 'en' : 'ru');
+        if (res && res.text) {
+          transcriptRef.current = res.text;
+          raw = res.text.trim();
+        }
+      } catch {
+        /* ниже покажем ошибку */
+      }
+    }
+    if (captureRef.current) {
+      captureRef.current.stop();
+      captureRef.current = null;
+    }
+
     if (!raw) {
       setError('Ничего не расслышал');
       sound.error();
@@ -116,11 +143,7 @@ export default function PillWindow() {
     run();
   };
 
-  const start = () => {
-    if (!isSpeechSupported()) {
-      setError('Распознаванию нужен интернет (Chrome-движок)');
-      return;
-    }
+  const start = async () => {
     if (!isDesktop()) {
       setError('Пилюля работает только в десктоп-приложении');
       return;
@@ -147,6 +170,14 @@ export default function PillWindow() {
       })
       .catch(() => {});
 
+    // Параллельно пишем WAV: если Speech API молчит — распознаем локально
+    try {
+      captureRef.current = new WavCapture();
+      await captureRef.current.start(() => {});
+    } catch {
+      captureRef.current = null;
+    }
+
     engineRef.current = new SpeechEngine({
       onFinal: (piece) => {
         transcriptRef.current = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
@@ -155,7 +186,7 @@ export default function PillWindow() {
       onInterim: (t) => setInterim(t),
       onError: (code) => {
         if (code === 'denied') setError('Доступ к микрофону запрещён системой');
-        else if (code === 'network') setError('Распознаванию нужен интернет');
+        else if (code === 'network') setInterim(''); // текст даст локальный ASR по записи
         else if (code === 'no-mic') setError('Микрофон не найден');
         if (code === 'denied' || code === 'no-mic') {
           sound.error();
@@ -201,6 +232,10 @@ export default function PillWindow() {
       disposed = true;
       window.removeEventListener('keydown', esc);
       stopMachines();
+      if (captureRef.current) {
+        captureRef.current.stop();
+        captureRef.current = null;
+      }
       document.documentElement.style.background = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -219,8 +254,8 @@ export default function PillWindow() {
             (done
               ? 'bg-emerald-950/80 border-emerald-500/40'
               : recording
-                ? 'bg-[#1d1116]/90 border-brand-flame/40 shadow-glow'
-                : 'bg-[#141419]/90 border-white/[0.09]')
+                ? 'bg-ink-950/95 border-white/25 shadow-pill'
+                : 'bg-ink-950/95 border-white/10')
           }
           style={{ WebkitAppRegion: 'no-drag' }}
         >
@@ -262,16 +297,16 @@ export default function PillWindow() {
           )}
 
           {!recording && !done && (
-            <span className="text-[13px] font-semibold text-zinc-300 px-1">{error || 'Flow'}</span>
+            <span className="text-[13px] font-semibold text-white/90 px-1">{error || 'Flow'}</span>
           )}
 
           {recording && !done && (
             <span className="flex items-center gap-2 text-[11px] font-semibold tabular-nums">
-              <span className="text-zinc-300">
+              <span className="text-white/90">
                 {mm}:{ss}
               </span>
               <span className="w-1 h-1 rounded-full bg-white/20" />
-              <span className="text-brand-orange">{liveWpm} wpm</span>
+              <span className="text-accent-soft">{liveWpm} wpm</span>
             </span>
           )}
 
@@ -281,7 +316,7 @@ export default function PillWindow() {
               title="Отменить (Esc)"
               className="ml-1 w-7 h-7 rounded-full bg-white/[0.06] hover:bg-red-500/20 border border-white/[0.08] flex items-center justify-center transition-colors"
             >
-              <X className="w-3.5 h-3.5 text-zinc-400" />
+              <X className="w-3.5 h-3.5 text-white/70" />
             </button>
           )}
         </div>
@@ -289,10 +324,10 @@ export default function PillWindow() {
         {recording && !done && (interim || error) && (
           <div
             className={
-              'mt-2.5 max-w-[420px] px-4 py-1.5 rounded-full bg-[#141419]/90 border backdrop-blur-xl text-[12.5px] ' +
+              'mt-2.5 max-w-[420px] px-4 py-1.5 rounded-full bg-ink-950/95 border backdrop-blur-xl text-[12.5px] ' +
               (error
                 ? 'border-amber-500/40 text-amber-300 font-semibold'
-                : 'border-white/[0.07] text-zinc-400 italic caret')
+                : 'border-white/[0.07] text-white/70 italic caret')
             }
           >
             {error || interim}
@@ -300,7 +335,7 @@ export default function PillWindow() {
         )}
 
         {recording && !done && (
-          <div className="mt-2 text-[10.5px] text-zinc-500 font-medium">
+          <div className="mt-2 text-[10.5px] text-white/50 font-medium">
             {s.language === 'en' ? 'EN' : 'RU'} · {s.mode} · Esc — отмена · Alt+Space — вставить
           </div>
         )}

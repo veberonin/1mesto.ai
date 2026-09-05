@@ -70,6 +70,23 @@ describe('redesign: светлая система как в оригинале',
     }
   });
 
+  it('демо-режимы полностью выпилены из UI', () => {
+    for (const f of ['App.jsx', 'components/DictationTab.jsx']) {
+      const s = read(f);
+      assert.doesNotMatch(s, /[Дд]емо|runDemo|onDemo|DEMO_SAMPLES/, `${f}: остались следы демо`);
+    }
+  });
+
+  it('пилюля десктопа: WAV-фолбэк и режим ?pill=1', () => {
+    const pill = read('components/PillWindow.jsx');
+    assert.match(pill, /WavCapture/);
+    assert.match(pill, /desktopAPI\.transcribe/);
+    assert.match(pill, /transcriptRef/);
+    const app = read('App.jsx');
+    assert.match(app, /pill=1/);
+    assert.match(app, /PillWindow/);
+  });
+
   it('Onboarding: 3 шага и флаг onboarded', () => {
     const ob = read('components/Onboarding.jsx');
     assert.match(ob, /ШАГ/);

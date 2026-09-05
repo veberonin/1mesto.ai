@@ -2,7 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React from 'react';
 import {
-  Mic, Square, Trash2, Copy, Check, Sparkles, Play, Mail, List,
+  Mic, Square, Trash2, Copy, Check, Sparkles, Mail, List,
   MessageSquare, Terminal, ArrowRight,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -24,15 +24,15 @@ function fmtTime(sec) {
 }
 
 export default function DictationTab({
-  recording, demoActive, language, mode,
+  recording, language, mode,
   transcript, onTranscriptChange, interim, formatted, formatMeta, processing,
   elapsed, liveWpm,
-  onToggleRecording, onDemo, onClear, onAiFormat, onCopy, onModeChange,
+  onToggleRecording, onClear, onAiFormat, onCopy, onModeChange,
   settings, stats, refreshKey, onToast,
 }) {
   const [copied, setCopied] = useState(false);
   const words = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
-  const active = recording || demoActive;
+  const active = recording;
 
   const handleCopy = () => {
     onCopy(formatted || transcript);
@@ -82,7 +82,7 @@ export default function DictationTab({
         <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-semibold">
           <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-soft border border-accent/25 text-accent-deep">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            {demoActive ? 'Демо-диктовка' : 'Слушаю…'} · {fmtTime(elapsed)} · {liveWpm} wpm · {words} слов
+            Слушаю… · {fmtTime(elapsed)} · {liveWpm} wpm · {words} слов
           </span>
           <button
             onClick={onClear}
@@ -99,25 +99,6 @@ export default function DictationTab({
           <TodayList refreshKey={refreshKey} privacy={settings.privacy} onToast={onToast} recording={active} />
         </div>
         <StatRail stats={stats} />
-      </div>
-
-      {/* Демо пайплайна */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12.5px] text-mute">Нет микрофона? Живое демо:</span>
-        <button
-          onClick={() => onDemo('ru')}
-          disabled={active}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-line bg-card text-[12.5px] font-semibold hover:border-accent disabled:opacity-40"
-        >
-          <Play className="w-3 h-3 text-accent" /> Демо RU
-        </button>
-        <button
-          onClick={() => onDemo('en')}
-          disabled={active}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-line bg-card text-[12.5px] font-semibold hover:border-accent disabled:opacity-40"
-        >
-          <Play className="w-3 h-3 text-accent" /> Демо EN
-        </button>
       </div>
 
       {/* Последняя реплика: сырьё → результат */}

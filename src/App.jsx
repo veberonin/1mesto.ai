@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import Sidebar from './components/Sidebar.jsx';
 import DictationPill from './components/DictationPill.jsx';
+import PillWindow from './components/PillWindow.jsx';
 import DictationTab from './components/DictationTab.jsx';
 import HistoryTab from './components/HistoryTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
@@ -15,7 +16,7 @@ import { isSpeechSupported, SpeechEngine } from './lib/speech.js';
 import { startMicMeter } from './lib/audio.js';
 import { WavCapture } from './lib/recorder.js';
 import { sound } from './lib/sound.js';
-import { formatText, countWordsIn, DEMO_SAMPLES } from './lib/formatter.js';
+import { formatText, countWordsIn } from './lib/formatter.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
 import { addUtterance } from './lib/journal.js';
 import { isDesktop, desktopAPI } from './lib/desktop.js';
@@ -56,7 +57,6 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
 
   const [recording, setRecording] = useState(false);
-  const [demoActive, setDemoActive] = useState(false);
   const [micDenied, setMicDenied] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
@@ -81,7 +81,6 @@ export default function App() {
   const meterRef = useRef(null);
   const captureRef = useRef(null); // WAV-фолбэк для десктопа
   const engineDeadRef = useRef(false);
-  const demoRef = useRef(null);
   const toastId = useRef(0);
   const lastToastRef = useRef({ msg: '', t: 0 });
   const langRef = useRef(language);
@@ -265,7 +264,6 @@ export default function App() {
 
   // ---------- запись ----------
   const startRecording = async () => {
-    stopDemo(true);
     if (!isSpeechSupported() && !isDesktop()) {
       setMicDenied('unsupported');
       toast('Распознавание доступно в Chrome/Edge — или скачай приложение', 'error');
@@ -316,7 +314,7 @@ export default function App() {
           if (isDesktop()) {
             toast('Браузерное распознавание недоступно — пишу аудио для локального распознавания', 'info');
           } else {
-            toast('Speech API: нет сети. Демо-режим всё равно работает', 'error');
+            toast('Speech API: нет сети — проверь интернет', 'error');
             abortRecording();
           }
         } else if (code === 'no-mic') {
@@ -372,60 +370,6 @@ export default function App() {
     else startRecording();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, mode]);
-
-  // ---------- демо ----------
-  const stopDemo = (silent = false) => {
-    if (demoRef.current) {
-      clearInterval(demoRef.current);
-      demoRef.current = null;
-    }
-    if (!silent) setDemoActive(false);
-  };
-
-  const runDemo = (lang) => {
-    if (recordingRef.current) abortRecording();
-    stopDemo(true);
-    if (lang !== language) setLanguage(lang);
-    langRef.current = lang;
-    replaceTranscript('');
-    setFormatted('');
-    formattedRef.current = '';
-    setFormatMeta(null);
-    lastMetaRef.current = null;
-    sound.start();
-
-    const words = DEMO_SAMPLES[lang].split(/\s+/);
-    let i = 0;
-    let acc = '';
-    const smooth = [0.2, 0.5, 0.3, 0.7, 0.4, 0.6, 0.25];
-
-    startRef.current = Date.now();
-    wordsRef.current = 0;
-    peakRef.current = 0;
-    setPeakWpm(0);
-    setElapsed(0);
-    setDemoActive(true);
-    startTimer();
-
-    demoRef.current = setInterval(() => {
-      const step = Math.random() < 0.35 ? 2 : 1;
-      for (let k = 0; k < step && i < words.length; k++) acc += (acc ? ' ' : '') + words[i++];
-      if (Math.random() < 0.25) sound.tick();
-      for (let b = 0; b < smooth.length; b++) {
-        smooth[b] = Math.min(1, Math.max(0.08, smooth[b] + (Math.random() - 0.5) * 0.75));
-      }
-      setBars([...smooth]);
-      replaceTranscript(acc);
-      setInterim(words[i] || '');
-      if (i >= words.length) {
-        clearInterval(demoRef.current);
-        demoRef.current = null;
-        setDemoActive(false);
-        sound.success();
-        finishSession();
-      }
-    }, 160);
-  };
 
   // ---------- AI ----------
   const aiPolish = async () => {
@@ -495,8 +439,6 @@ export default function App() {
   // ---------- экшены ----------
   const handleClear = () => {
     abortRecording();
-    stopDemo(true);
-    setDemoActive(false);
     replaceTranscript('');
     setFormatted('');
     formattedRef.current = '';
@@ -524,9 +466,8 @@ export default function App() {
         e.preventDefault();
         toggleRef.current();
       }
-      if (e.code === 'Escape' && (recordingRef.current || demoRef.current)) {
+      if (e.code === 'Escape' && recordingRef.current) {
         abortRecording();
-        stopDemo();
         setLiveWpm(0);
       }
     };
@@ -540,14 +481,18 @@ export default function App() {
       if (meterRef.current) meterRef.current.stop();
       if (captureRef.current) captureRef.current.stop();
       stopTimer();
-      stopDemo(true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     []
   );
 
-  const pillState = recording || demoActive ? 'recording' : processing ? 'processing' : 'idle';
+  const pillState = recording ? 'recording' : processing ? 'processing' : 'idle';
   const today = getToday(stats);
+
+  // Отдельное окно-пилюля десктопа (electron грузит /?pill=1)
+  if (new URLSearchParams(window.location.search).get('pill') === '1') {
+    return <PillWindow />;
+  }
 
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -568,7 +513,6 @@ export default function App() {
           {tab === 'dictation' && (
             <DictationTab
               recording={recording}
-              demoActive={demoActive}
               language={language}
               mode={mode}
               transcript={transcript}
@@ -580,7 +524,6 @@ export default function App() {
               elapsed={elapsed}
               liveWpm={liveWpm}
               onToggleRecording={toggleRecording}
-              onDemo={runDemo}
               onModeChange={setMode}
               onClear={handleClear}
               onAiFormat={aiPolish}
