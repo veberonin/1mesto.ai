@@ -33,7 +33,7 @@ describe('redesign: светлая система как в оригинале',
 
   it('приветствие с оранжевыми кейкапами — есть', () => {
     const d = read('components/DictationTab.jsx');
-    assert.match(d, /keycap/);
+    assert.match(d, /Keycaps/);
     assert.match(d, /вернись в поток/);
   });
 
@@ -118,7 +118,8 @@ describe('redesign: светлая система как в оригинале',
     const pill = read('components/PillWindow.jsx');
     assert.match(pill, /unhandledrejection/);
     assert.match(pill, /finally/);
-    assert.match(pill, /desktopAPI\.hidePill\(\), delay/); // hide в finally
+    // hide в finally, но хвост старой сессии не прячет новую запись
+    assert.match(pill, /if \(!recordingRef\.current\) desktopAPI\.hidePill\(\)/);
   });
 
   it('ASR: модели Gemini актуальны (не 1.5/2.0 — они отозваны)', () => {
@@ -218,6 +219,33 @@ describe('redesign: светлая система как в оригинале',
     assert.match(mj, /ключ отклонён/);
     assert.match(mj, /Не распознал: /);
     assert.match(mj, /error: 'no-key'/);
+  });
+
+  it('подсказки хоткея динамические (единый Keycaps), а не Alt+Space везде', () => {
+    assert.ok(existsSync(join(process.cwd(), 'src', 'components', 'Keycaps.jsx')), 'Keycaps.jsx есть');
+    const app = read('App.jsx');
+    assert.match(app, /hotkey={settings\.hotkey}/); // Sidebar + Pill + Onboarding
+    for (const f of ['components/DictationTab.jsx', 'components/TodayList.jsx', 'components/Onboarding.jsx']) {
+      const src = read(f);
+      assert.match(src, /Keycaps/, `${f}: Keycaps`);
+      assert.doesNotMatch(src, /keycap">Alt<|keycap ml-1">Alt</, `${f}: захардкоженный Alt`);
+    }
+    const pill = read('components/DictationPill.jsx');
+    assert.match(pill, /hotkeyParts/);
+    const sb = read('components/Sidebar.jsx');
+    assert.match(sb, /hotkey \|\| 'Alt\+Space'/);
+  });
+
+  it('тогл записи детерминированный: видимость окна, stop → мгновенный hide', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /if \(!pill\.isVisible\(\)\) \{\n    showPill/);
+    assert.match(mj, /flow:command', 'stop'/);
+    assert.match(mj, /pill\.hide\(\); \/\/ мгновенно/);
+    assert.match(mj, /refreshTray/);         // подпись трея следует за хоткеем
+    assert.match(mj, /Диктовать \(\$\{hk\}\)/);
+    const pill = read('components/PillWindow.jsx');
+    assert.match(pill, /хвост старой сессии не прячет окно новой записи/);
+    assert.match(pill, /hideDelay = 250/);   // успех → прятать сразу
   });
 
   it('Onboarding: 3 шага и флаг onboarded', () => {

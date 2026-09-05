@@ -2,6 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useMemo, useState } from 'react';
 import { Copy, RotateCcw, Trash2, Search, Mic } from 'lucide-react';
+import Keycaps from './Keycaps.jsx';
 import { listUtterances, deleteUtterance } from '../lib/journal.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 
@@ -9,7 +10,7 @@ import { isDesktop, desktopAPI } from '../lib/desktop.js';
  * Лента «Сегодня» — как в оригинале: время + текст + действия при наведении.
  * M-01..M-09, T-03/T-04.
  */
-export default function TodayList({ refreshKey, privacy, onToast, recording }) {
+export default function TodayList({ refreshKey, privacy, onToast, recording, hotkey }) {
   const [query, setQuery] = useState('');
   const [tick, setTick] = useState(0);
 
@@ -99,7 +100,7 @@ export default function TodayList({ refreshKey, privacy, onToast, recording }) {
             <Mic className="w-6 h-6 text-line mx-auto mb-3" />
             <div className="text-[14px] font-semibold">Пока тихо</div>
             <div className="text-[12.5px] text-mute mt-1">
-              Зажми <span className="keycap ml-1">Alt</span> <span className="keycap">Space</span> и скажи что-нибудь —
+              Зажми <Keycaps hotkey={hotkey} className="ml-1" /> и скажи что-нибудь —
               реплика появится здесь
             </div>
           </div>

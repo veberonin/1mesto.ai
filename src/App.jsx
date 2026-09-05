@@ -527,7 +527,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <Sidebar tab={tab} setTab={setTab} />
+      <Sidebar tab={tab} setTab={setTab} hotkey={settings.hotkey} />
 
       <DictationPill
         state={pillState}
@@ -537,6 +537,7 @@ export default function App() {
         language={language}
         interim={interim}
         onToggle={toggleRecording}
+        hotkey={settings.hotkey}
       />
 
       <div className="md:pl-60">
@@ -607,6 +608,7 @@ export default function App() {
 
       {!settings.onboarded && (
         <Onboarding
+          hotkey={settings.hotkey}
           onDone={() => {
             setSettings((s) => ({ ...s, onboarded: true }));
           }}

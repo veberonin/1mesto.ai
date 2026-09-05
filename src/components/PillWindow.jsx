@@ -76,11 +76,9 @@ export default function PillWindow() {
     setRecording(false);
     setInterim('');
 
-    let hideDelay = 1200; // обычный экран ошибки/пусто
-    const finishOutcome = (ok) => {
-      if (ok) {
-        hideDelay = 1400;
-      }
+    let hideDelay = 1800; // экран ошибки/пусто — показать и скрыть
+    const finishOutcome = () => {
+      hideDelay = 250; // успех: окно уже спрятал main, просто страховка
     };
 
     try {
@@ -179,7 +177,10 @@ export default function PillWindow() {
       }
     } finally {
       const delay = hideDelay;
-      setTimeout(() => desktopAPI.hidePill(), delay); // ← пилюля ВСЕГДА исчезает
+      // пилюля исчезает всегда, НО хвост старой сессии не прячет окно новой записи
+      setTimeout(() => {
+        if (!recordingRef.current) desktopAPI.hidePill();
+      }, delay);
     }
   };
   finishRef.current = finish;

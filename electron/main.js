@@ -214,31 +214,29 @@ function showPill() {
   pill.webContents.send('flow:command', 'start');
 }
 
-/** Горячая клавиша: показать пилюлю+старт OR остановить и вставить */
+/**
+ * Горячая клавиша — детерминированный тогл БЕЗ состояний:
+ * скрыта → показать + начать запись; видна → остановить, спрятать сразу,
+ * вставка доработает в скрытом окне (фокус вернётся к приложению юзера).
+ */
 function toggleDictation() {
-  if (!pill || pill.isDestroyed() || !pill.isVisible()) {
-    showPill();
+  if (!pill || pill.isDestroyed()) createPill();
+  if (!pill.isVisible()) {
+    showPill(); // шлёт 'start' — рендерер начинает запись с чистого листа
   } else {
     pill.webContents.send('flow:command', 'stop');
+    pill.hide(); // мгновенно: «запись идёт» не может продолжаться по определению
   }
 }
 
 // ---------------------------------------------------------------------------
 // Трей
 // ---------------------------------------------------------------------------
-function createTray() {
-  const iconPath = path.join(__dirname, 'icons', 'tray.png');
-  try {
-    tray = new Tray(nativeImage.createFromPath(iconPath));
-  } catch {
-    console.error('tray icon failed');
-    return;
-  }
-  tray.setToolTip('1mesto Flow — Alt+Space и говори');
-
-  const menu = Menu.buildFromTemplate([
+function buildTrayMenu() {
+  const hk = normalizeAccelerator(readSettings().hotkey) || DEFAULT_HOTKEY;
+  return Menu.buildFromTemplate([
     { label: 'Открыть 1mesto Flow', click: showDashboard },
-    { label: 'Диктовать (Alt+Space)', click: toggleDictation },
+    { label: `Диктовать (${hk})`, click: toggleDictation },
     { type: 'separator' },
     {
       label: 'Автозапуск при входе',
@@ -255,8 +253,28 @@ function createTray() {
       },
     },
   ]);
-  tray.setContextMenu(menu);
+}
+
+function createTray() {
+  const iconPath = path.join(__dirname, 'icons', 'tray.png');
+  try {
+    tray = new Tray(nativeImage.createFromPath(iconPath));
+  } catch {
+    console.error('tray icon failed');
+    return;
+  }
+  tray.setToolTip('1mesto Flow — говори, не печатай');
+  tray.setContextMenu(buildTrayMenu());
   tray.on('click', showDashboard);
+}
+
+/** Перестроить меню трея (хоткей изменился) */
+function refreshTray() {
+  try {
+    if (tray && !tray.isDestroyed()) tray.setContextMenu(buildTrayMenu());
+  } catch {
+    /* не критично */
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -284,7 +302,8 @@ ipcMain.handle('settings:get', () => readSettings());
 
 ipcMain.handle('settings:save', (_e, patch) => {
   const next = writeSettings(patch || {});
-  registerHotkey(); // hotkeyEnabled мог измениться
+  registerHotkey(); // хоткей мог измениться — перерегистрируем
+  refreshTray();    // и обновляем подпись в трее
   return next;
 });
 

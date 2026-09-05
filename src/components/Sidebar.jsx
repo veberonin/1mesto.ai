@@ -24,7 +24,7 @@ function Logo() {
   );
 }
 
-export default function Sidebar({ tab, setTab }) {
+export default function Sidebar({ tab, setTab, hotkey }) {
   return (
     <>
       {/* Desktop: фиксированный сайдбар */}
@@ -58,7 +58,7 @@ export default function Sidebar({ tab, setTab }) {
           >
             <div className="text-[13px] font-bold">Flow на компе 💻</div>
             <div className="text-[11px] text-paper/70 mt-0.5 leading-snug">
-              Голос в текст в любом приложении по Alt+Space
+              Голос в текст в любом приложении по {hotkey || 'Alt+Space'}
             </div>
             <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-paper text-ink text-[11.5px] font-bold px-2.5 py-1.5">
               <Download className="w-3.5 h-3.5" /> Скачать

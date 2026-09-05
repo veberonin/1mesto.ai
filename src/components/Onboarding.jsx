@@ -2,12 +2,13 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
+import Keycaps from './Keycaps.jsx';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 
 /**
  * Первый запуск (B-01): микрофон → распознавание → хоткей. Лёгкий онбординг.
  */
-export default function Onboarding({ onDone }) {
+export default function Onboarding({ onDone, hotkey }) {
   const [step, setStep] = useState(0);
   const [micOk, setMicOk] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -78,7 +79,7 @@ export default function Onboarding({ onDone }) {
             <h3 className="text-xl font-bold">Горячая клавиша</h3>
             <p className="text-[13.5px] text-mute mt-1.5 leading-relaxed">
               В любом приложении нажми{' '}
-              <span className="keycap">Alt</span> <span className="keycap">Space</span> — начнётся запись.
+              <Keycaps hotkey={hotkey} /> — начнётся запись.
               Ещё раз — текст вставится туда, где стоял курсор.
             </p>
             <button onClick={finish} className="mt-4 w-full rounded-xl bg-ink text-paper py-3 text-[13.5px] font-bold">

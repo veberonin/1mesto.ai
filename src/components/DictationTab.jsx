@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import TodayList from './TodayList.jsx';
+import Keycaps from './Keycaps.jsx';
 import StatRail from './StatRail.jsx';
 
 const MODES = [
@@ -45,7 +46,7 @@ export default function DictationTab({
       {/* Приветствие с хоткеями — как в оригинале */}
       <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight">
         Привет{settings.name ? `, ${settings.name}` : ''} — вернись в поток с{' '}
-        <span className="keycap">Alt</span> <span className="keycap">Space</span>
+        <Keycaps hotkey={settings.hotkey} />
       </h1>
 
       {/* Тёмный баннер «Попробуй в другом приложении» */}
@@ -70,8 +71,7 @@ export default function DictationTab({
               {active ? 'Остановить' : 'Начать'}
             </button>
             <span className="hidden sm:flex items-center gap-1.5 text-[12px] text-paper/70">
-              или жми <span className="keycap !border-paper/60 !bg-white/10 !text-paper !shadow-none">Alt</span>
-              <span className="keycap !border-paper/60 !bg-white/10 !text-paper !shadow-none">Space</span>
+              или жми <Keycaps hotkey={settings.hotkey} dark />
             </span>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function DictationTab({
       {/* Сегодня + правая колонка */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
-          <TodayList refreshKey={refreshKey} privacy={settings.privacy} onToast={onToast} recording={active} />
+          <TodayList refreshKey={refreshKey} privacy={settings.privacy} onToast={onToast} recording={active} hotkey={settings.hotkey} />
         </div>
         <StatRail stats={stats} />
       </div>

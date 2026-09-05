@@ -2,11 +2,12 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import React from 'react';
 import { Mic, Loader2 } from 'lucide-react';
+import Keycaps, { hotkeyParts } from './Keycaps.jsx';
 
 /**
  * Чёрная плавающая пилюля — как в оригинале Wispr Flow.
  */
-export default function DictationPill({ state, bars, elapsed, liveWpm, language, interim, onToggle, disabled }) {
+export default function DictationPill({ state, bars, elapsed, liveWpm, language, interim, onToggle, disabled, hotkey }) {
   const recording = state === 'recording';
   const processing = state === 'processing';
 
@@ -18,7 +19,7 @@ export default function DictationPill({ state, bars, elapsed, liveWpm, language,
       <button
         onClick={onToggle}
         disabled={disabled}
-        title={recording ? 'Остановить (Esc)' : 'Начать диктовку (Alt+Space)'}
+        title={recording ? 'Остановить (Esc)' : `Начать диктовку (${hotkey || 'Alt+Space'})`}
         className={`pointer-events-auto relative flex items-center gap-3 h-[52px] px-2.5 pr-5 rounded-full border transition-all duration-300 ${
           recording
             ? 'bg-ink-950/95 border-white/25 scale-[1.02]'
@@ -70,9 +71,12 @@ export default function DictationPill({ state, bars, elapsed, liveWpm, language,
           </span>
         ) : (
           <span className="hidden sm:flex items-center gap-1 text-[10.5px] text-white/60 font-medium">
-            <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/80 text-[10px]">Alt</kbd>
-            +
-            <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/80 text-[10px]">Space</kbd>
+            {hotkeyParts(hotkey).map((part, i) => (
+              <React.Fragment key={part}>
+                {i > 0 && '+'}
+                <kbd className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/80 text-[10px]">{part}</kbd>
+              </React.Fragment>
+            ))}
           </span>
         )}
       </button>
