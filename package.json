@@ -31,7 +31,7 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.5",
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8",
     "lucide-react": "^0.363.0",
