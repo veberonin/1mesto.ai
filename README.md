@@ -4,6 +4,10 @@
 > мгновенная диктовка в браузере, умная очистка речи от слов-паразитов,
 > живая звуковая волна, WPM-аналитика и демо-режим без микрофона.
 
+**🌐 Живое демо (без установки): [veberonin.github.io/1mesto.ai](https://veberonin.github.io/1mesto.ai/)**
+Открывается на любом компе, микрофон работает по HTTPS, а без микрофона есть кнопка «Демо RU/EN».
+Готовишься к оценочному стенду? → [docs/STAND_DEMO.md](docs/STAND_DEMO.md) — чеклист и сценарий на 90 секунд.
+
 ![CI](https://github.com/veberonin/1mesto.ai/actions/workflows/ci.yml/badge.svg) ![stack](https://img.shields.io/badge/React%2018-Vite%205-blue) ![style](https://img.shields.io/badge/Tailwind%203-dark%20theme-8b5cf6) ![api](https://img.shields.io/badge/Express-JSON%20store-green) ![tests](https://img.shields.io/badge/tests-27%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
@@ -130,8 +134,20 @@ npm run test:watch # watch-режим
 ## ⚠️ Заметки
 
 - Распознавание речи — Web Speech API: **Chrome / Edge** (в Firefox и Safari не заработает, покажется демо-подсказка).
-- Микрофон требует secure context: `localhost` или HTTPS.
+- Микрофон требует secure context: `localhost` или HTTPS — на GitHub Pages работает из коробки.
 - Учебный проект-клон, не аффилирован с Wispr AI, Inc. MIT License.
+
+## 🖥 Платформы
+
+| ОС | Браузер | Живая диктовка | Демо-режим | Примечание |
+|---|---|---|---|---|
+| Windows 10/11 | Chrome, Edge | ✅ | ✅ | доступ к микрофону в настройках приватности |
+| macOS 12+ | Chrome | ✅ | ✅ | Safari не поддерживает Web Speech API |
+| Linux (X11/Wayland) | Chrome/Chromium | ✅ | ✅ | PulseAudio/PipeWire |
+| Android | Chrome | ✅ | ✅ | Web Speech API работает |
+| iOS 17+ | Chrome, Safari | ❌ | ✅ | только демо-режим и ручной ввод |
+
+Подробности по стенду: [docs/STAND_DEMO.md](docs/STAND_DEMO.md).
 
 ---
 
