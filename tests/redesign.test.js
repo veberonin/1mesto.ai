@@ -82,9 +82,43 @@ describe('redesign: светлая система как в оригинале',
     assert.match(pill, /WavCapture/);
     assert.match(pill, /desktopAPI\.transcribe/);
     assert.match(pill, /transcriptRef/);
-    const app = read('App.jsx');
-    assert.match(app, /pill=1/);
-    assert.match(app, /PillWindow/);
+    const main = read('main.jsx');
+    assert.match(main, /PillWindow/); // режим ?pill=1 разруливает main.jsx
+  });
+
+  it('ErrorBoundary оборачивает приложение (нет «пустых тёмных окон»)', () => {
+    const main = read('main.jsx');
+    assert.match(main, /ErrorBoundary/);
+    assert.match(main, /pillMode \? <PillWindow \/> : <App \/>/);
+  });
+
+  it('окно дашборда светлое (backgroundColor paper)', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /backgroundColor: '#F5F2EB'/);
+    assert.match(mj, /dictText/); // настройки словаря в DEFAULTS
+  });
+
+  it('словарь/макросы доходят до форматтера (App + сервер + пилюля)', () => {
+    assert.match(read('App.jsx'), /parsePairsText/);
+    assert.match(read('App.jsx'), /dict: pairsRef\.current\.dict/);
+    assert.match(read('components/PillWindow.jsx'), /parsePairsText/);
+    const srv = readFileSync(join(process.cwd(), 'server', 'index.js'), 'utf8');
+    assert.match(srv, /req\.body\?\.dict/);
+  });
+
+  it('Settings: импорт словаря из файла (H-01)', () => {
+    const st = read('components/SettingsTab.jsx');
+    assert.match(st, /type="file"/);
+    assert.match(st, /Импорт из файла/);
+    assert.match(st, /mergeIntoText/);
+    assert.match(st, /DICT_TEMPLATE/);
+  });
+
+  it('пилюля самолечится: любые ошибки не оставляют висящее окно', () => {
+    const pill = read('components/PillWindow.jsx');
+    assert.match(pill, /unhandledrejection/);
+    assert.match(pill, /finally/);
+    assert.match(pill, /desktopAPI\.hidePill\(\), delay/); // hide в finally
   });
 
   it('Onboarding: 3 шага и флаг onboarded', () => {

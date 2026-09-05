@@ -37,6 +37,8 @@ const DEFAULTS = {
   hotkeyEnabled: true,
   whisperBin: '',   // путь к whisper-cli (локальное распознавание, офлайн)
   whisperModel: '', // путь к ggml-модели (пусто = наша скачанная)
+  dictText: '',     // H-01: словарь замен (текст из файла/textarea)
+  macrosText: '',   // H-01: макросы (текст из файла/textarea)
   onboarded: false, // B-01: первый запуск
 };
 
@@ -108,7 +110,7 @@ function createDashboard() {
     height: 820,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: '#08080b',
+    backgroundColor: '#F5F2EB', // светлый фон — тёмный «экран смерти» больше не появится
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icons', 'icon.png'),
     title: '1mesto Flow',
@@ -300,8 +302,14 @@ ipcMain.handle('ai:format', async (_e, payload = {}) => {
     console.error('ai failed:', e.message);
   }
 
-  // локальный умный форматер — всегда
-  const local = formatText(text, { mode, lang: language === 'en' ? 'en' : 'ru', name: payload.name || s.name });
+  // локальный умный форматер — всегда (с пользовательским словарём и макросами, H-01)
+  const local = formatText(text, {
+    mode,
+    lang: language === 'en' ? 'en' : 'ru',
+    name: payload.name || s.name,
+    dict: payload.dict && typeof payload.dict === 'object' ? payload.dict : null,
+    macros: payload.macros && typeof payload.macros === 'object' ? payload.macros : null,
+  });
   return { formattedText: local.text, meta: local.meta, source: 'local' };
 });
 

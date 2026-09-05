@@ -5,15 +5,19 @@ import { Mic, Check, X } from 'lucide-react';
 import { SpeechEngine } from '../lib/speech.js';
 import { startMicMeter } from '../lib/audio.js';
 import { sound } from '../lib/sound.js';
-import { WavCapture } from '../lib/recorder.js';
 import { formatText, countWordsIn } from '../lib/formatter.js';
+import { parsePairsText } from '../lib/dictio.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { saveSession } from '../lib/stats.js';
+import { WavCapture } from '../lib/recorder.js';
+
+const MAX_SEC = 300; // авто-стоп длинной реплики
 
 /**
  * Пилюля для десктоп-режима: живёт в отдельном прозрачном always-on-top окне.
  * Глобальный хоткей Alt+Space (main-процесс) показывает окно и стартует запись.
  * Остановка → форматирование → автоВСТАВКА в приложение, где стоял курсор.
+ * Любая ошибка → сообщение и АВТО-СКРЫТИЕ: зависшая пилюля исключена по построению.
  */
 export default function PillWindow() {
   const [recording, setRecording] = useState(false);
@@ -34,7 +38,11 @@ export default function PillWindow() {
   const wordsRef = useRef(0);
   const recordingRef = useRef(false);
   const doneRef = useRef(false);
-  const settingsRef = useRef({ language: 'ru', mode: 'clean', name: '', provider: 'none', apiKey: '' });
+  const finishRef = useRef(null);
+  const settingsRef = useRef({
+    language: 'ru', mode: 'clean', name: '', provider: 'none', apiKey: '',
+    dictText: '', macrosText: '',
+  });
 
   const stopMachines = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -49,6 +57,13 @@ export default function PillWindow() {
     }
   };
 
+  const releaseCapture = () => {
+    if (captureRef.current) {
+      captureRef.current.stop();
+      captureRef.current = null;
+    }
+  };
+
   const finish = async (cancel = false) => {
     if (!recordingRef.current || doneRef.current) return;
     doneRef.current = true;
@@ -57,53 +72,60 @@ export default function PillWindow() {
     setRecording(false);
     setInterim('');
 
-    const hideSoon = (ms = 1100) => setTimeout(() => desktopAPI.hidePill(), ms);
-
-    if (cancel) {
-      if (captureRef.current) {
-        captureRef.current.stop();
-        captureRef.current = null;
+    let hideDelay = 1200; // обычный экран ошибки/пусто
+    const finishOutcome = (ok) => {
+      if (ok) {
+        hideDelay = 1400;
       }
-      hideSoon(50);
-      return;
-    }
+    };
 
-    let raw = transcriptRef.current.trim();
+    try {
+      if (cancel) {
+        hideDelay = 50;
+        return;
+      }
 
-    // Фолбэк: Speech API не дал текста → локальное распознавание по WAV-записи (whisper.cpp → Gemini)
-    if (!raw && captureRef.current) {
-      try {
-        const wav = captureRef.current.stop();
-        captureRef.current = null;
-        const res = await desktopAPI.transcribe(wav, settingsRef.current.language === 'en' ? 'en' : 'ru');
-        if (res && res.text) {
-          transcriptRef.current = res.text;
-          raw = res.text.trim();
+      let raw = transcriptRef.current.trim();
+
+      // Фолбэк: Speech API не дал текста → локальное распознавание по WAV-записи (whisper.cpp → Gemini)
+      if (!raw && captureRef.current) {
+        try {
+          const wav = captureRef.current.stop();
+          captureRef.current = null;
+          setError('Распознаю локально…');
+          const res = await desktopAPI.transcribe(wav, settingsRef.current.language === 'en' ? 'en' : 'ru');
+          if (res && res.text) {
+            transcriptRef.current = res.text;
+            raw = res.text.trim();
+          } else if (res && res.hint) {
+            setError(res.hint);
+          }
+        } catch {
+          /* остаёмся с «не расслышал» */
         }
-      } catch {
-        /* ниже покажем ошибку */
       }
-    }
-    if (captureRef.current) {
-      captureRef.current.stop();
-      captureRef.current = null;
-    }
+      releaseCapture();
 
-    if (!raw) {
-      setError('Ничего не расслышал');
-      sound.error();
-      hideSoon(1200);
-      return;
-    }
+      if (!raw) {
+        if (!error) setError('Ничего не расслышал');
+        sound.error();
+        return; // finally скроет
+      }
 
-    const s = settingsRef.current;
-    const durSec = Math.max(1, Math.round((Date.now() - startRef.current) / 1000));
-    const words = countWordsIn(raw);
-    const wpm = durSec >= 3 ? Math.round(words / (durSec / 60)) : 0;
+      const s = settingsRef.current;
+      const durSec = Math.max(1, Math.round((Date.now() - startRef.current) / 1000));
+      const words = countWordsIn(raw);
+      const wpm = durSec >= 3 ? Math.round(words / (durSec / 60)) : 0;
+      const pairs = parsePairsText(`${s.dictText || ''}\n${s.macrosText || ''}`);
 
-    const run = async () => {
-      // формат: AI (если настроен) → локальный
-      let text = formatText(raw, { mode: s.mode, lang: s.language, name: s.name }).text;
+      // формат: AI (если настроен) → локальный (со словарём и макросами, H-01)
+      let text = formatText(raw, {
+        mode: s.mode,
+        lang: s.language,
+        name: s.name,
+        dict: pairs.dict,
+        macros: pairs.macros,
+      }).text;
       try {
         if (s.provider && s.provider !== 'none') {
           const res = await desktopAPI.aiFormat({
@@ -113,6 +135,8 @@ export default function PillWindow() {
             provider: s.provider,
             apiKey: s.apiKey,
             name: s.name,
+            dict: pairs.dict,
+            macros: pairs.macros,
           });
           if (res && res.formattedText) text = res.formattedText;
         }
@@ -138,65 +162,101 @@ export default function PillWindow() {
       sound.success();
       setInserted(method);
       setDone(true);
-      hideSoon(1400);
-    };
-    run();
+      finishOutcome(true);
+    } catch (e) {
+      console.error('pill finish failed:', e);
+      setError('Сбой вставки — текст в буфере обмена');
+      try {
+        if (transcriptRef.current.trim()) await desktopAPI.insertText(transcriptRef.current.trim());
+      } catch {
+        /* ну хоть попробовали */
+      }
+    } finally {
+      const delay = hideDelay;
+      setTimeout(() => desktopAPI.hidePill(), delay); // ← пилюля ВСЕГДА исчезает
+    }
   };
+  finishRef.current = finish;
 
   const start = async () => {
-    if (!isDesktop()) {
-      setError('Пилюля работает только в десктоп-приложении');
-      return;
-    }
-
-    sound.start();
-    startRef.current = Date.now();
-    wordsRef.current = 0;
-    recordingRef.current = true;
-    setRecording(true);
-    setDone(false);
-    setInserted(null);
-    setError('');
-
-    timerRef.current = setInterval(() => {
-      const sec = (Date.now() - startRef.current) / 1000;
-      setElapsed(sec);
-      setLiveWpm(sec > 2.5 ? Math.round(wordsRef.current / (sec / 60)) : 0);
-    }, 400);
-
-    startMicMeter((levels) => setBars(levels.bars))
-      .then((m) => {
-        meterRef.current = m;
-      })
-      .catch(() => {});
-
-    // Параллельно пишем WAV: если Speech API молчит — распознаем локально
     try {
-      captureRef.current = new WavCapture();
-      await captureRef.current.start(() => {});
-    } catch {
-      captureRef.current = null;
-    }
+      if (!isDesktop()) {
+        setError('Пилюля работает только в десктоп-приложении');
+        setTimeout(() => desktopAPI.hidePill(), 2500);
+        return;
+      }
 
-    engineRef.current = new SpeechEngine({
-      onFinal: (piece) => {
-        transcriptRef.current = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
-        wordsRef.current = countWordsIn(transcriptRef.current);
-      },
-      onInterim: (t) => setInterim(t),
-      onError: (code) => {
-        if (code === 'denied') setError('Доступ к микрофону запрещён системой');
-        else if (code === 'network') setInterim(''); // текст даст локальный ASR по записи
-        else if (code === 'no-mic') setError('Микрофон не найден');
-        if (code === 'denied' || code === 'no-mic') {
-          sound.error();
-          recordingRef.current = false;
-          stopMachines();
-          setRecording(false);
-        }
-      },
-    });
-    engineRef.current.start(settingsRef.current.language === 'en' ? 'en-US' : 'ru-RU');
+      sound.start();
+      startRef.current = Date.now();
+      wordsRef.current = 0;
+      transcriptRef.current = '';
+      recordingRef.current = true;
+      setRecording(true);
+      setDone(false);
+      setInserted(null);
+      setError('');
+
+      timerRef.current = setInterval(() => {
+        const sec = (Date.now() - startRef.current) / 1000;
+        setElapsed(sec);
+        setLiveWpm(sec > 2.5 ? Math.round(wordsRef.current / (sec / 60)) : 0);
+        if (sec > MAX_SEC && recordingRef.current) finishRef.current(false);
+      }, 400);
+
+      startMicMeter((levels) => setBars(levels.bars))
+        .then((m) => {
+          meterRef.current = m;
+        })
+        .catch(() => {});
+
+      // Параллельно пишем WAV: если Speech API молчит — распознаем локально
+      try {
+        captureRef.current = new WavCapture();
+        await captureRef.current.start(() => {});
+      } catch {
+        captureRef.current = null;
+      }
+
+      engineRef.current = new SpeechEngine({
+        onFinal: (piece) => {
+          transcriptRef.current = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
+          wordsRef.current = countWordsIn(transcriptRef.current);
+        },
+        onInterim: (t) => setInterim(t),
+        onError: (code) => {
+          if (code === 'denied') setError('Доступ к микрофону запрещён системой');
+          else if (code === 'no-mic') setError('Микрофон не найден');
+          else if (code === 'network') setInterim(''); // текст даст локальный ASR по записи
+          if (code === 'denied' || code === 'no-mic') {
+            sound.error();
+            recordingRef.current = false;
+            doneRef.current = true;
+            stopMachines();
+            releaseCapture();
+            setRecording(false);
+            setTimeout(() => desktopAPI.hidePill(), 2500); // не висим
+          }
+        },
+      });
+      const ok = engineRef.current.start(settingsRef.current.language === 'en' ? 'en-US' : 'ru-RU');
+      if (!ok && !captureRef.current) {
+        setError('Распознавание недоступно: настрой whisper в Настройках');
+        recordingRef.current = false;
+        doneRef.current = true;
+        stopMachines();
+        setRecording(false);
+        setTimeout(() => desktopAPI.hidePill(), 3000);
+      }
+    } catch (e) {
+      console.error('pill start failed:', e);
+      setError('Не удалось начать запись');
+      recordingRef.current = false;
+      doneRef.current = true;
+      stopMachines();
+      releaseCapture();
+      setRecording(false);
+      setTimeout(() => desktopAPI.hidePill(), 2500);
+    }
   };
 
   // init: настройки из main → автостарт (окно показывается только для диктовки)
@@ -219,23 +279,34 @@ export default function PillWindow() {
       });
 
     desktopAPI.onCommand((cmd) => {
-      if (cmd === 'stop') finish(false);
-      if (cmd === 'cancel') finish(true);
+      if (cmd === 'stop') finishRef.current && finishRef.current(false);
+      if (cmd === 'cancel') finishRef.current && finishRef.current(true);
     });
 
+    // Самолечение: любая непойманная ошибка не должна оставлять висящую пилюлю
+    const heal = (msg) => {
+      console.error('pill window:', msg);
+      setTimeout(() => {
+        if (!recordingRef.current) desktopAPI.hidePill();
+      }, 1500);
+    };
+    const onErr = (e) => heal(e.message || 'error');
+    const onRej = (e) => heal((e.reason && e.reason.message) || 'unhandled rejection');
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+
     const esc = (e) => {
-      if (e.code === 'Escape') finish(true);
+      if (e.code === 'Escape') finishRef.current && finishRef.current(true);
     };
     window.addEventListener('keydown', esc);
 
     return () => {
       disposed = true;
       window.removeEventListener('keydown', esc);
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
       stopMachines();
-      if (captureRef.current) {
-        captureRef.current.stop();
-        captureRef.current = null;
-      }
+      releaseCapture();
       document.documentElement.style.background = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -262,11 +333,7 @@ export default function PillWindow() {
           <span
             className={
               'ml-1.5 w-10 h-10 rounded-full flex items-center justify-center ' +
-              (done
-                ? 'bg-emerald-500/90'
-                : recording
-                  ? 'bg-white/10'
-                  : 'bg-white')
+              (done ? 'bg-emerald-500/90' : recording ? 'bg-white/10' : 'bg-white')
             }
           >
             {done ? (
@@ -274,7 +341,7 @@ export default function PillWindow() {
             ) : recording ? (
               <span className="w-3.5 h-3.5 bg-white rounded-[4px]" />
             ) : (
-              <Mic className="w-5 h-5 text-ink-950 !text-ink-950" style={{ color: '#121110' }} />
+              <Mic className="w-5 h-5" style={{ color: '#17140F' }} />
             )}
           </span>
 
@@ -297,7 +364,9 @@ export default function PillWindow() {
           )}
 
           {!recording && !done && (
-            <span className="text-[13px] font-semibold text-white/90 px-1">{error || 'Flow'}</span>
+            <span className="text-[13px] font-semibold text-white/90 px-1 max-w-[360px] truncate">
+              {error || 'Flow'}
+            </span>
           )}
 
           {recording && !done && (
@@ -312,7 +381,7 @@ export default function PillWindow() {
 
           {recording && !done && (
             <button
-              onClick={() => finish(true)}
+              onClick={() => finishRef.current && finishRef.current(true)}
               title="Отменить (Esc)"
               className="ml-1 w-7 h-7 rounded-full bg-white/[0.06] hover:bg-red-500/20 border border-white/[0.08] flex items-center justify-center transition-colors"
             >

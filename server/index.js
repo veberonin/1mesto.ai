@@ -238,8 +238,14 @@ app.post('/api/format', async (req, res) => {
       if (aiText) return res.json({ formattedText: aiText, source: 'ai' });
     }
 
-    // Локальный умный форматер — всегда доступен, работает офлайн
-    const local = formatText(text, { mode, lang: language === 'en' ? 'en' : 'ru', name: req.body?.name || '' });
+    // Локальный умный форматер — всегда доступен, работает офлайн (+ словарь/макросы, H-01)
+    const local = formatText(text, {
+      mode,
+      lang: language === 'en' ? 'en' : 'ru',
+      name: req.body?.name || '',
+      dict: req.body?.dict && typeof req.body.dict === 'object' ? req.body.dict : null,
+      macros: req.body?.macros && typeof req.body.macros === 'object' ? req.body.macros : null,
+    });
     return res.json({ formattedText: local.text, meta: local.meta, source: 'local' });
   } catch (e) {
     console.error('format error:', e.message);

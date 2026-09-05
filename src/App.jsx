@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import Sidebar from './components/Sidebar.jsx';
 import DictationPill from './components/DictationPill.jsx';
-import PillWindow from './components/PillWindow.jsx';
 import DictationTab from './components/DictationTab.jsx';
 import HistoryTab from './components/HistoryTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
@@ -17,6 +16,7 @@ import { startMicMeter } from './lib/audio.js';
 import { WavCapture } from './lib/recorder.js';
 import { sound } from './lib/sound.js';
 import { formatText, countWordsIn } from './lib/formatter.js';
+import { parsePairsText } from './lib/dictio.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
 import { addUtterance } from './lib/journal.js';
 import { isDesktop, desktopAPI } from './lib/desktop.js';
@@ -35,6 +35,8 @@ const DEFAULT_SETTINGS = {
   normalizeNumbers: true,
   whisperBin: '',
   whisperModel: '',
+  dictText: '',
+  macrosText: '',
   onboarded: false,
 };
 
@@ -89,6 +91,12 @@ export default function App() {
   settingsRef.current = settings;
   const formatMetaRef = useRef(null);
   formatMetaRef.current = formatMeta;
+  const pairs = useMemo(
+    () => parsePairsText(`${settings.dictText || ''}\n${settings.macrosText || ''}`),
+    [settings.dictText, settings.macrosText]
+  );
+  const pairsRef = useRef(pairs);
+  pairsRef.current = pairs;
 
   // ---------- тосты (с дедупликацией — больше не спамят пачками) ----------
   const toast = useCallback((msg, type = 'info') => {
@@ -137,12 +145,14 @@ export default function App() {
       mode, lang: language, name: settings.name,
       autoPunct: settings.autoPunct !== false,
       normalizeNumbers: settings.normalizeNumbers !== false,
+      dict: pairsRef.current.dict,
+      macros: pairsRef.current.macros,
     });
     formattedRef.current = text;
     lastMetaRef.current = { ...meta, source: prevSourceRef.current };
     setFormatted(text);
     setFormatMeta(lastMetaRef.current);
-  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name]);
+  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name, settings.dictText, settings.macrosText]);
 
   const lastMetaRef = useRef(null);
   const prevSourceRef = useRef('local');
@@ -381,6 +391,7 @@ export default function App() {
         data = await desktopAPI.aiFormat({
           text: transcriptRef.current, mode, language,
           provider: settings.provider, apiKey: settings.apiKey, name: settings.name,
+          dict: pairsRef.current.dict, macros: pairsRef.current.macros,
         });
         if (!data || !data.formattedText) throw new Error('empty');
       } else {
@@ -391,7 +402,10 @@ export default function App() {
             'x-ai-provider': settings.provider,
             'x-api-key': settings.apiKey,
           },
-          body: JSON.stringify({ text: transcriptRef.current, mode, language }),
+          body: JSON.stringify({
+            text: transcriptRef.current, mode, language,
+            dict: pairsRef.current.dict, macros: pairsRef.current.macros,
+          }),
         });
         data = await res.json();
       }
@@ -488,11 +502,6 @@ export default function App() {
 
   const pillState = recording ? 'recording' : processing ? 'processing' : 'idle';
   const today = getToday(stats);
-
-  // Отдельное окно-пилюля десктопа (electron грузит /?pill=1)
-  if (new URLSearchParams(window.location.search).get('pill') === '1') {
-    return <PillWindow />;
-  }
 
   return (
     <div className="min-h-screen bg-paper text-ink">

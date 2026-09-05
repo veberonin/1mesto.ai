@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 1mesto Flow team (veberonin)
-import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Wand2, User, Volume2, Keyboard, Server, Trash2, Eye, EyeOff, ShieldCheck, Cpu, Download, RefreshCw, BookA, Upload, FileDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
+import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
 
 function Toggle({ label, desc, value, onChange }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <div className="min-w-0">
         <div className="text-[13.5px] font-semibold">{label}</div>
-        {desc && <div className="text-[11.5px] text-zinc-500 mt-0.5">{desc}</div>}
+        {desc && <div className="text-[11.5px] text-mute mt-0.5">{desc}</div>}
       </div>
       <button className="switch" data-on={!!value} onClick={() => onChange(!value)} aria-label={label}>
         <span />
@@ -25,7 +26,10 @@ const PROVIDERS = [
   { id: 'openai', name: 'OpenAI', desc: 'gpt-4o-mini — дороговато, но блестяще' },
 ];
 
-export default function SettingsTab({ settings, onChange, serverOnline, onCheckServer, onResetStats }) {
+const inputCls =
+  'w-full bg-paper/70 border border-line rounded-xl px-4 py-2.5 text-[13px] focus:outline-none focus:border-accent';
+
+export default function SettingsTab({ settings, onChange, serverOnline, onCheckServer, onResetStats, onToast }) {
   const [showKey, setShowKey] = useState(false);
 
   const set = (patch) => onChange({ ...settings, ...patch });
@@ -35,10 +39,10 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
       {/* AI */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-1">
-          <Wand2 className="w-4 h-4 text-brand-violet" />
+          <Wand2 className="w-4 h-4 text-accent" />
           <h3 className="font-bold">AI-полировка текста</h3>
         </div>
-        <p className="text-[12px] text-zinc-500 mb-4">
+        <p className="text-[12px] text-mute mb-4">
           Локальный форматер уже убирает паразитов и ставит пунктуацию. Внешний AI добавит глубину:
           перепишет корявые фразы и подгонит тон.
         </p>
@@ -50,30 +54,27 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
               onClick={() => set({ provider: p.id })}
               className={`p-3.5 rounded-2xl text-left border transition-all ${
                 settings.provider === p.id
-                  ? 'border-brand-flame/50 bg-gradient-to-b from-brand-flame/10 to-transparent shadow-glow-sm'
-                  : 'border-white/[0.07] bg-white/[0.03] hover:border-white/20'
+                  ? 'border-accent/50 bg-accent-soft shadow-sm'
+                  : 'border-line bg-card hover:border-mute/40'
               }`}
             >
               <div className="text-[13px] font-bold">{p.name}</div>
-              <div className="text-[10.5px] text-zinc-500 mt-0.5 leading-snug">{p.desc}</div>
+              <div className="text-[10.5px] text-mute mt-0.5 leading-snug">{p.desc}</div>
             </button>
           ))}
         </div>
 
         {settings.provider === 'ollama' && (
-          <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] text-[12px] text-emerald-200/80 leading-relaxed">
-            <b className="text-emerald-300">Ollama локально.</b> На своём компе запусти{' '}
-            <code className="px-1 py-0.5 rounded bg-black/30">ollama serve</code> и скачай модель:{' '}
-            <code className="px-1 py-0.5 rounded bg-black/30">ollama pull llama3.1</code>.
-            Сервер сам найдёт Ollama на <code className="px-1 py-0.5 rounded bg-black/30">localhost:11434</code>.
-            Ключ не нужен. Переменные: <code className="px-1 py-0.5 rounded bg-black/30">OLLAMA_URL</code>,{' '}
-            <code className="px-1 py-0.5 rounded bg-black/30">OLLAMA_MODEL</code>.
+          <div className="p-3.5 rounded-2xl border border-accent/20 bg-accent-soft/60 text-[12px] text-ink-800 leading-relaxed">
+            <b>Ollama локально.</b> Запусти <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama serve</code> и
+            скачай модель: <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">ollama pull llama3.1</code>. Сервер сам
+            найдёт Ollama на <code className="px-1 py-0.5 rounded bg-ink/5 font-mono">localhost:11434</code>. Ключ не нужен.
           </div>
         )}
 
         {settings.provider !== 'none' && settings.provider !== 'ollama' && (
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500 block mb-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
               API-ключ ({settings.provider === 'gemini' ? 'Google AI Studio' : 'OpenAI'})
             </label>
             <div className="relative">
@@ -82,34 +83,36 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
                 value={settings.apiKey || ''}
                 onChange={(e) => set({ apiKey: e.target.value })}
                 placeholder={settings.provider === 'gemini' ? 'AIza…' : 'sk-…'}
-                className="w-full bg-white/[0.04] border border-white/[0.09] rounded-xl pl-4 pr-11 py-3 text-[13px] font-mono focus:outline-none focus:border-brand-flame/50"
+                className={inputCls + ' pr-11 font-mono'}
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-mute hover:text-ink"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="flex items-center gap-1.5 text-[11px] text-zinc-600 mt-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              Ключ живёт только в твоём браузере (localStorage) и уходит лишь на твой сервер → провайдеру.
+            <p className="flex items-center gap-1.5 text-[11px] text-mute mt-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              Ключ хранится только у тебя на компьютере и уходит лишь провайдеру.
             </p>
           </div>
         )}
       </div>
 
-
       {/* Распознавание речи (локальное) */}
       <AsrCard settings={settings} onChange={set} onToast={onToast} />
+
+      {/* Словарь и макросы + импорт из файла (H-01) */}
+      <DictCard settings={settings} onChange={set} onToast={onToast} />
 
       {/* Поведение */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-2">
-          <Volume2 className="w-4 h-4 text-brand-orange" />
+          <Volume2 className="w-4 h-4 text-accent" />
           <h3 className="font-bold">Поведение</h3>
         </div>
-        <div className="divide-y divide-white/[0.05]">
+        <div className="divide-y divide-line/70">
           <Toggle
             label="Форматировать на лету"
             desc="Чистый текст появляется прямо во время диктовки"
@@ -152,24 +155,24 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
       {/* Персонализация */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-3">
-          <User className="w-4 h-4 text-brand-blue" />
+          <User className="w-4 h-4 text-accent" />
           <h3 className="font-bold">Персонализация</h3>
         </div>
-        <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500 block mb-1.5">
+        <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
           Подпись в email-режиме
         </label>
         <input
           value={settings.name || ''}
           onChange={(e) => set({ name: e.target.value })}
           placeholder="Например: Веберонин"
-          className="w-full bg-white/[0.04] border border-white/[0.09] rounded-xl px-4 py-3 text-[13px] focus:outline-none focus:border-brand-flame/50"
+          className={inputCls}
         />
       </div>
 
       {/* Сервер и данные */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-3">
-          <Server className="w-4 h-4 text-emerald-400" />
+          <Server className="w-4 h-4 text-emerald-600" />
           <h3 className="font-bold">Сервер и данные</h3>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -177,8 +180,8 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             onClick={onCheckServer}
             className={`px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border transition-colors ${
               serverOnline
-                ? 'border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-300'
-                : 'border-white/[0.09] bg-white/[0.04] text-zinc-300 hover:border-white/20'
+                ? 'border-emerald-500/30 bg-emerald-50 text-emerald-700'
+                : 'border-line bg-card text-ink-800 hover:border-mute/40'
             }`}
           >
             {serverOnline ? '● Сервер подключён' : '○ Проверить сервер'}
@@ -187,33 +190,33 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             onClick={() => {
               if (window.confirm('Сбросить всю статистику?')) onResetStats();
             }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-red-500/25 bg-red-500/[0.07] text-red-400 hover:bg-red-500/15 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-red-500/30 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" /> Очистить данные
           </button>
         </div>
-        <p className="text-[11.5px] text-zinc-600 mt-3">
-          Статистика всегда пишется в localStorage, а при живом бэкенде ещё и зеркалится на сервер (Express + JSON).
+        <p className="text-[11.5px] text-mute mt-3">
+          Статистика хранится локально, а при живом бэкенде ещё и зеркалится на сервер (Express + JSON).
         </p>
       </div>
 
       {/* Горячие клавиши */}
       <div className="rounded-3xl glass p-6 shadow-card">
         <div className="flex items-center gap-2 mb-3">
-          <Keyboard className="w-4 h-4 text-zinc-400" />
+          <Keyboard className="w-4 h-4 text-mute" />
           <h3 className="font-bold">Горячие клавиши</h3>
         </div>
         <div className="space-y-2 text-[13px]">
           <div className="flex justify-between items-center">
             <span className="flex gap-1">
-              <kbd className="px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[11px] font-semibold">Alt</kbd>
-              <kbd className="px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[11px] font-semibold">Space</kbd>
+              <span className="keycap">Alt</span>
+              <span className="keycap">Space</span>
             </span>
-            <span className="text-zinc-500">старт / стоп диктовки</span>
+            <span className="text-mute">старт / стоп диктовки</span>
           </div>
           <div className="flex justify-between items-center">
-            <kbd className="px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[11px] font-semibold">Esc</kbd>
-            <span className="text-zinc-500">экстренная остановка</span>
+            <span className="keycap">Esc</span>
+            <span className="text-mute">экстренная остановка</span>
           </div>
         </div>
       </div>
@@ -221,7 +224,136 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Словарь замен + макросы + импорт из файла (H-01)                    */
+/* ------------------------------------------------------------------ */
+function DictCard({ settings, onChange, onToast }) {
+  const fileRef = useRef(null);
+  const dictText = settings.dictText || '';
+  const macrosText = settings.macrosText || '';
+  const parsed = parsePairsText(`${dictText}\n${macrosText}`);
+  const total = Object.keys(parsed.dict).length + Object.keys(parsed.macros).length;
 
+  const downloadTemplate = () => {
+    try {
+      const blob = new Blob([DICT_TEMPLATE], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'flow-dict-template.txt';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      onToast('Шаблон скачан ✓', 'success');
+    } catch {
+      onToast('Не удалось скачать шаблон', 'error');
+    }
+  };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    try {
+      const content = await file.text();
+      const imported = parsePairsText(content);
+      const n = Object.keys(imported.dict).length + Object.keys(imported.macros).length;
+      if (!n) {
+        onToast('В файле не нашлось замен — сверься с шаблоном', 'error');
+        return;
+      }
+      onChange({
+        ...settings,
+        dictText: mergeIntoText(dictText, imported),
+        macrosText: mergeIntoText(macrosText, imported),
+      });
+      const bad = imported.errors.length ? ` (неразобранных строк: ${imported.errors.length})` : '';
+      onToast(`Импортировано замен: ${n}${bad}`, 'success');
+    } catch {
+      onToast('Не удалось прочитать файл', 'error');
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="rounded-3xl glass p-6 shadow-card">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BookA className="w-4 h-4 text-accent" />
+          <h3 className="font-bold">Словарь и макросы</h3>
+          {total > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-accent-soft text-accent-deep text-[10.5px] font-bold">
+              {total} активных
+            </span>
+          )}
+        </div>
+      </div>
+      <p className="text-[12px] text-mute mt-1 mb-4 leading-relaxed">
+        Как слышится → как надо писать: термины, бренды, имена. Макросы разворачиваются по имени с решёткой.
+        Работает и в дашборде, и в пилюле.
+      </p>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
+            Словарь (одна замена в строке)
+          </label>
+          <textarea
+            value={dictText}
+            onChange={(e) => onChange({ ...settings, dictText: e.target.value })}
+            rows={5}
+            spellCheck={false}
+            placeholder={'1с = 1С\nбитрикс24 = Битрикс24\nпмо = ПМО'}
+            className="w-full bg-paper/70 border border-line rounded-xl px-4 py-3 text-[12.5px] font-mono leading-relaxed focus:outline-none focus:border-accent resize-y"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
+            Макросы (#имя = текст)
+          </label>
+          <textarea
+            value={macrosText}
+            onChange={(e) => onChange({ ...settings, macrosText: e.target.value })}
+            rows={3}
+            spellCheck={false}
+            placeholder={'#адрес = г. Москва, ул. Тверская, д. 1\n#подпись = С уважением, Иван'}
+            className="w-full bg-paper/70 border border-line rounded-xl px-4 py-3 text-[12.5px] font-mono leading-relaxed focus:outline-none focus:border-accent resize-y"
+          />
+        </div>
+        {parsed.errors.length > 0 && (
+          <div className="text-[11.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            Не разобрал {parsed.errors.length} строк: «{parsed.errors[0].slice(0, 40)}» — нужен формат «слово = замена»
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Импорт из файла (H-01): .txt / .csv / .tsv / .json */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.csv,.tsv,.json,text/plain,application/json"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files && e.target.files[0])}
+          />
+          <button
+            onClick={() => fileRef.current && fileRef.current.click()}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-bold bg-ink text-paper hover:bg-ink-800"
+          >
+            <Upload className="w-3.5 h-3.5" /> Импорт из файла
+          </button>
+          <button
+            onClick={downloadTemplate}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-semibold border border-line bg-card hover:border-accent"
+          >
+            <FileDown className="w-3.5 h-3.5" /> Скачать шаблон
+          </button>
+          <span className="text-[11px] text-mute">.txt · .csv · .tsv · .json</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Локальное распознавание (whisper.cpp)                               */
+/* ------------------------------------------------------------------ */
 function AsrCard({ settings, onChange, onToast }) {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -230,7 +362,9 @@ function AsrCard({ settings, onChange, onToast }) {
     if (!isDesktop()) return;
     desktopAPI.asrCheck().then(setInfo).catch(() => {});
   };
-  useEffect(refresh, []);
+  useEffect(() => {
+    refresh();
+  }, []);
 
   if (!isDesktop()) {
     return (
@@ -247,7 +381,14 @@ function AsrCard({ settings, onChange, onToast }) {
     );
   }
 
-  const engineLabel = info?.whisperBin && info?.whisperModel ? 'whisper.cpp ✓ офлайн' : info?.geminiKey ? 'Gemini (по ключу)' : 'не настроено';
+  const engineLabel =
+    info?.whisperBin && info?.whisperModel
+      ? 'whisper.cpp ✓ офлайн'
+      : info?.whisperBin
+        ? 'бинарь есть, не хватает модели'
+        : info?.geminiKey
+          ? 'Gemini (по ключу, нужен интернет)'
+          : 'не настроено';
 
   return (
     <div className="rounded-3xl glass p-6 shadow-card">
