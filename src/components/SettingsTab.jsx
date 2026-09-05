@@ -121,6 +121,24 @@ export default function SettingsTab({ settings, onChange, serverOnline, onCheckS
             value={settings.soundOn}
             onChange={(v) => set({ soundOn: v })}
           />
+          <Toggle
+            label="Автопунктуация"
+            desc="Точки, запятые и заглавные ставятся сами (G-16: можно выключить)"
+            value={settings.autoPunct !== false}
+            onChange={(v) => set({ autoPunct: v })}
+          />
+          <Toggle
+            label="Числа цифрами"
+            desc="«пять тысяч» → 5000 (F-10)"
+            value={settings.normalizeNumbers !== false}
+            onChange={(v) => set({ normalizeNumbers: v })}
+          />
+          <Toggle
+            label="Приватный режим"
+            desc="История ведётся без текста реплик — только метрики (P-12/T-10)"
+            value={!!settings.privacy}
+            onChange={(v) => set({ privacy: v })}
+          />
         </div>
       </div>
 

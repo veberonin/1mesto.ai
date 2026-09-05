@@ -8,6 +8,7 @@ import DictationTab from './components/DictationTab.jsx';
 import AnalyticsTab from './components/AnalyticsTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
 import AboutTab from './components/AboutTab.jsx';
+import HistoryTab from './components/HistoryTab.jsx';
 import Toasts from './components/Toasts.jsx';
 
 import { isSpeechSupported, SpeechEngine } from './lib/speech.js';
@@ -15,6 +16,7 @@ import { startMicMeter } from './lib/audio.js';
 import { sound } from './lib/sound.js';
 import { formatText, countWordsIn, DEMO_SAMPLES } from './lib/formatter.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
+import { addUtterance } from './lib/journal.js';
 import { isDesktop, desktopAPI } from './lib/desktop.js';
 
 const SETTINGS_KEY = 'flow-settings-v1';
@@ -26,6 +28,9 @@ const DEFAULT_SETTINGS = {
   autoCopy: false,
   soundOn: true,
   name: '',
+  privacy: false,      // P-12: не писать текст реплик
+  autoPunct: true,     // G-16: автопунктуация вкл/выкл
+  normalizeNumbers: true, // F-10: числа словами → цифры
 };
 
 function loadSettings() {
@@ -65,6 +70,8 @@ export default function App() {
   // ---------- refs (против stale closures) ----------
   const transcriptRef = useRef('');
   const formattedRef = useRef('');
+  const firstFinalRef = useRef(0);
+  const lastMetaRef = useRef(null);
   const recordingRef = useRef(false);
   const startRef = useRef(0);
   const wordsRef = useRef(0);
@@ -76,6 +83,10 @@ export default function App() {
   const toastId = useRef(0);
   const langRef = useRef(language);
   langRef.current = language;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const formatMetaRef = useRef(null);
+  formatMetaRef.current = formatMeta;
 
   // ---------- тосты ----------
   const toast = useCallback((msg, type = 'info') => {
@@ -119,11 +130,16 @@ export default function App() {
       setFormatMeta(null);
       return;
     }
-    const { text, meta } = formatText(transcript, { mode, lang: language, name: settings.name });
+    const { text, meta } = formatText(transcript, {
+      mode, lang: language, name: settings.name,
+      autoPunct: settings.autoPunct !== false,
+      normalizeNumbers: settings.normalizeNumbers !== false,
+    });
     formattedRef.current = text;
     setFormatted(text);
-    setFormatMeta((prev) => ({ ...meta, source: prev?.source === 'ai' ? 'ai' : 'local' }));
-  }, [transcript, mode, language, settings.autoFormat, settings.name]);
+    lastMetaRef.current = { ...meta, source: prev?.source === 'ai' ? 'ai' : 'local' };
+    setFormatMeta(lastMetaRef.current);
+  }, [transcript, mode, language, settings.autoFormat, settings.autoPunct, settings.normalizeNumbers, settings.name]);
 
   // ---------- health-check сервера ----------
   const checkServer = useCallback(() => {
@@ -191,6 +207,22 @@ export default function App() {
     setInterim('');
 
     if (words >= 1) {
+      const finalText = formattedRef.current || transcriptRef.current;
+      addUtterance({
+        text: finalText,
+        words,
+        wpm,
+        durSec,
+        app: 'dashboard',
+        mode,
+        lang: langRef.current,
+        source: formatMetaRef.current?.source === 'ai' ? 'ai' : 'local',
+        latencies: { firstHypothesisMs: firstFinalRef.current || undefined },
+        dictHits: lastMetaRef.current?.dictHits || [],
+        fillersRemoved: lastMetaRef.current?.removedFillers || 0,
+        privacy: !!settingsRef.current.privacy,
+      });
+      firstFinalRef.current = 0;
       const s = saveSession({
         words,
         wpm,
@@ -242,6 +274,7 @@ export default function App() {
 
     engineRef.current = new SpeechEngine({
       onFinal: (piece) => {
+        if (!firstFinalRef.current) firstFinalRef.current = Date.now() - startRef.current;
         appendTranscript(piece);
       },
       onInterim: (text) => setInterim(text),
@@ -577,6 +610,12 @@ export default function App() {
                   toast('Статистика сброшена', 'info');
                 }}
               />
+            </div>
+          )}
+
+          {tab === 'history' && (
+            <div className="pt-8">
+              <HistoryTab privacy={settings.privacy} onToast={toast} />
             </div>
           )}
 

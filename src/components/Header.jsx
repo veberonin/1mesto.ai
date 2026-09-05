@@ -1,4 +1,4 @@
-import { Mic, BarChart2, Settings, Info, Globe, Github } from 'lucide-react';
+import { Mic, BarChart2, Settings, Info, History, Globe, Github } from 'lucide-react';
 
 function Logo() {
   return (
@@ -14,6 +14,7 @@ function Logo() {
 const TABS = [
   { id: 'dictation', label: 'Диктовка', icon: Mic },
   { id: 'analytics', label: 'Аналитика', icon: BarChart2 },
+  { id: 'history', label: 'История', icon: History },
   { id: 'settings', label: 'Настройки', icon: Settings },
   { id: 'about', label: 'О проекте', icon: Info },
 ];

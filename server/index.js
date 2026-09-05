@@ -183,6 +183,24 @@ app.post('/api/stats', (req, res) => {
   res.json({ ok: true });
 });
 
+// T-15: сводка прогона одной командой (npm run summary)
+app.get('/api/summary', (req, res) => {
+  const db = readDb();
+  const day = new Date().toISOString().slice(0, 10);
+  const today = db.sessions.filter((x) => (x.timestamp || '').startsWith(day));
+  const lat = db.sessions.map((x) => x.averageWpm).filter(Boolean).sort((a, b) => a - b);
+  const byMode = {};
+  for (const x of db.sessions) byMode[x.mode] = (byMode[x.mode] || 0) + 1;
+  res.json({
+    totalSessions: db.sessions.length,
+    todaySessions: today.length,
+    todayWords: today.reduce((a, x) => a + (x.wordCount || 0), 0),
+    totalWords: db.sessions.reduce((a, x) => a + (x.wordCount || 0), 0),
+    medianWpm: lat.length ? lat[Math.floor((lat.length - 1) / 2)] : 0,
+    byMode,
+  });
+});
+
 app.get('/api/stats', (req, res) => {
   const db = readDb();
   const sessions = db.sessions.slice(-100).reverse();
