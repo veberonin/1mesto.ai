@@ -8,6 +8,32 @@
 Открывается на любом компе, микрофон работает по HTTPS, а без микрофона есть кнопка «Демо RU/EN».
 Готовишься к оценочному стенду? → [docs/STAND_DEMO.md](docs/STAND_DEMO.md) — чеклист и сценарий на 90 секунд.
 
+## 🖥 Десктоп-приложение (как оригинал)
+
+1mesto Flow — это **нативное приложение** (Electron): глобальный хоткей, плавающая пилюля
+поверх всех окон и **автовставка текста в любое приложение**, где стоял курсор — как в Wispr Flow.
+
+```bash
+npm install
+npm run app        # собрать и запустить приложение (окно + трей + пилюля)
+npm run app:dev    # режим разработки (vite + electron вместе)
+npm run app:dist   # собрать установщики: .exe (Windows), .dmg (macOS), .AppImage/.deb (Linux)
+```
+
+Что умеет десктоп:
+
+| Фича | Как в оригинале |
+|---|---|
+| Глобальный хоткей `Alt+Space` | Диктуй из любого приложения — пилюля появится поверх всех окон |
+| Автовставка | Остановился → чистый текст сам печатается в Notion/Zed/Telegram/куда угодно (Ctrl/Cmd+V в фокус) |
+| Плавающая пилюля | Прозрачное always-on-top окно внизу экрана с живой волной и таймером |
+| Трей | Управление из меню-бара, автозапуск при входе, не мешает в доке |
+| Настройки | Общие между дашбордом и пилюлей (JSON в профиле пользователя) |
+| Ollama | Локальный AI без интернета — прямо из десктопа |
+
+Установщики собираются на соответствующей ОС (`npm run app:dist` на Windows → `.exe`, на mac → `.dmg`, на Linux → `.AppImage`). Готовые сборки можно скачать из артефактов CI.
+
+
 ![CI](https://github.com/veberonin/1mesto.ai/actions/workflows/ci.yml/badge.svg) ![stack](https://img.shields.io/badge/React%2018-Vite%205-blue) ![style](https://img.shields.io/badge/Tailwind%203-dark%20theme-8b5cf6) ![api](https://img.shields.io/badge/Express-JSON%20store-green) ![tests](https://img.shields.io/badge/tests-27%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---

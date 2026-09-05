@@ -15,6 +15,7 @@ import { startMicMeter } from './lib/audio.js';
 import { sound } from './lib/sound.js';
 import { formatText, countWordsIn, DEMO_SAMPLES } from './lib/formatter.js';
 import { loadStats, saveSession, getToday, resetStats } from './lib/stats.js';
+import { isDesktop, desktopAPI } from './lib/desktop.js';
 
 const SETTINGS_KEY = 'flow-settings-v1';
 
@@ -89,7 +90,26 @@ export default function App() {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch { /* noop */ }
     sound.enabled = settings.soundOn;
-  }, [settings]);
+    // В десктопе настройки синхронизируются с main-процессом (общие с пилюлей)
+    if (isDesktop()) {
+      desktopAPI.saveSettings({ ...settings, language, mode }).catch(() => {});
+    }
+  }, [settings, language, mode]);
+
+  // ---------- в десктопе подтягиваем настройки из main ----------
+  useEffect(() => {
+    if (!isDesktop()) return;
+    desktopAPI
+      .getSettings()
+      .then((s) => {
+        if (!s) return;
+        setSettings((prev) => ({ ...prev, ...s }));
+        if (s.language === 'ru' || s.language === 'en') setLanguage(s.language);
+        if (typeof s.mode === 'string') setMode(s.mode);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------- живой локальный формат ----------
   useEffect(() => {
@@ -345,27 +365,41 @@ export default function App() {
     }, 160);
   };
 
-  // ---------- AI-полировка на сервере ----------
+  // ---------- AI-полировка ----------
   const aiPolish = async () => {
     if (!transcriptRef.current.trim()) return;
     setProcessing(true);
     try {
-      const res = await fetch('/api/format', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-ai-provider': settings.provider,
-          'x-api-key': settings.apiKey,
-        },
-        body: JSON.stringify({ text: transcriptRef.current, mode, language }),
-      });
-      const data = await res.json();
+      let data;
+      if (isDesktop()) {
+        // десктоп: через main-процесс (ключи могут лежать и в env приложения)
+        data = await desktopAPI.aiFormat({
+          text: transcriptRef.current,
+          mode,
+          language,
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+          name: settings.name,
+        });
+        if (!data || !data.formattedText) throw new Error('empty');
+      } else {
+        const res = await fetch('/api/format', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ai-provider': settings.provider,
+            'x-api-key': settings.apiKey,
+          },
+          body: JSON.stringify({ text: transcriptRef.current, mode, language }),
+        });
+        data = await res.json();
+      }
       if (data && data.formattedText) {
         formattedRef.current = data.formattedText;
         setFormatted(data.formattedText);
-        setFormatMeta((m) => ({ ...(m || { removedFillers: 0 }), source: 'ai' }));
+        setFormatMeta((m) => ({ ...(m || { removedFillers: 0 }), source: data.source === 'ai' ? 'ai' : 'local' }));
         sound.success();
-        toast('AI отполировал текст ✨', 'success');
+        toast('Текст отполирован ✨', 'success');
       } else {
         throw new Error(data.error || 'empty');
       }
@@ -427,7 +461,9 @@ export default function App() {
 
   useEffect(() => {
     const handler = (e) => {
+      // В десктопе Alt+Space глобально обрабатывает main-процесс (пилюля поверх всех окон)
       if ((e.altKey || e.ctrlKey) && e.code === 'Space') {
+        if (isDesktop()) return; // не мешаем системному хоткею
         e.preventDefault();
         toggleRef.current();
       }

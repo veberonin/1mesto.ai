@@ -1,9 +1,10 @@
 {
   "name": "1mesto-flow",
   "private": true,
-  "version": "2.1.0",
-  "description": "1mesto Flow — Wispr Flow clone: effortless voice dictation with AI cleanup, WPM analytics and demo mode",
+  "version": "3.0.0",
+  "description": "1mesto Flow — Wispr Flow desktop clone: effortless voice dictation with AI cleanup, WPM analytics and demo mode",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k -n server,web -c yellow,cyan \"node server/index.js\" \"vite --host 0.0.0.0 --port 3000 --strictPort\"",
     "dev:web": "vite --host 0.0.0.0 --port 3000 --strictPort",
@@ -11,6 +12,9 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "start": "node server/index.js",
+    "app": "npm run build && electron .",
+    "app:dev": "concurrently -k -n web,app -c cyan,magenta \"vite --host 0.0.0.0 --port 3000 --strictPort\" \"electron . --dev\"",
+    "app:dist": "npm run build && electron-builder",
     "test": "node --test tests/",
     "test:watch": "node --test --watch tests/"
   },
@@ -25,6 +29,8 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
+    "electron": "^31.7.7",
+    "electron-builder": "^25.1.8",
     "lucide-react": "^0.363.0",
     "postcss": "^8.4.38",
     "react": "^18.2.0",
@@ -34,5 +40,45 @@
   },
   "engines": {
     "node": ">=18.13"
+  },
+  "build": {
+    "appId": "ai.1mesto.flow",
+    "productName": "1mesto Flow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "src/lib/formatter.js",
+      "!electron/icons/icon-raw.png"
+    ],
+    "win": {
+      "icon": "electron/icons/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "1mesto-Flow-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "electron/icons/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "icon": "electron/icons/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
   }
 }

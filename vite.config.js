@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  // относительные пути — чтобы prod-сборка работала и на file:// (Electron), и на Pages
+  base: './',
   plugins: [react()],
   server: {
     host: '0.0.0.0',
