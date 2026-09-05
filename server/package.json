@@ -1,12 +1,11 @@
 {
-  "name": "wispr-flow-server",
-  "version": "1.0.0",
-  "description": "Backend for Wispr Flow app",
+  "name": "1mesto-flow-server",
+  "version": "2.0.0",
+  "description": "Backend for 1mesto Flow (Wispr Flow clone): stats storage + AI formatting proxy",
   "main": "index.js",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "mongoose": "^8.3.1"
+    "express": "^4.19.2"
   }
 }
