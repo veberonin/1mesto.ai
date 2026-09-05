@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Фирменные звуки Flow — короткие «блипы» на WebAudio (без ассетов).
  */

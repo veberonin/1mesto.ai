@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 export default function Hero() {
   return (
     <section className="text-center pt-10 pb-2">

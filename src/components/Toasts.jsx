@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
 export default function Toasts({ toasts }) {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Check, X } from 'lucide-react';
 import { isSpeechSupported, SpeechEngine } from '../lib/speech.js';

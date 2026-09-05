@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pickPasteCommand } from '../electron/paste.js';

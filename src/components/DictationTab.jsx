@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import {
   Mic, Square, Trash2, Wand2, Copy, Check, Sparkles, Play, Mail,
   List, MessageSquare, Terminal, AlertTriangle, Keyboard, Zap, Timer,

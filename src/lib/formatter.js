@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Smart local formatter — «магия Wispr Flow» без единого API-ключа.
  * Убирает слова-паразиты, расставляет пунктуацию (в т.ч. по голосовым командам

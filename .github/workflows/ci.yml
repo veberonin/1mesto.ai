@@ -40,3 +40,40 @@ jobs:
           name: dist
           path: dist/
           retention-days: 7
+
+  license-check:
+    name: License check (Z-10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Проверяем отсутствие копилефт-зависимостей (Z-08)
+        run: node scripts/license-check.mjs
+
+  desktop:
+    name: Desktop app (${{ matrix.os }}) — X-16
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Pack desktop app (unpacked)
+        run: npx electron-builder --dir
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1mesto-flow-${{ matrix.os }}
+          path: release/*-unpacked/
+          retention-days: 7

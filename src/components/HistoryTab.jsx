@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useMemo, useState } from 'react';
 import { Search, Copy, RotateCcw, Trash2, Download, ShieldOff, RefreshCw } from 'lucide-react';
 import {

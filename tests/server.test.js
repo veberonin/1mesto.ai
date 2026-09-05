@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import app from '../server/index.js';

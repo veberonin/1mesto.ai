@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Журнал реплик (M/T/AL): локальное хранилище JSONL-совместимых записей.
  * Каждая реплика: id, ts (UTC ISO), app, text (если не приватный режим), слова, wpm,

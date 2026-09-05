@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * AI-полировка из main-процесса (десктоп): Gemini / OpenAI / Ollama.
  * Чистый fetch без зависимостей. При ошибке вызывающий код падает на локальный форматер.

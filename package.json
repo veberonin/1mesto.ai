@@ -17,7 +17,8 @@
     "app:dist": "npm run build && electron-builder",
     "test": "node --test tests/",
     "test:watch": "node --test --watch tests/",
-    "summary": "node scripts/summary.mjs"
+    "summary": "node scripts/summary.mjs",
+    "flow": "node scripts/flow-cli.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

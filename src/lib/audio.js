@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Живая звуковая волна: тянем реальный уровень микрофона через WebAudio
  * AnalyserNode и отдаём 7 «столбиков» эквалайзера + общий RMS-уровень.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Статистика: localStorage как источник правды (работает даже без бэкенда),
  * плюс fire-and-forget зеркалирование на сервер, если он доступен.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';

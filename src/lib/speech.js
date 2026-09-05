@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Обёртка над Web Speech API с автоперезапуском (Chrome любит обрывать
  * сессию распознавания при тишине — как настоящий Wispr Flow, мы её возобновляем).

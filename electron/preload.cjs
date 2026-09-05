@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 // Preload для Electron — безопасный мост (contextIsolation: true).
 // ВАЖНО: preload обязан быть CommonJS, поэтому файл .cjs
 const { contextBridge, ipcRenderer } = require('electron');

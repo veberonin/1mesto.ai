@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 export default function Aurora() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>

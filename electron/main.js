@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, session, screen, nativeImage } from 'electron';
 import path from 'path';
 import fs from 'fs';

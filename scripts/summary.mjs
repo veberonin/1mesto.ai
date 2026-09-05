@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Сводка прогона одной командой (T-15): npm run summary
  * Читает серверную базу (server/data/db.json) или дергает живой API.

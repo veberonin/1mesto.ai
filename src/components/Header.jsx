@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { Mic, BarChart2, Settings, Info, History, Globe, Github } from 'lucide-react';
 
 function Logo() {

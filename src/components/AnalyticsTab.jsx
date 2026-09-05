@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { TrendingUp, Trophy, Type, PiggyBank, Trash2, RefreshCw } from 'lucide-react';
 import { minutesSaved } from '../lib/stats.js';
 

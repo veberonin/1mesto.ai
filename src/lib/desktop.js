@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Мост между браузерным кодом и Electron (preload.cjs прокидывает window.flowDesktop).
  * На сайте все методы — безопасные заглушки.

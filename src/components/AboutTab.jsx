@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import { Sparkles, Zap, Cpu, BarChart2, ExternalLink, Trophy, ShieldAlert } from 'lucide-react';
 
 export default function AboutTab() {

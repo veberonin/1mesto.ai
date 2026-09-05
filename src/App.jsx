@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 1mesto Flow team (veberonin)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import Aurora from './components/Aurora.jsx';
