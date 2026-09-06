@@ -26,8 +26,9 @@ jobs:
           ls -la jfk.wav
           set +e  # диагностика не должна умирать молча: печатаем ВСЕ коды выхода
           cd extra/whisper/Release
+          cp ../../../jfk.wav .
           ls -la
-          ./whisper-cli.exe -m ../ggml-base-q5_1.bin -l en -nt ../../jfk.wav > o.txt 2> e.txt
+          ./whisper-cli.exe -m ../ggml-base-q5_1.bin -l en -nt jfk.wav > o.txt 2> e.txt
           echo "exit(run)=$?"
           echo '--- stdout(распознавание):'; cat o.txt
           echo '--- stderr(распознавание):'; cat e.txt
