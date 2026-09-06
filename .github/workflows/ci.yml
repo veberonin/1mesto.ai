@@ -31,6 +31,8 @@ jobs:
         run: npm run coverage
       - name: Аудит рантайм-зависимостей без high и critical (AN-05)
         run: npm audit --omit=dev --audit-level=high
+      - name: Заглушки запрещены — grep-барьер (AN-08)
+        run: '! grep -rInE "TODO|FIXME|XXX|not implemented|unimplemented|NotImplemented|заглушк" src electron server scripts'
       - name: Перечень лицензий зависимостей воспроизводится (Z-07)
         run: node scripts/third-party.mjs && git diff --exit-code docs/THIRD-PARTY-NOTICES.md
       - name: SBOM CycloneDX артефактом (Z-06)

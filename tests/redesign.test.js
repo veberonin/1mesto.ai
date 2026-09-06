@@ -272,6 +272,12 @@ describe('redesign: светлая система как в оригинале',
     assert.match(srv, /ключей клиентов не ретранслируются|без ретрансляции клиентских ключей/);
   });
 
+  it('AN-08: grep-барьер заглушек в CI', () => {
+    const ci = readFileSync(join(process.cwd(), '.github', 'workflows', 'ci.yml'), 'utf8');
+    assert.match(ci, /Заглушки запрещены/);
+    assert.match(ci, /TODO\|FIXME/);
+  });
+
   it('AN: eslint + prettier + coverage настроены и в CI', () => {
     const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
     for (const script of ['lint', 'format:check', 'coverage']) assert.ok(pkg.scripts[script], script);
