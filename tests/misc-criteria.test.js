@@ -259,3 +259,35 @@ describe('Батч дня 2: трей, микрофон, замеры, доки'
     assert.match(rd, /Прогон чекера локально/);
   });
 });
+
+describe('M-17/A-09/E-09/AG: якоря батча', () => {
+  it('M-17: crypto.js — AES-GCM, PBKDF2, верификатор без хранения ключа', async () => {
+    const { readFileSync } = await import('node:fs');
+    const c = readFileSync(new URL('../src/lib/crypto.js', import.meta.url), 'utf8');
+    assert.match(c, /AES-GCM/);
+    assert.match(c, /PBKDF2/);
+    assert.match(c, /verifier/);
+    const j = readFileSync(new URL('../src/lib/journal.js', import.meta.url), 'utf8');
+    assert.match(j, /enableJournalEncryption/);
+    assert.match(j, /unlockJournal/);
+    const st = readFileSync(new URL('../src/components/SettingsTab.jsx', import.meta.url), 'utf8');
+    assert.match(st, /Шифровать журнал/);
+    const ht = readFileSync(new URL('../src/components/HistoryTab.jsx', import.meta.url), 'utf8');
+    assert.match(ht, /Журнал зашифрован/);
+  });
+
+  it('A-09: качалка модели пропускается, если файл уже есть с верным хешем', async () => {
+    const { readFileSync } = await import('node:fs');
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /existing: true/);
+    assert.match(mj, /sha256File\(dest\)/);
+  });
+
+  it('E-09: промежуточные гипотезы считаются и попадают в журнал', async () => {
+    const { readFileSync } = await import('node:fs');
+    const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+    assert.match(app, /interimsRef/);
+    const j = readFileSync(new URL('../src/lib/journal.js', import.meta.url), 'utf8');
+    assert.match(j, /interims: r\.interims \|\| 0/);
+  });
+});
