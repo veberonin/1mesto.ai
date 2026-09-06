@@ -2,6 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 // заглушка localStorage (в браузере — нативный, в node — карта в памяти)
 const store = new Map();
 globalThis.localStorage = {
@@ -305,5 +306,26 @@ describe('whisper в 1 клик (вставка из коробки, легал�
     assert.match(pl, /downloadBin/);
     const st = readFileSync(new URL('../src/components/SettingsTab.jsx', import.meta.url), 'utf8');
     assert.match(st, /Установить whisper в 1 клик/);
+  });
+});
+
+describe('UX: предупреждение о ненастроенном распознавателе (до записи)', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('пилюля проверяет движок до автостарта и не пишет в пустоту', () => {
+    const pill = read('../src/components/PillWindow.jsx');
+    assert.match(pill, /asrCheck/);
+    assert.match(pill, /Распознавание не настроено — Настройки → «whisper в 1 клик» или ключ Gemini/);
+    assert.match(pill, /hideDelay = 8000/, 'подсказка no-engine висит 8с');
+  });
+
+  it('настройки: баннер «голосовой ввод не настроен» при отсутствии движков', () => {
+    const st = read('../src/components/SettingsTab.jsx');
+    assert.match(st, /Голосовой ввод пока не настроен/);
+  });
+
+  it('main: подсказка no-engine ведёт к кнопке 1-клик', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /Установить whisper в 1 клик» — или вставь ключ Gemini/);
   });
 });

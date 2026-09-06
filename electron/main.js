@@ -712,7 +712,7 @@ ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
       return {
         text: '',
         error: 'no-engine',
-        hint: 'Добавь ключ Gemini в Настройках → Распознавание — или укажи whisper-cli для офлайна',
+        hint: 'Распознаватель не настроен: Настройки → «Установить whisper в 1 клик» — или вставь ключ Gemini',
       };
     }
     return {

@@ -117,6 +117,7 @@ export default function PillWindow() {
             raw = res.text.trim();
           } else if (res && res.hint) {
             setError(res.hint);
+            if (res.error === 'no-engine') hideDelay = 8000; // подсказку нужно успеть прочесть
           }
         } catch {
           /* остаёмся с «не расслышал» */
@@ -201,9 +202,31 @@ export default function PillWindow() {
   };
   finishRef.current = finish;
 
-  /** Каждое появление окна = новая диктовка: сброс и старт с чистого листа */
-  const restart = () => {
+  /** UX: без настроенного движка запись в пустоту недопустима — объясняем сразу */
+  const NO_ENGINE_MSG = 'Распознавание не настроено — Настройки → «whisper в 1 клик» или ключ Gemini';
+  const noEngine = (info) => !!info && !info.whisperBin && !info.geminiKey;
+  const showNoEngine = () => {
+    setError(NO_ENGINE_MSG);
+    sound.error();
+    desktopAPI.setStatus(false);
+    setTimeout(() => {
+      if (!recordingRef.current) desktopAPI.hidePill();
+    }, 7000); // время прочесть и понять, куда идти
+  };
+
+  /** Каждое появление окна = новая диктовка: сброс и старт с чистым листом */
+  const restart = async () => {
     if (recordingRef.current) return; // уже пишем
+    try {
+      const info = await desktopAPI.asrCheck();
+      if (noEngine(info)) {
+        showNoEngine();
+        return; // не начинаем запись, которую нечем распознать
+      }
+    } catch {
+      /* чек недоступен — пишем как раньше, подсказка придёт после остановки */
+    }
+    if (recordingRef.current) return;
     doneRef.current = false;
     transcriptRef.current = '';
     wordsRef.current = 0;
@@ -331,7 +354,21 @@ export default function PillWindow() {
       })
       .catch(() => {})
       .finally(() => {
-        if (!disposed) setTimeout(start, 180); // даём окну появиться
+        if (disposed) return;
+        // даём окну появиться; перед автостартом убеждаемся, что распознавание настроено
+        setTimeout(async () => {
+          if (disposed) return;
+          try {
+            const info = await desktopAPI.asrCheck();
+            if (noEngine(info)) {
+              showNoEngine();
+              return;
+            }
+          } catch {
+            /* нет чека — обычный автостарт */
+          }
+          start();
+        }, 180);
       });
 
     desktopAPI.onCommand((cmd) => {

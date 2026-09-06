@@ -560,6 +560,16 @@ function AsrCard({ settings, onChange, onToast }) {
         Локальный движок whisper.cpp работает офлайн и не зависит от блокировок. Статус: <b>{engineLabel}</b>
       </p>
 
+      {info && !info.whisperBin && !info.geminiKey && (
+        <div className="mb-4 rounded-2xl border-2 border-accent/60 bg-accent/10 px-4 py-3">
+          <b className="text-[12.5px]">Голосовой ввод пока не настроен</b>
+          <p className="text-[12px] text-mute mt-0.5 leading-relaxed">
+            Запись идёт, но распознавать её нечем: нажми «Установить whisper в 1 клик» ниже — или вставь ключ
+            Gemini. Без одного из двух текст не вставится.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
         <div>
           <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute block mb-1.5">
