@@ -588,13 +588,23 @@ function bundledModel() {
   return path.join(process.resourcesPath || '', 'whisper', 'ggml-base-q5_1.bin');
 }
 
+/**
+ * Путь к whisper берём только ЖИВОЙ: антивирус мог карантировать файл — тогда
+ * спускаемся к следующему кандидату (настройки → env → предустановленный в apk).
+ * Иначе движок «есть по настройкам», но мёртв — и диктовка молча не работает.
+ */
+function firstAlive(cands) {
+  for (const c of cands) {
+    if (c && fs.existsSync(c)) return c;
+  }
+  return '';
+}
+
 async function transcribeWhisper(wavPath, lang) {
   const s = readSettings();
-  const bin = s.whisperBin || process.env.WHISPER_BIN || (fs.existsSync(bundledBin()) ? bundledBin() : '');
-  let model = s.whisperModel || process.env.WHISPER_MODEL || '';
-  if (!model && fs.existsSync(defaultModelPath())) model = defaultModelPath();
-  if (!model && fs.existsSync(bundledModel())) model = bundledModel();
-  if (!bin || !model) return null;
+  const bin = firstAlive([s.whisperBin, process.env.WHISPER_BIN, bundledBin()]);
+  const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, defaultModelPath(), bundledModel()]);
+  if (!bin || !model) return null; // реально не настроено — покажем честную подсказку
 
   const args = ['-m', model, '-nt', wavPath];
   if (lang && lang !== 'auto') args.splice(2, 0, '-l', lang); // авто-язык: whisper определит сам
@@ -602,7 +612,8 @@ async function transcribeWhisper(wavPath, lang) {
     execFile(bin, args, { timeout: 300000 }, (err, stdout) => {
       if (err) {
         console.error('whisper failed:', err.message);
-        return resolve(null);
+        // НЕ глотаем: показываем юзеру настоящую причину (антивирус/DLL/права)
+        return resolve({ error: `${path.basename(bin)}: ${String(err.message).slice(0, 160)}` });
       }
       const rawText = String(stdout || '')
         .split('\n')
@@ -610,7 +621,7 @@ async function transcribeWhisper(wavPath, lang) {
         .join(' ')
         .trim();
       const clean = sanitizeTranscript(rawText); // F-22: галлюцинации на тишине срезаем
-      resolve(clean.text || null);
+      resolve(clean.text ? { text: clean.text } : null);
     });
   });
 }
@@ -717,16 +728,17 @@ async function transcribeGeminiBytes(bytes, lang, attempt = 0, mi = 0) {
 ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
   const tmp = path.join(app.getPath('temp'), `flow-${Date.now()}.wav`);
   try {
-    let text = null;
     try {
       fs.writeFileSync(tmp, Buffer.from(bytes));
     } catch (e) {
       // O-05: диск заполнен — tmp не критичен, Gemini принимает байты напрямую
       console.error('tmp write failed (disk?):', e.message);
     }
+    let whisperErr = '';
     if (fs.existsSync(tmp)) {
-      text = await transcribeWhisper(tmp, lang);
-      if (text) return { text, source: 'whisper' };
+      const w = await transcribeWhisper(tmp, lang);
+      if (w && w.text) return { text: w.text, source: 'whisper' };
+      if (w && w.error) whisperErr = w.error;
     }
     const g = await transcribeGeminiBytes(bytes, lang);
     if (g && g.text) return { text: g.text, source: 'gemini' };
@@ -734,7 +746,9 @@ ipcMain.handle('asr:transcribe', async (_e, bytes, lang = 'ru') => {
       return {
         text: '',
         error: 'no-engine',
-        hint: 'Распознаватель не настроен: Настройки → «Установить whisper в 1 клик» — или вставь ключ Gemini',
+        hint: whisperErr
+          ? `whisper упал: ${whisperErr} — попробуй ещё раз или вставь ключ Gemini (облачный резерв)`
+          : 'Распознаватель не настроен: Настройки → «Установить whisper в 1 клик» — или вставь ключ Gemini',
       };
     }
     return {
@@ -861,12 +875,8 @@ ipcMain.handle('asr:download-bin', async () => {
 
 ipcMain.handle('asr:check', async () => {
   const s = readSettings();
-  const bin = s.whisperBin || process.env.WHISPER_BIN || (fs.existsSync(bundledBin()) ? bundledBin() : '');
-  const model =
-    s.whisperModel ||
-    process.env.WHISPER_MODEL ||
-    (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '') ||
-    (fs.existsSync(bundledModel()) ? bundledModel() : '');
+  const bin = firstAlive([s.whisperBin, process.env.WHISPER_BIN, bundledBin()]);
+  const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, defaultModelPath(), bundledModel()]);
   return {
     platform: process.platform,
     whisperBin: !!bin && fs.existsSync(bin),

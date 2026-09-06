@@ -382,3 +382,23 @@ describe('INSERT-фикс: пилюля не крадёт фокус, встав
     assert.match(pill, /app: 'pill'/);
   });
 });
+
+describe('ASR self-heal: мёртвый путь whisper не убивает диктовку', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('firstAlive: настройки → env → bundled, мёртвые пути пропускаются', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /function firstAlive/, 'самопочинка путей');
+    assert.match(mj, /firstAlive\(\[s\.whisperBin, process\.env\.WHISPER_BIN, bundledBin\(\)\]\)/);
+    assert.match(
+      mj,
+      /firstAlive\(\[s\.whisperModel, process\.env\.WHISPER_MODEL, defaultModelPath\(\), bundledModel\(\)\]\)/
+    );
+  });
+
+  it('ошибка whisper показывается юзеру, а не глотается', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /whisper упал:/, 'настоящая причина в hint');
+    assert.match(mj, /resolve\(\{ error: /, 'transcribeWhisper возвращает ошибку');
+  });
+});
