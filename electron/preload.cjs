@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('flowDesktop', {
   aiFormat: (payload) => ipcRenderer.invoke('ai:format', payload),
   hidePill: () => ipcRenderer.send('pill:hide'),
   // B-11: статус записи для трея
-  setStatus: (on) => ipcRenderer.send('pill:status', on),
+  setStatus: (on) => ipcRenderer.send('pill:status', on), // true|false|'processing' (B-11)
   // D-05: конфликт хоткея
   onHotkeyConflict: (cb) => ipcRenderer.on('flow:hotkey-conflict', (_e, acc) => cb(acc)),
   onCommand: (cb) => ipcRenderer.on('flow:command', (_e, cmd) => cb(cmd)),

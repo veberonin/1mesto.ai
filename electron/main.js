@@ -57,6 +57,7 @@ const DEFAULTS = {
   autostart: false, // B-10: автозапуск при входе в систему (настройка)
   vadThreshold: 0.01, // E-04: порог VAD (амплитуда 0..1)
   triggerMode: 'toggle', // AM-01: toggle | hold
+  insertDelayMs: 0, // AM-20: пауза перед вставкой (мс, 0..2000)
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
   restoreYo: false, // Ё: восстановление «ё» (опция)
@@ -128,6 +129,13 @@ function sanitizeSettings(next) {
   }
   if (next.language !== undefined && !['ru', 'en', 'auto'].includes(next.language)) {
     next.language = 'ru';
+  }
+  if (next.insertDelayMs !== undefined) {
+    const n = Number(next.insertDelayMs);
+    if (!Number.isFinite(n) || n < 0 || n > 2000) {
+      console.warn(`[settings] insertDelayMs ${next.insertDelayMs} вне 0..2000 — вернул 0`);
+      next.insertDelayMs = 0;
+    }
   }
   if (next.triggerMode !== undefined && !['toggle', 'hold'].includes(next.triggerMode)) {
     console.warn(`[settings] triggerMode «${next.triggerMode}» — вернул toggle`);
@@ -417,16 +425,31 @@ ipcMain.on('pill:hide', () => {
 });
 
 // B-11: иконка/подсказка трея отражает состояние записи
-function setRecordingState(on) {
+// B-11: иконка трея показывает состояние — 'idle' | 'recording' | 'processing'
+// (без мигания: меняем только tooltip и меню, картинку не дёргаем — AM-11)
+function setTrayState(state) {
   try {
     if (!tray || tray.isDestroyed()) return;
-    tray.setToolTip(on ? '● 1mesto Flow — идёт запись…' : '1mesto Flow — говори, не печатай');
-    tray.setContextMenu(buildTrayMenu(on));
+    const labels = {
+      idle: '1mesto Flow — говори, не печатай',
+      recording: '● 1mesto Flow — идёт запись…',
+      processing: '⟳ 1mesto Flow — полировка текста…',
+    };
+    tray.setToolTip(labels[state] || labels.idle);
+    tray.setContextMenu(buildTrayMenu(state === 'recording'));
   } catch {
     /* трей может отсутствовать в некоторых DE */
   }
 }
-ipcMain.on('pill:status', (_e, on) => setRecordingState(!!on));
+function setRecordingState(on) {
+  setTrayState(on ? 'recording' : 'idle');
+}
+ipcMain.on('pill:status', (_e, on) => {
+  // B-11: три состояния трея — запись / полировка / готов
+  if (on === 'processing') setTrayState('processing');
+  else if (on) setTrayState('recording');
+  else setTrayState('idle');
+});
 
 // AM-03: между подряд идущими репликами вставляем разделяющий пробел
 let lastInsert = { at: 0, tail: '' };
@@ -455,6 +478,9 @@ ipcMain.handle('pill:insert', async (_e, text) => {
     clipboard.writeText(toInsert);
     lastInsert = { at: Date.now(), tail: toInsert };
   }
+  // AM-20: настраиваемая пауза перед вставкой (медленным приложениям нужно время сфокусироваться)
+  const delay = Number(readSettings().insertDelayMs) || 0;
+  if (delay > 0) await new Promise((r) => setTimeout(r, Math.min(delay, 2000)));
   const result = await pasteIntoFocusedApp();
   // AM-06: без гонки — восстанавливаем буфер только после успешной вставки
   // и только если целевое приложение успело забрать наш текст (задержка > обработки Ctrl+V)

@@ -110,6 +110,7 @@ export default function PillWindow() {
           const wav = captureRef.current.stop();
           captureRef.current = null;
           setError('Распознаю локально…');
+          desktopAPI.setStatus('processing'); // B-11: трей показывает «полировка»
           const res = await desktopAPI.transcribe(wav, settingsRef.current.language === 'en' ? 'en' : 'ru');
           if (res && res.text) {
             transcriptRef.current = res.text;
@@ -253,7 +254,10 @@ export default function PillWindow() {
         captureRef.current = new WavCapture();
         if (settingsRef.current?.vadThreshold)
           captureRef.current.vadThreshold = settingsRef.current.vadThreshold; // E-04
-        await captureRef.current.start(() => {});
+        await captureRef.current.start(() => {}, {
+          noiseSuppression: s.noiseSuppression !== false, // C-16
+          deviceId: s.micDeviceId || null, // C-02/C-03
+        });
       } catch {
         captureRef.current = null;
       }
