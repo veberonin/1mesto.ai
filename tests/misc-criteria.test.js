@@ -291,3 +291,19 @@ describe('M-17/A-09/E-09/AG: якоря батча', () => {
     assert.match(j, /interims: r\.interims \|\| 0/);
   });
 });
+
+describe('whisper в 1 клик (вставка из коробки, легально)', () => {
+  it('asr:download-bin: официальный бинарь + SHA-256 + автонастройка whisperBin', async () => {
+    const { readFileSync } = await import('node:fs');
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /asr:download-bin/);
+    assert.match(mj, /WHISPER_BINS/);
+    assert.match(mj, /78568aa80b361382cb303438a7be3b05669651f2ca8258910394679e049d26ea/);
+    assert.match(mj, /f4cfc1f969a13805908fb72043ce7cc896eb42e0b8afbe841dc8e7298923b061/);
+    assert.match(mj, /writeSettings\(\{ whisperBin: binPath \}\)/);
+    const pl = readFileSync(new URL('../electron/preload.cjs', import.meta.url), 'utf8');
+    assert.match(pl, /downloadBin/);
+    const st = readFileSync(new URL('../src/components/SettingsTab.jsx', import.meta.url), 'utf8');
+    assert.match(st, /Установить whisper в 1 клик/);
+  });
+});

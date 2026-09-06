@@ -626,6 +626,30 @@ function AsrCard({ settings, onChange, onToast }) {
             <Download className="w-3.5 h-3.5" />
             {info?.modelDownloaded ? 'Проверить модель (60 МБ)' : 'Скачать модель (60 МБ)'}
           </button>
+
+          <button
+            onClick={async () => {
+              setBusy(true);
+              onToast('Скачиваю whisper.cpp ~21 МБ с официального релиза…', 'info');
+              try {
+                const r = await desktopAPI.downloadBin();
+                if (r && r.ok) {
+                  onToast('whisper установлен, SHA-256 сходится ✓ Полностью офлайн', 'success');
+                  refresh();
+                } else {
+                  onToast(r?.reason || 'Для этой ОС: brew install whisper-cpp', 'info');
+                }
+              } catch (e) {
+                onToast('Ошибка: ' + (e.message || 'сеть'), 'error');
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-bold border border-line bg-card hover:border-accent disabled:opacity-60"
+          >
+            Установить whisper в 1 клик (~21 МБ)
+          </button>
           <span className="text-[11px] text-mute">
             проверяется по SHA-256 ·{' '}
             <a

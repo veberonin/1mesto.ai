@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('flowDesktop', {
   // Локальное распознавание: WAV-байты → текст (whisper.cpp / Gemini)
   transcribe: (bytes, lang) => ipcRenderer.invoke('asr:transcribe', bytes, lang),
   downloadModel: () => ipcRenderer.invoke('asr:download-model'),
+  downloadBin: () => ipcRenderer.invoke('asr:download-bin'), // 1-клик установка whisper.cpp
   asrCheck: () => ipcRenderer.invoke('asr:check'),
   // Фоновый режим: автозапуск при входе в систему
   getLoginItem: () => ipcRenderer.invoke('app:login-item:get'),

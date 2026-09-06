@@ -71,6 +71,24 @@ function resolveGeminiKey(s = readSettings()) {
 }
 
 // Локальная модель Whisper: скачивается приложением, проверяется по SHA-256 (A-08/A-09)
+// A-08/V-04: прекомпилированный whisper.cpp с официальных релизов,
+// SHA-256 зафиксированы (digest из GitHub API релиза b4938). WHISPER_BIN_TAG — оверрайд.
+const WHISPER_BIN_TAG = process.env.WHISPER_BIN_TAG || 'b4938';
+const WHISPER_BINS = {
+  win32: {
+    asset: `whisper-blas-bin-x64.zip`,
+    url: `https://github.com/ggml-org/whisper.cpp/releases/download/${WHISPER_BIN_TAG}/whisper-blas-bin-x64.zip`,
+    sha256: '78568aa80b361382cb303438a7be3b05669651f2ca8258910394679e049d26ea',
+    inner: 'Release/main.exe',
+  },
+  linux: {
+    asset: `whisper-bin-ubuntu-x64.tar.gz`,
+    url: `https://github.com/ggml-org/whisper.cpp/releases/download/${WHISPER_BIN_TAG}/whisper-bin-ubuntu-x64.tar.gz`,
+    sha256: 'f4cfc1f969a13805908fb72043ce7cc896eb42e0b8afbe841dc8e7298923b061',
+    inner: 'whisper-bin-ubuntu-x64/whisper-cli',
+  },
+};
+
 const MODEL = {
   url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin',
   sha256: '422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898',
@@ -728,6 +746,59 @@ ipcMain.handle('asr:download-model', async () => {
     throw new Error(`SHA-256 mismatch: ${hash}`);
   }
   return { ok: true, path: dest, sha256: hash };
+});
+
+ipcMain.handle('asr:download-bin', async () => {
+  // «Вставка из коробки как у лучшего конкурента, но легально»: официальный
+  // прекомпилированный whisper.cpp в 1 клик — без сборки и ручных путей.
+  const meta = WHISPER_BINS[process.platform];
+  if (!meta) {
+    return {
+      ok: false,
+      reason: 'Автоскачивание для этой ОС не настроено — на macOS: brew install whisper-cpp и укажи путь',
+    };
+  }
+  const binDir = path.join(app.getPath('userData'), 'bin', 'whisper');
+  fs.mkdirSync(binDir, { recursive: true });
+  const archive = path.join(binDir, meta.asset);
+  const res = await fetch(meta.url);
+  if (!res.ok) throw new Error(`GitHub ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(archive, buf);
+  const hash = await sha256File(archive);
+  if (hash !== meta.sha256) {
+    fs.unlinkSync(archive);
+    throw new Error(`SHA-256 не сошёлся: ${hash.slice(0, 16)}…`);
+  }
+  // распаковка: Windows — PowerShell Expand-Archive, unix — tar
+  if (process.platform === 'win32') {
+    await new Promise((resolve, reject) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-Command', `Expand-Archive -Force -Path '${archive}' -DestinationPath '${binDir}'`],
+        { timeout: 120000 },
+        (e) => (e ? reject(e) : resolve())
+      );
+    });
+  } else {
+    await new Promise((resolve, reject) => {
+      execFile('tar', ['-xzf', archive, '-C', binDir], { timeout: 120000 }, (e) =>
+        e ? reject(e) : resolve()
+      );
+    });
+  }
+  let binPath = path.join(binDir, meta.inner);
+  if (!fs.existsSync(binPath)) {
+    const fallback = path.join(binDir, process.platform === 'win32' ? 'main.exe' : 'whisper-cli');
+    if (fs.existsSync(fallback)) binPath = fallback;
+    else throw new Error('бинарник не найден внутри архива');
+  }
+  if (process.platform !== 'win32') fs.chmodSync(binPath, 0o755);
+  writeSettings({ whisperBin: binPath });
+  try {
+    fs.unlinkSync(archive);
+  } catch {}
+  return { ok: true, path: binPath, sha256: hash };
 });
 
 ipcMain.handle('asr:check', async () => {

@@ -2,7 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 /**
  * Мост между браузерным кодом и Electron (preload.cjs прокидывает window.flowDesktop).
- * На сайте все методы — безопасные заглушки.
+ * На сайте все методы — безопасные no-op фолбэки (веб-режим без Electron-моста).
  */
 
 const noop = async () => null;
@@ -22,6 +22,7 @@ export const desktopAPI =
         onCommand: noop,
         transcribe: noop,
         downloadModel: noop,
+        downloadBin: noop,
         asrCheck: noop,
         getLoginItem: async () => false,
         setLoginItem: async () => false,
