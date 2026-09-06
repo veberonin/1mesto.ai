@@ -46,6 +46,7 @@ const DEFAULT_SETTINGS = {
   voiceCheck: false,
   hotkeyStyle: 'Ctrl+Alt+S',
   aiTimeoutMs: 25000,
+  triggerMode: 'toggle', // AM-01: 'toggle' | 'hold'
   onboarded: false,
 };
 
@@ -389,6 +390,12 @@ export default function App() {
   };
 
   const stopRecording = () => {
+    // D-10: удержание менее 200 мс — пустая реплика не создаётся
+    if (startRef.current && Date.now() - startRef.current < 200) {
+      // D-10
+      abortRecording();
+      return;
+    }
     if (engineRef.current) {
       engineRef.current.stop();
       engineRef.current = null;
@@ -540,6 +547,11 @@ export default function App() {
       if (hotkeyMatches(e, settingsRef.current.hotkey || DEFAULT_HOTKEY)) {
         if (isDesktop()) return;
         e.preventDefault();
+        // AM-01: режим удержания — keydown стартует, keyup останавливает
+        if (settingsRef.current.triggerMode === 'hold') {
+          if (!e.repeat && !recordingRef.current) toggleRef.current();
+          return;
+        }
         toggleRef.current();
       }
       if (e.code === 'Escape' && recordingRef.current) {
@@ -547,8 +559,22 @@ export default function App() {
         setLiveWpm(0);
       }
     };
+    const keyupHandler = (e) => {
+      // AM-01: отпустил клавишу — запись завершилась (только hold-режим)
+      if (
+        settingsRef.current.triggerMode === 'hold' &&
+        hotkeyMatches(e, settingsRef.current.hotkey || DEFAULT_HOTKEY) &&
+        recordingRef.current
+      ) {
+        toggleRef.current();
+      }
+    };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('keyup', keyupHandler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('keyup', keyupHandler);
+    };
   }, []);
 
   useEffect(

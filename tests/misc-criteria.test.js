@@ -138,3 +138,36 @@ describe('F-11/F-12: даты и время из речи', () => {
     assert.match(t('зарплата пять тысяч'), /5000/);
   });
 });
+
+describe('AM-04/D-10/AM-01: первый символ, короткие реплики, режимы', async () => {
+  const { formatText } = await import('../src/lib/formatter.js');
+
+  it('AM-04: первый значащий символ реплики не теряется (эмодзи, тире, кавычка, буква)', () => {
+    for (const c of ['- привет', '«ёжик»', '(тест)', '🎉 старт', 'ёжик', 'Пока!']) {
+      const out = formatText(c, { mode: 'clean', lang: 'ru' }).text.trim();
+      const firstIn = c.trim()[0].toLowerCase();
+      const firstOut = out[0].toLowerCase();
+      // первый символ либо сохранён, либо это его заглавная форма (ё→Ё и т.п.)
+      assert.ok(
+        firstOut === firstIn || firstOut === firstIn.toUpperCase(),
+        `"${c}" → "${out}": первый символ потерян`
+      );
+    }
+  });
+
+  it('AM-01: triggerMode часть контракта настроек (в коде приложения)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+    assert.match(app, /triggerMode === 'hold'/);
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /triggerMode/);
+  });
+
+  it('D-10: гард короткой реплики присутствует в пилюле и дашборде', async () => {
+    const { readFileSync } = await import('node:fs');
+    const pill = readFileSync(new URL('../src/components/PillWindow.jsx', import.meta.url), 'utf8');
+    assert.match(pill, /< 200/);
+    const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+    assert.match(app, /< 200/);
+  });
+});

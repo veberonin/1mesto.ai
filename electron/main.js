@@ -56,6 +56,7 @@ const DEFAULTS = {
   startToTray: false, // запуск свёрнутым в трей
   autostart: false, // B-10: автозапуск при входе в систему (настройка)
   vadThreshold: 0.01, // E-04: порог VAD (амплитуда 0..1)
+  triggerMode: 'toggle', // AM-01: toggle | hold
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
   restoreYo: false, // Ё: восстановление «ё» (опция)
@@ -127,6 +128,10 @@ function sanitizeSettings(next) {
   }
   if (next.language !== undefined && !['ru', 'en', 'auto'].includes(next.language)) {
     next.language = 'ru';
+  }
+  if (next.triggerMode !== undefined && !['toggle', 'hold'].includes(next.triggerMode)) {
+    console.warn(`[settings] triggerMode «${next.triggerMode}» — вернул toggle`);
+    next.triggerMode = DEFAULTS.triggerMode;
   }
   if (next.vadThreshold !== undefined) {
     const n = Number(next.vadThreshold);

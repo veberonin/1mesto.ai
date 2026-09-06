@@ -752,6 +752,29 @@ function HotkeyCard({ settings, onChange, onToast }) {
           </button>
         )}
       </div>
+      <div className="flex flex-wrap justify-between items-center gap-3 mt-3 pt-3 border-t border-line/70">
+        <div>
+          <div className="text-[13.5px] font-semibold">Режим активации (AM-01)</div>
+          <div className="text-[11.5px] text-mute mt-0.5">
+            переключатель: нажал — пишет, нажал — стоп · удержание: держи и говори
+            {isDesktop() ? ' (в десктопе глобальный хоткей всегда тогл)' : ''}
+          </div>
+        </div>
+        <div className="flex rounded-xl border border-line overflow-hidden">
+          {['toggle', 'hold'].map((m) => (
+            <button
+              key={m}
+              onClick={() => onChange({ ...settings, triggerMode: m })}
+              className={
+                (settings.triggerMode === m ? 'bg-accent text-white' : 'bg-card text-mute') +
+                ' px-4 py-2 text-[12px] font-semibold'
+              }
+            >
+              {m === 'toggle' ? 'Переключатель' : 'Удержание'}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex justify-between items-center mt-3 pt-3 border-t border-line/70">
         <span className="keycap">Esc</span>
         <span className="text-mute text-[13px]">остановить / отменить (неизменяемая)</span>

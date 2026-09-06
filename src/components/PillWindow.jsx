@@ -75,6 +75,15 @@ export default function PillWindow() {
       desktopAPI.hidePill(); // зомби-состояние (показ без записи) — не висим
       return;
     }
+    // D-10: удержание менее 200 мс не создаёт пустую реплику
+    if (!cancel && startRef.current && Date.now() - startRef.current < 200) {
+      doneRef.current = true;
+      recordingRef.current = false;
+      stopMachines();
+      desktopAPI.setStatus(false);
+      desktopAPI.hidePill();
+      return;
+    }
     doneRef.current = true;
     recordingRef.current = false;
     stopMachines();
