@@ -158,6 +158,18 @@ export function journalSummary() {
   const today = records.filter((r) => r.ts.startsWith(day));
   const byApp = {};
   for (const r of records) byApp[r.app] = (byApp[r.app] || 0) + 1;
+  // AL-09: средняя скорость по приложениям { app: { count, avgWpm } }
+  const acc = {};
+  for (const r of records) {
+    if (!r.wpm) continue;
+    const k = r.app || 'unknown';
+    acc[k] = acc[k] || { sum: 0, n: 0 };
+    acc[k].sum += r.wpm;
+    acc[k].n += 1;
+  }
+  const wpmByApp = Object.fromEntries(
+    Object.entries(acc).map(([k, v]) => [k, { count: v.n, avgWpm: Math.round(v.sum / v.n) }])
+  );
   const lat = records
     .map((r) => r.latencies?.finalMs)
     .filter(Boolean)
@@ -171,6 +183,7 @@ export function journalSummary() {
     p50FinalMs: p(0.5),
     p95FinalMs: p(0.95),
     byApp,
+    wpmByApp, // AL-09: средняя скорость по приложениям
     aiShare: records.length ? records.filter((r) => r.source === 'ai').length / records.length : 0, // S-02
   };
 }

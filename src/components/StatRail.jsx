@@ -40,6 +40,26 @@ export default function StatRail({ stats }) {
         </div>
       </div>
 
+      {sum.wpmByApp && Object.keys(sum.wpmByApp).length > 0 && (
+        <div className="glass p-5">
+          <div className="text-[15px] font-bold">Скорость по приложениям</div>
+          <div className="text-[11.5px] text-mute mt-0.5">где диктуешь быстрее всего (AL-09)</div>
+          <div className="mt-3 space-y-2">
+            {Object.entries(sum.wpmByApp)
+              .sort((a, b) => b[1].avgWpm - a[1].avgWpm)
+              .slice(0, 5)
+              .map(([app, v]) => (
+                <div key={app} className="flex items-center justify-between text-[12.5px]">
+                  <span className="font-semibold truncate max-w-[120px]">{app}</span>
+                  <span className="text-mute">
+                    {v.avgWpm} wpm · {v.count} реплик
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div className="glass p-5">
         <div className="text-[15px] font-bold">Твой голосовой профиль</div>
         <div className="text-[12px] text-mute mt-0.5">Как ты используешь голос</div>
