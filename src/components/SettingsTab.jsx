@@ -233,6 +233,26 @@ export default function SettingsTab({
             value={settings.noiseSuppression !== false}
             onChange={(v) => set({ noiseSuppression: v })}
           />
+          <div className="flex items-center justify-between gap-4 py-1">
+            <div>
+              <div className="text-[13.5px] font-semibold">Пауза перед вставкой</div>
+              <div className="text-[11.5px] text-mute leading-relaxed">
+                Telegram и браузерам нужно время вернуть фокус — если текст вставляется мимо, поставь 400–600
+                мс (AM-20)
+              </div>
+            </div>
+            <input
+              type="number"
+              min="0"
+              max="2000"
+              step="50"
+              value={settings.insertDelayMs ?? 200}
+              onChange={(e) =>
+                set({ insertDelayMs: Math.min(2000, Math.max(0, Number(e.target.value) || 0)) })
+              }
+              className="w-24 bg-paper/70 border border-line rounded-xl px-3 py-2 text-[12.5px] font-mono focus:outline-none focus:border-accent"
+            />
+          </div>
           <Toggle
             label="Приватный режим"
             desc="История ведётся без текста реплик — только метрики (P-12/T-10)"

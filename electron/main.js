@@ -18,7 +18,7 @@ import fs from 'fs';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { pickPasteCommand } from './paste.js';
+import { pickPasteCommand, warmCtrlV, warmUpPaste } from './paste.js';
 import { aiFormat } from './ai.js';
 import { formatText } from '../src/lib/formatter.js';
 import { normalizeAccelerator, toElectronAccelerator, DEFAULT_HOTKEY } from '../src/lib/hotkey.js';
@@ -57,7 +57,7 @@ const DEFAULTS = {
   autostart: false, // B-10: автозапуск при входе в систему (настройка)
   vadThreshold: 0.01, // E-04: порог VAD (амплитуда 0..1)
   triggerMode: 'toggle', // AM-01: toggle | hold
-  insertDelayMs: 0, // AM-20: пауза перед вставкой (мс, 0..2000)
+  insertDelayMs: 200, // AM-20: пауза перед вставкой (мс, 0..2000) — Telegram/браузерам нужно время вернуть фокус
   asrProvider: 'auto', // P-08: auto (Web Speech+резервы) | whisper (только офлайн) | gemini
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
@@ -195,6 +195,24 @@ function writeSettings(patch) {
 function pasteIntoFocusedApp() {
   const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
   if (!cmd) return Promise.resolve({ ok: true, method: 'clipboard-only' });
+  // Windows: тёплый хост вставляет за ~30 мс (холодный PowerShell — до 1с,
+  // за это время фокус Telegram/браузера «уплывает» и Ctrl+V уходит мимо)
+  if (process.platform === 'win32') {
+    return warmCtrlV().then((ok) => {
+      if (ok) return { ok: true, method: 'paste' };
+      console.warn('warm host не ответил — фолбэк на холодный запуск');
+      return new Promise((resolve) => {
+        execFile(cmd, args, { timeout: timeoutMs || 4000 }, (err) => {
+          if (err) {
+            console.error('paste failed:', err.message);
+            resolve({ ok: true, method: 'clipboard-only', error: err.message });
+          } else {
+            resolve({ ok: true, method: 'paste' });
+          }
+        });
+      });
+    });
+  }
   return new Promise((resolve) => {
     execFile(cmd, args, { timeout: timeoutMs || 4000 }, (err) => {
       if (err) {
@@ -956,6 +974,12 @@ ipcMain.handle('asr:check', async () => {
 // ---------------------------------------------------------------------------
 // Жизненный цикл
 // ---------------------------------------------------------------------------
+// Тёплый хост вставки: компилируем SendInput в фоне сразу после старта,
+// чтобы первая диктовка вставлялась мгновенно (win32 only)
+if (process.platform === 'win32') {
+  app.whenReady().then(() => setTimeout(warmUpPaste, 3000));
+}
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   // O-14: вторая копия завершается с понятным сообщением (stderr + лог)

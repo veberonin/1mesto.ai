@@ -479,3 +479,27 @@ describe('VC runtime: бандл самодостаточен на чистой 
     assert.match(fw, /VC runtime в комплекте/);
   });
 });
+
+describe('Тёплая вставка: мгновенный Ctrl+V без холодного старта PowerShell', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('paste.js: тёплый хост (persist-процесс + warmCtrlV + прогрев)', () => {
+    const pj = read('../electron/paste.js');
+    assert.match(pj, /warmCtrlV/);
+    assert.match(pj, /warmUpPaste/);
+    assert.match(pj, /ReadLine/, 'хост ждёт команды по stdin');
+  });
+
+  it('main: вставка идёт через тёплый хост, дефолт-пауза 200 мс', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /warmCtrlV\(\)/);
+    assert.match(mj, /insertDelayMs: 200/);
+    assert.match(mj, /warmUpPaste, 3000/, 'прогрев после старта');
+  });
+
+  it('настройки: ползунок «Пауза перед вставкой» с подсказкой про Telegram', () => {
+    const st = read('../src/components/SettingsTab.jsx');
+    assert.match(st, /Пауза перед вставкой/);
+    assert.match(st, /insertDelayMs/);
+  });
+});
