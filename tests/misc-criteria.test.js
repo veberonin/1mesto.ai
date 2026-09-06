@@ -427,3 +427,14 @@ describe('Whisper-фолбэк: карантин main.exe не убивает д
     assert.match(yml, /fellow americans/);
   });
 });
+
+describe('VC runtime: бандл самодостаточен на чистой Windows', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('fetch-whisper кладёт VC++ DLL рядом с main.exe (app-local)', () => {
+    const fw = read('../scripts/fetch-whisper.mjs');
+    assert.match(fw, /vcruntime140_1\.dll/);
+    assert.match(fw, /vcomp140\.dll/);
+    assert.match(fw, /VC runtime в комплекте/);
+  });
+});

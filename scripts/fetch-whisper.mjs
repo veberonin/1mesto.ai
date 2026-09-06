@@ -65,6 +65,20 @@ if (process.platform === 'win32') {
       stdio: 'inherit',
     }
   );
+  // App-local VC++ runtime: без VC++ Redistributable загрузчик Windows молча убивает
+  // main.exe (пустой stderr, «Command failed»). Microsoft официально поддерживает
+  // развёртывание этих DLL рядом с exe — берём их из System32 раннера (там стоит VS).
+  const sys32 = path.join(process.env.WINDIR || 'C:\\Windows', 'System32');
+  const rel = path.join(out, 'Release');
+  for (const dll of ['msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'vcomp140.dll']) {
+    const src = path.join(sys32, dll);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(rel, dll));
+      console.log('VC runtime в комплекте:', dll);
+    } else {
+      console.warn(`! ${dll} не найден в System32 — на целевой машине нужен VC++ Redistributable`);
+    }
+  }
 } else {
   execFileSync('tar', ['-xzf', archive, '-C', out], { stdio: 'inherit' });
 }

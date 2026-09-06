@@ -22,19 +22,16 @@ jobs:
         run: |
           node scripts/fetch-whisper.mjs
           curl -sL -o jfk.wav https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
+          set +e  # диагностика не должна умирать молча: печатаем ВСЕ коды выхода
           cd extra/whisper/Release
+          ls -la
           ./main.exe --help > v.out 2> v.err
           echo "exit(--help)=$?"
-          echo '--- stdout(--help):'; head -c 800 v.out
-          echo '--- stderr(--help):'; head -c 800 v.err
-          echo '--- DLL-импорты main.exe и их доступность:'
-          python -m pip install --quiet pefile
-          python -c "import pefile,os; pe=pefile.PE('main.exe'); windir=os.environ.get('WINDIR','C:/Windows'); [print(e.dll.decode()+': рядом='+str(os.path.exists(e.dll.decode()))+' в_системе='+str(os.path.exists(os.path.join(windir,'System32',e.dll.decode())))) for e in getattr(pe,'DIRECTORY_ENTRY_IMPORT',[])]"
           ./main.exe -m ../ggml-base-q5_1.bin -l en -nt ../../jfk.wav > o.txt 2> e.txt
           echo "exit(run)=$?"
           echo '--- stdout(распознавание):'; cat o.txt
           echo '--- stderr(распознавание):'; cat e.txt
-          grep -qi "fellow americans" o.txt && echo 'SMOKE OK: бандл работает на Windows'
+          grep -qi "fellow americans" o.txt; echo "smoke-result=$?"
 
   installer:
     name: Installer (${{ matrix.os }})
