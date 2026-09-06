@@ -9,6 +9,25 @@ permissions:
   contents: write
 
 jobs:
+  windows-smoke:
+    name: Smoke — предустановленный whisper на настоящей Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Бинарь + модель → запуск main.exe с нашими аргументами
+        shell: bash
+        run: |
+          node scripts/fetch-whisper.mjs
+          curl -sL -o jfk.wav https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
+          set -e
+          ./extra/whisper/Release/main.exe -m extra/whisper/ggml-base-q5_1.bin -l en -nt jfk.wav > out.txt 2> err.txt || { echo 'STDERR:'; cat err.txt; exit 1; }
+          echo 'STDOUT:'; cat out.txt
+          grep -qi "fellow americans" out.txt || { echo 'текст не распознан'; exit 1; }
+          echo 'SMOKE OK: бандл работает на Windows'
+
   installer:
     name: Installer (${{ matrix.os }})
     strategy:

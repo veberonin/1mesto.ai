@@ -398,7 +398,32 @@ describe('ASR self-heal: мёртвый путь whisper не убивает д�
 
   it('ошибка whisper показывается юзеру, а не глотается', () => {
     const mj = read('../electron/main.js');
+    assert.match(mj, /whisperFailHint/, 'расшифровка падения');
+    assert.match(mj, /fails\.push\(await whisperFailHint/, 'ошибка собирается, не глотается');
     assert.match(mj, /whisper упал:/, 'настоящая причина в hint');
-    assert.match(mj, /resolve\(\{ error: /, 'transcribeWhisper возвращает ошибку');
+  });
+});
+
+describe('Whisper-фолбэк: карантин main.exe не убивает диктовку', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('aliveWhisperBins: соседи-алиасы whisper-cli подхватываются автоматически', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /function aliveWhisperBins/);
+    assert.match(mj, /whisper-cli\.exe/);
+    assert.match(mj, /for \(const bin of bins\)/, 'перебор живых бинарей');
+  });
+
+  it('подсказка различает DLL-загрузчик и битую модель', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /vc_redist\.x64\.exe/);
+    assert.match(mj, /модель повреждена/);
+    assert.match(mj, /sha256File\(model\)/, 'SHA модели проверяется при падении');
+  });
+
+  it('CI: smoke-тест бандла на настоящей Windows', () => {
+    const yml = read('../.github/workflows/release.yml');
+    assert.match(yml, /windows-smoke/);
+    assert.match(yml, /fellow americans/);
   });
 });

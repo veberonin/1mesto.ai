@@ -587,6 +587,43 @@ function bundledBin() {
 function bundledModel() {
   return path.join(process.resourcesPath || '', 'whisper', 'ggml-base-q5_1.bin');
 }
+/**
+ * Все ЖИВЫЕ кандидаты бинаря в порядке приоритета + соседи-алиасы:
+ * антивирус часто карантинит конкретный main.exe — тогда whisper-cli.exe
+ * рядом выживает и диктовка продолжает работать без юзера.
+ */
+function aliveWhisperBins() {
+  const cands = [readSettings().whisperBin, process.env.WHISPER_BIN, bundledBin()];
+  const out = [];
+  for (const c of cands) {
+    if (!c || !fs.existsSync(c) || out.includes(c)) continue;
+    out.push(c);
+    const alias = path.join(
+      path.dirname(c),
+      process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
+    );
+    if (fs.existsSync(alias) && !out.includes(alias)) out.push(alias); // живой сосед того же релиза
+  }
+  return out;
+}
+/** Человеческая расшифровка падения whisper: код загрузчика/DLL или битая модель */
+async function whisperFailHint(bin, err, model) {
+  const code = String(err.code ?? '');
+  const what = String(err.message || '')
+    .replace(/^Command failed:\s*/, '')
+    .slice(0, 120);
+  let extra = '';
+  if (/-?1073741515|3221225781|3221225787/.test(code + ' ' + what)) {
+    extra =
+      ' — Windows не может загрузить DLL: поставь VC++ Redistributable x64 (aka.ms/vs/17/release/vc_redist.x64.exe)';
+  } else {
+    try {
+      const h = await sha256File(model);
+      if (h !== MODEL.sha256) extra = ' — модель повреждена, Настройки → «Проверить модель» перекачает';
+    } catch {}
+  }
+  return `${path.basename(bin)} упал (${code || 'exit≠0'}: ${what})${extra}`;
+}
 
 /**
  * Путь к whisper берём только ЖИВОЙ: антивирус мог карантировать файл — тогда
@@ -601,29 +638,40 @@ function firstAlive(cands) {
 }
 
 async function transcribeWhisper(wavPath, lang) {
-  const s = readSettings();
-  const bin = firstAlive([s.whisperBin, process.env.WHISPER_BIN, bundledBin()]);
-  const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, defaultModelPath(), bundledModel()]);
-  if (!bin || !model) return null; // реально не настроено — покажем честную подсказку
+  const model = firstAlive([
+    readSettings().whisperModel,
+    process.env.WHISPER_MODEL,
+    defaultModelPath(),
+    bundledModel(),
+  ]);
+  const bins = aliveWhisperBins();
+  if (!bins.length || !model) return null; // реально не настроено — покажем честную подсказку
 
   const args = ['-m', model, '-nt', wavPath];
   if (lang && lang !== 'auto') args.splice(2, 0, '-l', lang); // авто-язык: whisper определит сам
-  return new Promise((resolve) => {
-    execFile(bin, args, { timeout: 300000 }, (err, stdout) => {
-      if (err) {
-        console.error('whisper failed:', err.message);
-        // НЕ глотаем: показываем юзеру настоящую причину (антивирус/DLL/права)
-        return resolve({ error: `${path.basename(bin)}: ${String(err.message).slice(0, 160)}` });
-      }
-      const rawText = String(stdout || '')
-        .split('\n')
-        .filter((l) => l.trim() && !/^\s*\[|^\s*system_info|whisper_/i.test(l))
-        .join(' ')
-        .trim();
-      const clean = sanitizeTranscript(rawText); // F-22: галлюцинации на тишине срезаем
-      resolve(clean.text ? { text: clean.text } : null);
+
+  const fails = [];
+  for (const bin of bins) {
+    const r = await new Promise((resolve) => {
+      execFile(bin, args, { timeout: 300000, windowsHide: true }, (err, stdout) => {
+        if (err) {
+          console.error(`whisper(${path.basename(bin)}) failed:`, err.message);
+          return resolve({ err });
+        }
+        const rawText = String(stdout || '')
+          .split('\n')
+          .filter((l) => l.trim() && !/^\s*\[|^\s*system_info|whisper_/i.test(l))
+          .join(' ')
+          .trim();
+        const clean = sanitizeTranscript(rawText); // F-22: галлюцинации на тишине срезаем
+        resolve(clean.text ? { text: clean.text } : { empty: true });
+      });
     });
-  });
+    if (r.text) return { text: r.text };
+    if (r.err) fails.push(await whisperFailHint(bin, r.err, model)); // настоящая причина юзеру
+  }
+  if (fails.length) return { error: fails.join(' · ') };
+  return null; // бинари живы, но текста нет (тишина)
 }
 
 const GEMINI_AUDIO_LIMIT = 18 * 1024 * 1024; // ~20 МБ лимит REST: больше — просим короче реплику
