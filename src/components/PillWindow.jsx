@@ -262,27 +262,31 @@ export default function PillWindow() {
         captureRef.current = null;
       }
 
-      engineRef.current = new SpeechEngine({
-        onFinal: (piece) => {
-          transcriptRef.current = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
-          wordsRef.current = countWordsIn(transcriptRef.current);
-        },
-        onInterim: (t) => setInterim(t),
-        onError: (code) => {
-          if (code === 'denied') setError('Доступ к микрофону запрещён системой');
-          else if (code === 'no-mic') setError('Микрофон не найден');
-          else if (code === 'network') setInterim(''); // текст даст локальный ASR по записи
-          if (code === 'denied' || code === 'no-mic') {
-            sound.error();
-            recordingRef.current = false;
-            doneRef.current = true;
-            stopMachines();
-            releaseCapture();
-            setRecording(false);
-            setTimeout(() => desktopAPI.hidePill(), 2500); // не висим
-          }
-        },
-      });
+      // P-08/W-08: asrProvider=whisper|gemini — локальный/резервный путь без Web Speech;
+      // 'auto' (по умолчанию) и 'webspeech' — встроенный движок Chromium + резервы ниже
+      const skipWebspeech = s.asrProvider === 'whisper' || s.asrProvider === 'gemini';
+      if (!skipWebspeech)
+        engineRef.current = new SpeechEngine({
+          onFinal: (piece) => {
+            transcriptRef.current = (transcriptRef.current ? transcriptRef.current + ' ' : '') + piece;
+            wordsRef.current = countWordsIn(transcriptRef.current);
+          },
+          onInterim: (t) => setInterim(t),
+          onError: (code) => {
+            if (code === 'denied') setError('Доступ к микрофону запрещён системой');
+            else if (code === 'no-mic') setError('Микрофон не найден');
+            else if (code === 'network') setInterim(''); // текст даст локальный ASR по записи
+            if (code === 'denied' || code === 'no-mic') {
+              sound.error();
+              recordingRef.current = false;
+              doneRef.current = true;
+              stopMachines();
+              releaseCapture();
+              setRecording(false);
+              setTimeout(() => desktopAPI.hidePill(), 2500); // не висим
+            }
+          },
+        });
       const ok = engineRef.current.start(settingsRef.current.language === 'en' ? 'en-US' : 'ru-RU');
       if (!ok && !captureRef.current) {
         setError('Распознавание недоступно: настрой whisper в Настройках');
