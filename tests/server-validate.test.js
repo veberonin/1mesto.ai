@@ -35,4 +35,23 @@ describe('Server: валидация входа и безопасность от
   it('O-13: занятый порт → честный выход, а не падение стека', () => {
     assert.match(srv(), /EADDRINUSE/);
   });
+
+  it('V-09: интерфейс слушает только loopback (HOST env — явный оверрайд)', () => {
+    assert.match(srv(), /process\.env\.HOST \|\| '127\.0\.0\.1'/);
+  });
+
+  it('V-08: API_TOKEN → Bearer-токен на всех методах кроме health', () => {
+    assert.match(srv(), /Bearer \$\{process\.env\.API_TOKEN\}/);
+  });
+
+  it('AF-06: rate-limit настраивается (RATE_LIMIT, 429)', () => {
+    assert.match(srv(), /RATE_LIMIT/);
+    assert.match(srv(), /429/);
+  });
+
+  it('P-04: облако на /api/format только по явному x-ai-provider клиента', () => {
+    const s = srv();
+    assert.match(s, /x-ai-provider'\] \|\| 'none'/);
+    assert.doesNotMatch(s, /GEMINI_API_KEY \? 'gemini'/); // env-ключ сам постобработку не включает
+  });
 });

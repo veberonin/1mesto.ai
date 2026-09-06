@@ -209,7 +209,10 @@ export default function App() {
   }, []);
   useEffect(() => {
     checkServer();
-    const iv = setInterval(checkServer, 30000);
+    // P-04: в десктопе не поллим сервер — локальный режим не должен шуметь в сеть;
+    // периодический health-check только в вебе и реже
+    if (isDesktop()) return;
+    const iv = setInterval(checkServer, 60000);
     return () => clearInterval(iv);
   }, [checkServer]);
 

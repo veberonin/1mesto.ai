@@ -17,6 +17,37 @@ const app = express();
 // API работает на JSON-телах, сложные query нам не нужны
 app.set('query parser', 'simple');
 app.use(cors());
+// V-08: если задан API_TOKEN — все методы кроме /api/health требуют Bearer-токен
+if (process.env.API_TOKEN) {
+  app.use((req, res, next) => {
+    if (req.path === '/api/health') return next();
+    const auth = req.headers.authorization || '';
+    if (auth !== `Bearer ${process.env.API_TOKEN}`) {
+      return res.status(401).json({ error: 'нужен Authorization: Bearer <API_TOKEN>' });
+    }
+    return next();
+  });
+}
+// AF-06: ограничение частоты запросов (настраивается RATE_LIMIT, по умолчанию 120/мин на IP)
+const RATE_LIMIT = Number(process.env.RATE_LIMIT) || 120;
+const rateBuckets = new Map();
+app.use((req, res, next) => {
+  if (req.path === '/api/health') return next();
+  const ip = req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const b = rateBuckets.get(ip) || { n: 0, reset: now + 60000 };
+  if (now > b.reset) {
+    b.n = 0;
+    b.reset = now + 60000;
+  }
+  b.n += 1;
+  rateBuckets.set(ip, b);
+  if (rateBuckets.size > 10000) rateBuckets.clear(); // защита от роста карты
+  if (b.n > RATE_LIMIT) {
+    return res.status(429).json({ error: `лимит ${RATE_LIMIT} запросов/мин — подожди минуту` });
+  }
+  return next();
+});
 // AN-07: лимит тела — публичный сервер не должен съедать память
 // (8МБ хватает на ~5 минут webm-аудио для /api/transcribe, base64 в JSON)
 app.use(express.json({ limit: '8mb' }));
@@ -275,9 +306,10 @@ app.post('/api/format', async (req, res) => {
     }
     if (!text || !text.trim()) return res.json({ formattedText: '', source: 'local' });
 
-    const provider =
-      req.headers['x-ai-provider'] ||
-      (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'none');
+    // P-04/P-08: облако ТОЛЬКО по явному выбору клиента (заголовок x-ai-provider).
+    // Наличие серверного ключа само по себе постобработку не включает —
+    // путь реплики по умолчанию полностью локальный и не обращается в сеть.
+    const provider = req.headers['x-ai-provider'] || 'none';
     // V-заметка: ключ берётся ТОЛЬКО из env сервера. Клиентский ключ передаётся
     // провайдеру напрямую из десктоп-приложения, сервер как прокси ключей не используется.
     const key = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
@@ -369,7 +401,7 @@ if (isMain) {
   });
 
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, process.env.HOST || '127.0.0.1', () => {
     console.log(`[1mesto Flow] API server: http://localhost:${PORT}`);
   });
 }

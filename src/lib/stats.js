@@ -27,7 +27,7 @@ function persist(stats) {
   }
 }
 
-export function saveSession({ words, wpm, peakWpm, durSec, mode, lang }) {
+export function saveSession({ words, wpm, peakWpm, durSec, mode, lang, mirrorStats = false }) {
   const stats = loadStats();
   const day = todayKey();
   if (!stats.days[day]) stats.days[day] = { words: 0, seconds: 0, sessions: 0 };
@@ -53,8 +53,10 @@ export function saveSession({ words, wpm, peakWpm, durSec, mode, lang }) {
 
   persist(stats);
 
-  // Зеркалим на сервер (если доступен) — не блокируем UI
+  // Зеркалим на сервер ТОЛЬКО при явном согласии пользователя (P-04: телеметрия
+  // выключена по умолчанию): без settings.mirrorStats статистика не покидает машину
   try {
+    if (!mirrorStats) return stats;
     fetch('/api/stats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
