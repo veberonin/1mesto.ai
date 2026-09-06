@@ -8,12 +8,32 @@
  */
 
 const KEY = 'flow-journal-v1';
+const CRYPT_KEY = 'flow-journal-crypt-v1'; // M-17: соль+верификатор (без ключа и пароля)
 const MAX_RECORDS = 10000; // M-14: ротация истории
 const SCHEMA_VERSION = 1;
 
+// M-17: ключ живёт только в памяти сессии; на диске — шифрованные тексты
+let cipher = null;
+let memRecords = null; // расшифрованный кеш (истина при разблокированной сессии)
+let lastPersistedRaw = null; // контроль внешних изменений хранилища
+let cryptoMod = null;
+async function ensureCrypto() {
+  if (!cryptoMod) cryptoMod = await import('./crypto.js');
+  return cryptoMod;
+}
+const readCryptMeta = () => {
+  try {
+    const raw = localStorage.getItem(CRYPT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const newId = () => `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-export function loadJournal() {
+/** Читает диск как есть (без расшифровки) — внутреннее */
+function loadJournalRaw() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
@@ -26,11 +46,58 @@ export function loadJournal() {
   return [];
 }
 
-function persist(records) {
+/**
+ * M-17: публичное чтение. При разблокированной сессии отдаёт расшифрованные
+ * записи из памяти; на холодном старте с включённым шифрованием записи
+ * приходят с текстом '' и полем enc — до unlockJournal(passphrase).
+ */
+export function loadJournal() {
+  // внешние изменения хранилища (тесты, импорт) — кеш перевалидируется по диску
+  const raw = (() => {
+    try {
+      return localStorage.getItem(KEY);
+    } catch {
+      return null;
+    }
+  })();
+  if (memRecords && raw === lastPersistedRaw) return memRecords;
+  memRecords = loadJournalRaw();
+  lastPersistedRaw = raw;
+  return memRecords;
+}
+
+function persistPlain(records) {
+  const kept = records.slice(-MAX_RECORDS);
+  const raw = JSON.stringify(kept);
   try {
-    localStorage.setItem(KEY, JSON.stringify(records.slice(-MAX_RECORDS)));
+    localStorage.setItem(KEY, raw);
+    lastPersistedRaw = raw;
   } catch {
     /* переполнение хранилища — молча держим в памяти */
+  }
+  memRecords = kept; // память согласована с диском (ротация M-14)
+}
+
+/** M-17:persist с шифрованием текстов на диске; в памяти остаётся открытый текст */
+async function persistEncrypted() {
+  const cm = await ensureCrypto();
+  const recs = loadJournal().slice(-MAX_RECORDS);
+  const out = [];
+  for (const r of recs) {
+    if (r.enc) {
+      out.push(r);
+      continue;
+    }
+    const box = await cm.encryptString(r.text || '', cipher);
+    out.push({ ...r, text: '', enc: box });
+  }
+  memRecords = recs;
+  const raw = JSON.stringify(out);
+  try {
+    localStorage.setItem(KEY, raw);
+    lastPersistedRaw = raw;
+  } catch {
+    /* переполнение хранилища */
   }
 }
 
@@ -65,13 +132,18 @@ export function addUtterance(r) {
     mode: r.mode || 'clean',
     lang: r.lang || 'ru',
     source: r.source || 'local', // S-02: вызывалась ли модель
+    interims: r.interims || 0, // E-09: промежуточных гипотез за реплику (потоковая подача)
     latencies: r.latencies || {}, // Q-18
     pasteMethod: r.pasteMethod || null, // K-25
     dictHits: r.dictHits || [], // H-12
     fillersRemoved: r.fillersRemoved || 0,
   };
   records.push(rec);
-  persist(records);
+  if (cipher) {
+    persistEncrypted(); // M-17: на диск — шифрованно, в памяти — открытый текст
+  } else {
+    persistPlain(records);
+  }
   return rec;
 }
 
@@ -98,13 +170,19 @@ export function filterUtterances({ app, day } = {}) {
 /** M-09: удалить запись */
 export function deleteUtterance(id) {
   const records = loadJournal().filter((r) => r.id !== id);
-  persist(records);
+  memRecords = records; // пишущая операция обязана обновлять кеш
+  if (cipher) {
+    persistEncrypted(); // M-17
+  } else {
+    persistPlain(records);
+  }
   return records;
 }
 
 /** M-10: очистить историю целиком */
 export function clearJournal() {
-  persist([]);
+  memRecords = []; // сбрасываем кеш — иначе loadJournal вернёт старое
+  persistPlain([]);
   return [];
 }
 
@@ -202,4 +280,90 @@ export function downloadFile(name, content, mime = 'text/plain') {
   } catch {
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// M-17: шифрование журнала по настройке
+// ---------------------------------------------------------------------------
+
+/** Включить шифрование: все тексты перезаписываются шифрованными (AES-GCM) */
+export async function enableJournalEncryption(passphrase) {
+  if (!passphrase || typeof passphrase !== 'string' || passphrase.length < 4) {
+    return { ok: false, reason: 'Пароль от 4 символов' };
+  }
+  const cm = await ensureCrypto();
+  const { key, salt, verifier } = await cm.setupEncryption(passphrase);
+  cipher = key;
+  memRecords = null; // перечитаем диск и перезашифруем
+  try {
+    localStorage.setItem(CRYPT_KEY, JSON.stringify({ v: 1, salt, verifier }));
+  } catch {
+    return { ok: false, reason: 'Хранилище недоступно' };
+  }
+  await persistEncrypted();
+  return { ok: true };
+}
+
+/** Выключить шифрование: расшифровать всё на диск (нужна та же фраза) */
+export async function disableJournalEncryption(passphrase) {
+  const meta = readCryptMeta();
+  if (!meta) return { ok: false, reason: 'Шифрование не включено' };
+  const cm = await ensureCrypto();
+  if (!(await cm.verifyPassphrase(passphrase, meta.salt, meta.verifier))) {
+    return { ok: false, reason: 'Неверный пароль' };
+  }
+  const { key } = await cm.setupEncryption(passphrase, meta.salt);
+  const recs = loadJournalRaw();
+  const out = [];
+  for (const r of recs) {
+    if (!r.enc) {
+      out.push(r);
+      continue;
+    }
+    const text = await cm.decryptString(r.enc, key);
+    out.push({ ...r, text: text ?? '', enc: undefined });
+  }
+  cipher = null;
+  memRecords = out;
+  try {
+    localStorage.removeItem(CRYPT_KEY);
+    localStorage.setItem(KEY, JSON.stringify(out.slice(-MAX_RECORDS)));
+  } catch {
+    /* переполнение — оставляем как вышло */
+  }
+  return { ok: true };
+}
+
+/** Разблокировать журналы фразой (холодный старт при включённом шифровании) */
+export async function unlockJournal(passphrase) {
+  const meta = readCryptMeta();
+  if (!meta) return { ok: false, reason: 'Шифрование не включено' };
+  const cm = await ensureCrypto();
+  if (!(await cm.verifyPassphrase(passphrase, meta.salt, meta.verifier))) {
+    return { ok: false, reason: 'Неверный пароль' };
+  }
+  const { key } = await cm.setupEncryption(passphrase, meta.salt);
+  cipher = key;
+  const recs = loadJournalRaw();
+  const out = [];
+  for (const r of recs) {
+    if (r.enc) {
+      const text = await cm.decryptString(r.enc, key);
+      out.push({ ...r, text: text ?? '', enc: undefined });
+    } else {
+      out.push(r);
+    }
+  }
+  memRecords = out; // диск не трогаем — там остаётся шифрованное
+  return { ok: true, count: out.length };
+}
+
+/** Шифрование включено (на диске есть мета) */
+export function isJournalEncrypted() {
+  return !!readCryptMeta();
+}
+
+/** Записи доступны (не включено или разблокировано в этой сессии) */
+export function isJournalUnlocked() {
+  return !isJournalEncrypted() || !!cipher;
 }
