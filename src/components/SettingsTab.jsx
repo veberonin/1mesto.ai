@@ -25,6 +25,7 @@ import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
 import { exportProfile, importProfile } from '../lib/profile.js';
 import MicCard from './MicCard.jsx';
+import { enableJournalEncryption, disableJournalEncryption, isJournalEncrypted } from '../lib/journal.js';
 import { normalizeAccelerator, hotkeyFromEvent, isValidAccelerator, DEFAULT_HOTKEY } from '../lib/hotkey.js';
 
 function Toggle({ label, desc, value, onChange }) {
@@ -238,6 +239,7 @@ export default function SettingsTab({
             value={!!settings.privacy}
             onChange={(v) => set({ privacy: v })}
           />
+          <M17Card onToast={onToast} />
         </div>
       </div>
 
@@ -861,6 +863,97 @@ function BackgroundCard({ settings, onChange, onToast }) {
           onChange={(v) => onChange({ ...settings, autostart: v })}
         />
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* M-17: шифрование журнала по настройке                               */
+/* ------------------------------------------------------------------ */
+function M17Card({ onToast }) {
+  const [on, setOn] = useState(isJournalEncrypted());
+  const [pass, setPass] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const enable = async () => {
+    setBusy(true);
+    try {
+      const r = await enableJournalEncryption(pass);
+      if (r.ok) {
+        setOn(true);
+        setPass('');
+        onToast('Журнал шифруется (AES-GCM). Не потеряй пароль!', 'success');
+      } else {
+        onToast(r.reason || 'Не получилось', 'error');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disable = async () => {
+    setBusy(true);
+    try {
+      const r = await disableJournalEncryption(pass);
+      if (r.ok) {
+        setOn(false);
+        setPass('');
+        onToast('Шифрование выключено, журнал расшифрован', 'success');
+      } else {
+        onToast(r.reason || 'Не получилось', 'error');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-line bg-card/60 p-4 mt-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[13.5px] font-semibold">🔒 Шифровать журнал (M-17)</div>
+          <div className="text-[11.5px] text-mute mt-0.5">
+            Реплики на диске — AES-GCM-256, пароль нигде не хранится. Без пароля история не читается.
+          </div>
+        </div>
+        <Toggle value={on} onChange={() => {}} />
+      </div>
+      {!on && (
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <input
+            type="password"
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            placeholder="Придумай пароль (от 4 символов)"
+            className="flex-1 min-w-[180px] rounded-xl border border-line bg-paper px-3 py-2 text-[13px]"
+          />
+          <button
+            onClick={enable}
+            disabled={busy || pass.length < 4}
+            className="px-4 py-2 rounded-xl bg-accent text-white text-[12.5px] font-bold disabled:opacity-40"
+          >
+            Включить шифрование
+          </button>
+        </div>
+      )}
+      {on && (
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <input
+            type="password"
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            placeholder="Пароль, чтобы расшифровать"
+            className="flex-1 min-w-[180px] rounded-xl border border-line bg-paper px-3 py-2 text-[13px]"
+          />
+          <button
+            onClick={disable}
+            disabled={busy || !pass}
+            className="px-4 py-2 rounded-xl border border-line text-mute text-[12.5px] font-semibold disabled:opacity-40"
+          >
+            Выключить шифрование
+          </button>
+        </div>
+      )}
     </div>
   );
 }

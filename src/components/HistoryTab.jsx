@@ -14,6 +14,9 @@ import {
   exportMarkdown,
   downloadFile,
   journalSummary,
+  isJournalEncrypted,
+  isJournalUnlocked,
+  unlockJournal,
 } from '../lib/journal.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 
@@ -24,8 +27,21 @@ export default function HistoryTab({ privacy, onToast }) {
   const [query, setQuery] = useState('');
   const [appFilter, setAppFilter] = useState('');
   const [tick, setTick] = useState(0);
+  const [pass, setPass] = useState('');
+  const locked = isJournalEncrypted() && !isJournalUnlocked(); // M-17
 
   const refresh = () => setTick((t) => t + 1);
+
+  const unlock = async () => {
+    const r = await unlockJournal(pass);
+    if (r.ok) {
+      setPass('');
+      refresh();
+      onToast(`Журнал разблокирован: ${r.count} реплик`, 'success');
+    } else {
+      onToast(r.reason || 'Не удалось разблокировать', 'error');
+    }
+  };
 
   const records = useMemo(() => {
     let r = query ? searchUtterances(query) : listUtterances();
@@ -64,6 +80,26 @@ export default function HistoryTab({ privacy, onToast }) {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
+      {locked && (
+        <div className="mb-4 rounded-2xl border border-line bg-card p-4 flex flex-wrap items-center gap-3">
+          <span className="text-[13px] font-semibold">🔒 Журнал зашифрован — введите пароль</span>
+          <input
+            type="password"
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && unlock()}
+            placeholder="Пароль журнала"
+            className="flex-1 min-w-[160px] rounded-xl border border-line bg-paper px-3 py-2 text-[13px]"
+          />
+          <button
+            onClick={unlock}
+            className="px-4 py-2 rounded-xl bg-accent text-white text-[12.5px] font-bold"
+          >
+            Разблокировать
+          </button>
+        </div>
+      )}
+
       {/* Сводка */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
