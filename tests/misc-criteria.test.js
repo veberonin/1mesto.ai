@@ -415,6 +415,12 @@ describe('Титры-галлюцинации: Google вставляет тит�
       'Переводчик М.Дубровин Ролик озвучки студии',
       'Технический перерыв',
     ];
+    // реальные остатки с матрицы: фамилии после частичного среза — тоже мусор
+    const residues = ['Закомолдина. Сухиашвили.', '.Закомолдина .Сухиашвили', 'Сухиашвили'];
+    for (const c of residues) {
+      const { text } = sanitizeTranscript(c);
+      assert.ok(!text, `остаток титров должен срезаться: ${c} → "${text}"`);
+    }
     for (const c of cases) {
       const { text, hallucinated } = sanitizeTranscript(c);
       assert.ok(!text || hallucinated, `должно срезаться: ${c} → "${text}"`);
@@ -426,6 +432,8 @@ describe('Титры-галлюцинации: Google вставляет тит�
     assert.equal(ok.text, 'корректор сдаёт отчёт в срок');
     const ok2 = sanitizeTranscript('привет как дела созвонимся в пятницу');
     assert.equal(ok2.text, 'привет как дела созвонимся в пятницу');
+    const ok3 = sanitizeTranscript('созвон с Ивановой в пять, обсуждаем смету');
+    assert.equal(ok3.text, 'созвон с Ивановой в пять, обсуждаем смету');
   });
 
   it('Web Speech финалы проходят через guard (единая точка фильтрации)', () => {
