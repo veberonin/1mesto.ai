@@ -136,6 +136,7 @@ export default function SettingsTab({
 
       {/* Распознавание речи (локальное) */}
       <AsrCard settings={settings} onChange={set} onToast={onToast} />
+      <InsertDiagCard />
 
       {/* Словарь и макросы + импорт из файла (H-01) */}
       <DictCard settings={settings} onChange={set} onToast={onToast} />
@@ -713,6 +714,59 @@ function AsrCard({ settings, onChange, onToast }) {
           <div className="text-[11px] text-mute font-mono truncate">модель: {info.modelPath}</div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Диагностика вставки                                                 */
+/* ------------------------------------------------------------------ */
+function InsertDiagCard() {
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState(null);
+
+  const run = async () => {
+    setBusy(true);
+    setRes(null);
+    try {
+      const r = await desktopAPI.pasteTest();
+      setRes(r || []);
+    } catch {
+      setRes([{ name: 'диагностика', ok: false, detail: 'не запустилась' }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-3xl glass p-6 shadow-card">
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="font-bold">Диагностика вставки</h3>
+      </div>
+      <p className="text-[12px] text-mute mt-1 mb-4 leading-relaxed">
+        1. Нажми кнопку. 2. В течение 5 секунд кликни мышкой в Блокнот. 3. Мы напечатаем два маркера двумя
+        способами — по тому, что появилось (и отчёту ниже), видно, какой способ живёт на твоей машине.
+      </p>
+      <button
+        onClick={run}
+        disabled={busy}
+        className="px-4 py-2.5 rounded-xl text-[12.5px] font-bold bg-ink text-paper disabled:opacity-60"
+      >
+        {busy ? 'Тестирую… кликни в Блокнот!' : 'Протестировать вставку'}
+      </button>
+      {res && (
+        <div className="mt-3 space-y-1.5">
+          {res.map((r) => (
+            <div key={r.name} className="text-[12px] font-mono">
+              {r.ok ? '✅' : '❌'} {r.name}: <span className="text-mute">{r.detail}</span>
+            </div>
+          ))}
+          <p className="text-[11px] text-mute">
+            ❌ у обоих? Целевое окно запущено от администратора (Windows блокирует ввод) — запусти его обычным
+            способом.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

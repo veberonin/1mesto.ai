@@ -17,6 +17,7 @@ export const desktopAPI =
         getSettings: noop,
         saveSettings: noop,
         insertText: noop,
+        pasteTest: async () => [],
         aiFormat: noop,
         hidePill: noop,
         onCommand: noop,

@@ -23,7 +23,7 @@ const MAX_SEC = 300; // авто-стоп длинной реплики
 export default function PillWindow() {
   const [recording, setRecording] = useState(false);
   const [done, setDone] = useState(false);
-  const [inserted, setInserted] = useState(null); // 'paste' | 'clipboard-only'
+  const [inserted, setInserted] = useState(null); // 'type' | 'paste' | 'clipboard-only'
   const [elapsed, setElapsed] = useState(0);
   const [liveWpm, setLiveWpm] = useState(0);
   const [interim, setInterim] = useState('');
@@ -484,7 +484,11 @@ export default function PillWindow() {
 
           {done && (
             <span className="text-[13px] font-bold text-emerald-300 px-1">
-              {inserted === 'paste' ? 'Вставлено ✓' : 'В буфере обмена ✓'}
+              {inserted === 'type'
+                ? 'Вставлено ✓ (ввод букв)'
+                : inserted === 'paste'
+                  ? 'Вставлено ✓ (Ctrl+V)'
+                  : 'В буфере — жми Ctrl+V'}
             </span>
           )}
 

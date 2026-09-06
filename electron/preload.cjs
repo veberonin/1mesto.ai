@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('flowDesktop', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (patch) => ipcRenderer.invoke('settings:save', patch),
   insertText: (text) => ipcRenderer.invoke('pill:insert', text),
+  pasteTest: () => ipcRenderer.invoke('paste:test'),
   aiFormat: (payload) => ipcRenderer.invoke('ai:format', payload),
   hidePill: () => ipcRenderer.send('pill:hide'),
   // B-11: статус записи для трея

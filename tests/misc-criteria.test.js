@@ -523,3 +523,37 @@ describe('Вставка без гонок: предсказуемый Ctrl+V, �
     assert.match(st, /insertDelayMs/);
   });
 });
+
+describe('Ввод букв (KEYEVENTF_UNICODE): вставка минуя Ctrl+V', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('paste.js: pickTypeCommand печатает текст как клавиатура', () => {
+    const pj = read('../electron/paste.js');
+    assert.match(pj, /pickTypeCommand/);
+    assert.match(pj, /0x0004/, 'KEYEVENTF_UNICODE down');
+    assert.match(pj, /0x0006/, 'KEYEVENTF_UNICODE | KEYUP');
+    assert.match(pj, /TypeText/);
+  });
+
+  it('main: тип-вставка первична, Ctrl+V — фолбэк, есть paste:test', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /method: 'type'/);
+    assert.match(mj, /метод|фолбэк на Ctrl\+V|фолбэк: классический Ctrl\+V/);
+    assert.match(mj, /paste:test/);
+    assert.match(mj, /toInsert\.length <= 1500/);
+  });
+
+  it('мосты: preload.pasteTest + desktop noop', () => {
+    const pl = read('../electron/preload.cjs');
+    assert.match(pl, /pasteTest/);
+    const dj = read('../src/lib/desktop.js');
+    assert.match(dj, /pasteTest/);
+  });
+
+  it('тосты честные: тип / Ctrl+V / только буфер', () => {
+    const pill = read('../src/components/PillWindow.jsx');
+    assert.match(pill, /Вставлено ✓ \(ввод букв\)/);
+    assert.match(pill, /Вставлено ✓ \(Ctrl\+V\)/);
+    assert.match(pill, /В буфере — жми Ctrl\+V/);
+  });
+});

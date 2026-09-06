@@ -18,7 +18,7 @@ import fs from 'fs';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { pickPasteCommand } from './paste.js';
+import { pickPasteCommand, pickTypeCommand } from './paste.js';
 import { aiFormat } from './ai.js';
 import { formatText } from '../src/lib/formatter.js';
 import { normalizeAccelerator, toElectronAccelerator, DEFAULT_HOTKEY } from '../src/lib/hotkey.js';
@@ -205,22 +205,55 @@ function writeSettings(patch) {
 // ---------------------------------------------------------------------------
 // Вставка текста в предыдущее активное приложение (буфер + Ctrl/Cmd+V)
 // ---------------------------------------------------------------------------
-function pasteIntoFocusedApp() {
-  const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
-  if (!cmd) return Promise.resolve({ ok: true, method: 'clipboard-only' });
-  // Тёплый хост выпилен: вероятностные задержки/респавны ломали тайминг вставки.
-  // Холодный SendInput предсказуем; пауза insertDelayMs гарантирует фокус цели,
-  // а буфер остаётся с диктовкой (ручной Ctrl+V — надёжный фолбэк)
+function execStep(cmd, args, timeoutMs) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { timeout: timeoutMs || 4000 }, (err) => {
-      if (err) {
-        console.error('paste failed:', err.message);
-        resolve({ ok: true, method: 'clipboard-only', error: err.message });
-      } else {
-        resolve({ ok: true, method: 'paste' });
-      }
+    execFile(cmd, args, { timeout: timeoutMs || 4000, windowsHide: true }, (err, stdout, stderr) => {
+      resolve({ err, stderr: String(stderr || '').slice(0, 200) });
     });
   });
+}
+
+/**
+ * Вставка в предыдущее активное приложение. Windows: сначала ПОСИМВОЛЬНЫЙ ВВОД
+ * (KEYEVENTF_UNICODE — печатает текст как клавиатура, обходит блокировки Ctrl+V),
+ * при сбое — фолбэк на Ctrl+V (SendInput). Текст и так в буфере (ручной Ctrl+V).
+ */
+async function pasteIntoFocusedApp(toInsert = '') {
+  const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
+  if (!cmd) return { ok: true, method: 'clipboard-only' };
+
+  if (process.platform === 'win32' && toInsert && toInsert.length <= 1500) {
+    const typeCmd = pickTypeCommand('');
+    if (typeCmd) {
+      const typeFile = path.join(app.getPath('temp'), `flow-type-${Date.now()}.txt`);
+      try {
+        fs.writeFileSync(typeFile, toInsert, 'utf8');
+        const { cmd: tcmd, args: targs, timeoutMs: ttimeout } = pickTypeCommand(typeFile);
+        const r = await execStep(tcmd, targs, ttimeout);
+        try {
+          fs.unlinkSync(typeFile);
+        } catch {}
+        if (!r.err) return { ok: true, method: 'type' };
+        console.error('type-insert failed:', r.err.message, r.stderr);
+      } catch (e) {
+        console.error('type file failed:', e.message);
+        try {
+          fs.unlinkSync(typeFile);
+        } catch {}
+      }
+      // фолбэк: классический Ctrl+V
+      const v = await execStep(cmd, args, timeoutMs);
+      if (!v.err) return { ok: true, method: 'paste' };
+      console.error('ctrl-v failed:', v.err.message, v.stderr);
+      return { ok: true, method: 'clipboard-only', error: v.err.message || v.stderr };
+    }
+  }
+  const v = await execStep(cmd, args, timeoutMs);
+  if (v.err) {
+    console.error('paste failed:', v.err.message);
+    return { ok: true, method: 'clipboard-only', error: v.err.message };
+  }
+  return { ok: true, method: 'paste' };
 }
 
 // ---------------------------------------------------------------------------
@@ -500,8 +533,9 @@ let lastInsert = { at: 0, tail: '' };
 // задержке Ctrl+V оно подменяло свежий текст предыдущим («вставляет прошлое»).
 // Диктовка ОСТАЁТСЯ в буфере — это фолбэк: в любой момент можно вставить вручную.
 ipcMain.handle('pill:insert', async (_e, text) => {
+  let toInsert = '';
   if (typeof text === 'string' && text.trim()) {
-    let toInsert = text;
+    toInsert = text;
     const fresh = Date.now() - lastInsert.at < 60000;
     if (fresh && lastInsert.tail && !/\s$/.test(lastInsert.tail) && !/^\s/.test(toInsert)) {
       toInsert = ' ' + toInsert;
@@ -519,8 +553,48 @@ ipcMain.handle('pill:insert', async (_e, text) => {
   } catch {}
   const delay = Math.max(250, Number(readSettings().insertDelayMs) || 400);
   await new Promise((r) => setTimeout(r, Math.min(delay, 2000)));
-  const result = await pasteIntoFocusedApp();
+  const result = await pasteIntoFocusedApp(toInsert);
   return result;
+});
+
+// Диагностика вставки: оба способа по очереди в активное окно, отчёт с кодами.
+// Юзер жмёт кнопку, кликает в Блокнот — мы печатаем маркеры и возвращаем статусы.
+ipcMain.handle('paste:test', async () => {
+  const stamp = new Date().toLocaleTimeString('ru-RU');
+  const results = [];
+  const mk = (name) => path.join(app.getPath('temp'), `flow-diag-${name}-${Date.now()}.txt`);
+  // 1) посимвольный ввод
+  try {
+    const f = mk('type');
+    fs.writeFileSync(f, `[1] ввод букв ${stamp} OK?\r\n`, 'utf8');
+    const t = pickTypeCommand(f);
+    const r = await execStep(t.cmd, t.args, t.timeoutMs);
+    try {
+      fs.unlinkSync(f);
+    } catch {}
+    results.push({
+      name: 'ввод букв (KEYEVENTF_UNICODE)',
+      ok: !r.err,
+      detail: r.err ? `${r.err.message} ${r.stderr}` : 'команда выполнена',
+    });
+  } catch (e) {
+    results.push({ name: 'ввод букв (KEYEVENTF_UNICODE)', ok: false, detail: e.message });
+  }
+  await new Promise((r) => setTimeout(r, 2000));
+  // 2) Ctrl+V (буфер уже содержит маркер)
+  try {
+    const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
+    clipboard.writeText(`[2] Ctrl+V ${stamp} OK?`);
+    const v = await execStep(cmd, args, timeoutMs);
+    results.push({
+      name: 'Ctrl+V (SendInput)',
+      ok: !v.err,
+      detail: v.err ? `${v.err.message} ${v.stderr}` : 'команда выполнена',
+    });
+  } catch (e) {
+    results.push({ name: 'Ctrl+V (SendInput)', ok: false, detail: e.message });
+  }
+  return results;
 });
 
 ipcMain.handle('ai:format', async (_e, payload = {}) => {

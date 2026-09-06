@@ -321,7 +321,7 @@ describe('redesign: светлая система как в оригинале',
     const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
     assert.match(mj, /clipboard\.writeText\(toInsert\)/);
     assert.match(mj, /await new Promise\(\(r\) => setTimeout\(r, Math\.min\(delay, 2000\)\)\)/);
-    assert.match(mj, /pasteIntoFocusedApp\(\)/);
+    assert.match(mj, /pasteIntoFocusedApp\(toInsert\)/);
   });
 
   it('E2E-экзамен ASR лежит в репо (assets + скрипт, ключ только из env)', () => {
