@@ -319,6 +319,19 @@ describe('redesign: светлая система как в оригинале',
     assert.doesNotMatch(readme, /Демо RU\/EN/); // документация не опережает код (AC-03)
   });
 
+  it('надёжность ASR: фолбэк-цепочка моделей Gemini (429/404 → следующая)', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /ASR_MODELS/);
+    assert.match(mj, /фолбэк на/);
+  });
+
+  it('сервер: валидация входа, лимит тела, простой query-парсер (AN-07/AN-08)', () => {
+    const srv = readFileSync(join(process.cwd(), 'server', 'index.js'), 'utf8');
+    assert.match(srv, /поле text должно быть строкой/);
+    assert.match(srv, /limit: '8mb'/);
+    assert.match(srv, /query parser', 'simple'/);
+  });
+
   it('O-05/O-13: диск полон и занятый порт обработаны', () => {
     const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
     assert.match(mj, /tmp write failed \(disk\?\)/);

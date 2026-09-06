@@ -656,6 +656,10 @@ function HotkeyCard({ settings, onChange, onToast }) {
       onToast('Нужен модификатор: Ctrl/Alt/Meta (или F-клавиша)', 'error');
       return;
     }
+    if (settings.hotkeyStyle && hk === settings.hotkeyStyle) {
+      onToast('Эта комбинация уже занята хоткеем стиля — выбери другую', 'error');
+      return;
+    }
     onChange({ ...settings, hotkey: hk });
     setCapturing(false);
     onToast(`Хоткей: ${hk} ✓`, 'success');
@@ -672,6 +676,10 @@ function HotkeyCard({ settings, onChange, onToast }) {
     if (!hk) return;
     if (!isValidAccelerator(hk)) {
       onToast('Нужен модификатор: Ctrl/Alt/Meta (или F-клавиша)', 'error');
+      return;
+    }
+    if (hk === settings.hotkey) {
+      onToast('Эта комбинация уже занята главным хоткеем — выбери другую', 'error');
       return;
     }
     onChange({ ...settings, hotkeyStyle: hk });

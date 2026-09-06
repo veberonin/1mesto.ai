@@ -5,3 +5,6 @@ server/data/
 *.log
 .DS_Store
 release/
+
+# c8 coverage-отчёты (артефакт CI, не исходники)
+coverage/

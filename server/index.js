@@ -13,8 +13,22 @@ import { formatText } from '../src/lib/formatter.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+// AN-08: простой query-парсер — убирает DoS-поверхность qs (вложенные скобки),
+// API работает на JSON-телах, сложные query нам не нужны
+app.set('query parser', 'simple');
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+// AN-07: лимит тела — публичный сервер не должен съедать память
+// (8МБ хватает на ~5 минут webm-аудио для /api/transcribe, base64 в JSON)
+app.use(express.json({ limit: '8mb' }));
+app.use((err, _req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({ error: 'тело запроса больше 8МБ' });
+  }
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'некорректный JSON' });
+  }
+  return next(err);
+});
 
 // ---------------------------------------------------------------------------
 // Хранилище: простой JSON-файл (не требует MongoDB — запускается везде).
@@ -256,6 +270,9 @@ app.get('/api/stats', (req, res) => {
 app.post('/api/format', async (req, res) => {
   try {
     const { text, mode, language } = req.body || {};
+    if (text !== undefined && text !== null && typeof text !== 'string') {
+      return res.status(400).json({ error: 'поле text должно быть строкой' });
+    }
     if (!text || !text.trim()) return res.json({ formattedText: '', source: 'local' });
 
     const provider =
@@ -291,7 +308,7 @@ app.post('/api/format', async (req, res) => {
 app.post('/api/transcribe', async (req, res) => {
   const key = process.env.GEMINI_API_KEY; // V: без ретрансляции клиентских ключей
   const { audio, lang = 'ru' } = req.body || {};
-  if (!audio) return res.status(400).json({ error: 'no audio' });
+  if (!audio) return res.status(400).json({ error: 'нет поля audio (base64 wav/webm) в теле запроса' });
   if (!key) return res.status(501).json({ error: 'no GEMINI_API_KEY on server' });
   try {
     const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();

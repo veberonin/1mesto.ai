@@ -115,6 +115,14 @@ function sanitizeSettings(next) {
       next.aiTimeoutMs = DEFAULTS.aiTimeoutMs;
     }
   }
+  if (
+    next.hotkey &&
+    next.hotkeyStyle &&
+    normalizeAccelerator(next.hotkey) === normalizeAccelerator(next.hotkeyStyle)
+  ) {
+    console.warn(`[settings] hotkeyStyle совпадает с главным хоткеем — вернул ${DEFAULTS.hotkeyStyle}`);
+    next.hotkeyStyle = DEFAULTS.hotkeyStyle;
+  }
   if (next.language !== undefined && !['ru', 'en', 'auto'].includes(next.language)) {
     next.language = 'ru';
   }
@@ -344,8 +352,15 @@ function registerHotkey() {
     // D-15: отдельная клавиша переключения профиля стиля
     if (s.hotkeyStyle) {
       const accStyle = toElectronAccelerator(normalizeAccelerator(s.hotkeyStyle));
-      if (accStyle && globalShortcut.register(accStyle, cycleStyleMode)) {
-        console.log(`Хоткей стиля: ${accStyle}`);
+      if (accStyle && accStyle !== acc) {
+        if (globalShortcut.register(accStyle, cycleStyleMode)) {
+          console.log(`Хоткей стиля: ${accStyle}`);
+        } else {
+          console.error(`Хоткей стиля ${accStyle} занят другой программой`);
+          if (dashboard && !dashboard.isDestroyed()) {
+            dashboard.webContents.send('flow:hotkey-conflict', accStyle); // D-05
+          }
+        }
       }
     }
   } catch (e) {
@@ -507,13 +522,23 @@ async function geminiOnce(bytes, lang, model, key) {
   return res;
 }
 
-async function transcribeGeminiBytes(bytes, lang, attempt = 0) {
+const ASR_MODELS = (process.env.GEMINI_MODEL || 'gemini-flash-latest,gemini-3.6-flash,gemini-3.7-flash')
+  .split(',')
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+/**
+ * Распознавание с фолбэк-цепочкой моделей: у облачных моделей квоты заканчиваются
+ * по одной (429) и модели отзываются (404) — пробуем следующую в списке, чтобы
+ * диктовка не падала, пока жива хоть одна модель (надёжность > одного провайдера).
+ */
+async function transcribeGeminiBytes(bytes, lang, attempt = 0, mi = 0) {
   const key = resolveGeminiKey();
   if (!key) return { error: 'no-key' };
   if (bytes.length > GEMINI_AUDIO_LIMIT) {
     return { error: 'запись длиннее ~15 минут — проговори короче или настрой whisper' };
   }
-  const model = (process.env.GEMINI_MODEL || 'gemini-flash-latest').split(',')[0].trim();
+  const model = ASR_MODELS[Math.min(mi, ASR_MODELS.length - 1)];
   let res;
   try {
     res = await geminiOnce(bytes, lang, model, key);
@@ -523,12 +548,27 @@ async function transcribeGeminiBytes(bytes, lang, attempt = 0) {
   // O-08: один повтор при лимите — новые ключи часто упираются в RPM
   if (res.status === 429 && attempt < 1) {
     await new Promise((r) => setTimeout(r, 4000));
-    return transcribeGeminiBytes(bytes, lang, attempt + 1);
+    return transcribeGeminiBytes(bytes, lang, attempt + 1, mi);
+  }
+  // 429 после повтора / 404 (модель отозвана) → следующая модель списка: у неё своя квота
+  const data0 = res.status === 429 || res.status === 404 ? await res.json().catch(() => ({})) : null;
+  const msg0 = data0?.error?.message || '';
+  const modelDead = res.status === 404 || (res.status === 429 && /quota.*model|model.*quota/i.test(msg0));
+  if ((res.status === 429 || modelDead) && mi + 1 < ASR_MODELS.length) {
+    console.warn(`[asr] модель ${model} недоступна (${res.status}) — фолбэк на ${ASR_MODELS[mi + 1]}`);
+    return transcribeGeminiBytes(bytes, lang, 0, mi + 1);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = data?.error?.message || '';
-    if (res.status === 429) return { error: 'лимит Gemini исчерпан (429) — попробуй через минуту' };
+    if (res.status === 429) {
+      return {
+        error:
+          ASR_MODELS.length > 1
+            ? 'лимит всех моделей Gemini исчерпан (429) — через минуту восстановится или настрой whisper'
+            : 'лимит Gemini исчерпан (429) — попробуй через минуту',
+      };
+    }
     if (res.status === 403 || res.status === 400) return { error: `ключ отклонён (${res.status})` };
     return { error: `Gemini ${res.status}: ${msg.slice(0, 110)}` };
   }

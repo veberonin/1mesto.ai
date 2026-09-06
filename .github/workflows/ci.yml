@@ -29,6 +29,8 @@ jobs:
         run: npm run format:check
       - name: Покрытие тестами (AN-06/AB-16)
         run: npm run coverage
+      - name: Аудит рантайм-зависимостей (AN-05): без high/critical
+        run: npm audit --omit=dev --audit-level=high
       - name: Публикуем отчёт покрытия артефактом (AB-16)
         uses: actions/upload-artifact@v4
         with:

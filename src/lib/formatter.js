@@ -705,6 +705,10 @@ export function formatText(raw, opts = {}) {
     restoreYo = false,
   } = opts;
 
+  // O-14: мусорный тип на входе (число/объект/null) не роняет форматтер
+  if (typeof raw !== 'string') {
+    raw = raw == null || Number.isNaN(raw) ? '' : String(raw);
+  }
   if (!raw || !raw.trim()) {
     return { text: '', meta: { removedFillers: 0, sentences: 0, mode, words: 0, dictHits: [] } };
   }
