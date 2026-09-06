@@ -324,6 +324,10 @@ describe('redesign: светлая система как в оригинале',
     const readme = readFileSync(join(process.cwd(), 'README.md'), 'utf8');
     assert.match(readme, /Проверка вслух/);
     assert.doesNotMatch(readme, /Демо RU\/EN/); // документация не опережает код (AC-03)
+    for (const doc of ['STAND_DEMO.md', 'JOURNAL_SCHEMA.md']) {
+      const d = readFileSync(join(process.cwd(), 'docs', doc), 'utf8');
+      assert.doesNotMatch(d, /Демо RU|демо-режим|Демо-режим/);
+    }
   });
 
   it('надёжность ASR: фолбэк-цепочка моделей Gemini (429/404 → следующая)', () => {
