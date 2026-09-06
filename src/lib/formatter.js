@@ -334,6 +334,13 @@ function normalizeTimeOfDay(text) {
     const hh = ((h - 1 + offset) % 24) + 1;
     return `${String(hh).padStart(2, '0')}:00`;
   });
+  // «3:00 дня» / «9:30 вечера» — модель отдала цифры с половиной суток
+  out = out.replace(/\b(\d{1,2}):(\d{2})\s+(дня|вечера)/gi, (m, hh, mm, part) => {
+    let h = Number(hh);
+    if (!Number.isFinite(h) || h < 1 || h > 12) return m;
+    if (part.toLowerCase() === 'дня' || part.toLowerCase() === 'вечера') h += 12;
+    return `${String(h % 24).padStart(2, '0')}:${mm}`;
+  });
   // «в девять утра» / «пять вечера» — без слова «час»
   out = out.replace(new RegExp(`(в )?(${numsAlt})\\s+(утра|вечера|дня|ночи)`, 'gi'), (m, v, numRaw, part) => {
     const h = numWord[numRaw.toLowerCase()];
@@ -343,6 +350,11 @@ function normalizeTimeOfDay(text) {
     return `${v || ''}${String(hh).padStart(2, '0')}:00`;
   });
   return out;
+}
+
+// ASR-выхлоп: «5.000 руб» — точка как группировка разрядов склеивается
+function normalizeDotGroups(text) {
+  return text.replace(/\b(\d{1,3})\.(\d{3})\b(?![\d])/g, '$1$2');
 }
 
 function normalizeDomainsEmailsPhones(text) {
@@ -833,6 +845,7 @@ export function formatText(raw, opts = {}) {
   text = removeFillers(text, pack).text; // F-20
   if (lang !== 'en' && normNums) {
     text = normalizeDates(text); // F-11: «пятое марта» → «5 марта» (до чисел: «двадцать пятое» не разбивать)
+    text = normalizeDotGroups(text); // ASR: «5.000» → «5000»
     text = normalizeTimeOfDay(text); // F-12: «три часа дня» → «15:00» (до чисел)
     text = normalizeNumbers(text); // F-10
   }

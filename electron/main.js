@@ -58,6 +58,7 @@ const DEFAULTS = {
   vadThreshold: 0.01, // E-04: порог VAD (амплитуда 0..1)
   triggerMode: 'toggle', // AM-01: toggle | hold
   insertDelayMs: 0, // AM-20: пауза перед вставкой (мс, 0..2000)
+  asrProvider: 'auto', // P-08: auto (Web Speech+резервы) | whisper (только офлайн) | gemini
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
   restoreYo: false, // Ё: восстановление «ё» (опция)
@@ -136,6 +137,13 @@ function sanitizeSettings(next) {
       console.warn(`[settings] insertDelayMs ${next.insertDelayMs} вне 0..2000 — вернул 0`);
       next.insertDelayMs = 0;
     }
+  }
+  if (
+    next.asrProvider !== undefined &&
+    !['auto', 'webspeech', 'whisper', 'gemini'].includes(next.asrProvider)
+  ) {
+    console.warn(`[settings] asrProvider «${next.asrProvider}» — вернул auto`);
+    next.asrProvider = 'auto';
   }
   if (next.triggerMode !== undefined && !['toggle', 'hold'].includes(next.triggerMode)) {
     console.warn(`[settings] triggerMode «${next.triggerMode}» — вернул toggle`);
@@ -645,6 +653,12 @@ async function transcribeGeminiBytes(bytes, lang, attempt = 0, mi = 0) {
       };
     }
     if (res.status === 403 || res.status === 400) return { error: `ключ отклонён (${res.status})` };
+    if (res.status >= 500) {
+      return {
+        error:
+          'модели Gemini перегружены (503) — облачный резерв временно занят; включи whisper в настройках для полного офлайна',
+      };
+    }
     return { error: `Gemini ${res.status}: ${msg.slice(0, 110)}` };
   }
   const out = (data?.candidates?.[0]?.content?.parts || [])
