@@ -578,7 +578,7 @@ ipcMain.handle('ai:format', async (_e, payload = {}) => {
 // Предустановленный whisper (extraResources, «фулл-офлайн из коробки»):
 // установщик уже содержит бинарь и модель — настройки юзера не обязательны
 function bundledBin() {
-  // В релизах b49xx main.exe — deprecated-заглушка (exit 1, «use whisper-cli»), не транскрибирует
+  // В релизах b49xx main.exe — deprecated-стаб (exit 1, «use whisper-cli»), не транскрибирует
   if (process.platform === 'win32')
     return path.join(process.resourcesPath || '', 'whisper', 'Release', 'whisper-cli.exe');
   if (process.platform === 'linux')
@@ -914,7 +914,7 @@ ipcMain.handle('asr:download-bin', async () => {
     if (fs.existsSync(fallback)) binPath = fallback;
     else throw new Error('бинарник не найден внутри архива');
   }
-  // whisper-cli вместо deprecated main.exe (заглушка exit 1 в свежих релизах)
+  // whisper-cli вместо deprecated main.exe (стаб exit 1 в свежих релизах)
   if (process.platform === 'win32') {
     const cli = path.join(path.dirname(binPath), 'whisper-cli.exe');
     if (fs.existsSync(cli)) binPath = cli;
