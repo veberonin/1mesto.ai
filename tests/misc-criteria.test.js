@@ -404,6 +404,37 @@ describe('ASR self-heal: мёртвый путь whisper не убивает д�
   });
 });
 
+describe('Титры-галлюцинации: Google вставляет титры фильмов на тишине/ТВ', async () => {
+  const { sanitizeTranscript } = await import('../src/lib/asr-guard.js');
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('паттерны титров вырезаются целиком (редактор субтитров, корректор, переводчик)', () => {
+    const cases = [
+      'Редактор субтитров Н.Закомолдина Корректор В.Сухиашвили',
+      'Редактор субтитров А.Синецкая Корректор А.Егорова',
+      'Переводчик М.Дубровин Ролик озвучки студии',
+      'Технический перерыв',
+    ];
+    for (const c of cases) {
+      const { text, hallucinated } = sanitizeTranscript(c);
+      assert.ok(!text || hallucinated, `должно срезаться: ${c} → "${text}"`);
+    }
+  });
+
+  it('нормальная речь с похожими словами не режется', () => {
+    const ok = sanitizeTranscript('корректор сдаёт отчёт в срок');
+    assert.equal(ok.text, 'корректор сдаёт отчёт в срок');
+    const ok2 = sanitizeTranscript('привет как дела созвонимся в пятницу');
+    assert.equal(ok2.text, 'привет как дела созвонимся в пятницу');
+  });
+
+  it('Web Speech финалы проходят через guard (единая точка фильтрации)', () => {
+    const sp = read('../src/lib/speech.js');
+    assert.match(sp, /sanitizeTranscript/);
+    assert.match(sp, /cleanPiece/);
+  });
+});
+
 describe('Whisper-фолбэк: карантин main.exe не убивает диктовку', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 

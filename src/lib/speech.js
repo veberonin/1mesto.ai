@@ -5,6 +5,8 @@
  * сессию распознавания при тишине — как настоящий Wispr Flow, мы её возобновляем).
  */
 
+import { sanitizeTranscript } from './asr-guard.js';
+
 export function isSpeechSupported() {
   return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
@@ -35,7 +37,10 @@ export class SpeechEngine {
         const res = event.results[i];
         if (res.isFinal) {
           const piece = res[0].transcript.trim();
-          if (piece) this.onFinal(piece);
+          // F-22 для Web Speech: Google галлюцинирует титры фильмов на тишине/
+          // фоновом ТВ — чистим тем же guard'ом, что и whisper/Gemini
+          const { text: cleanPiece } = sanitizeTranscript(piece);
+          if (cleanPiece) this.onFinal(cleanPiece);
         } else {
           interim += res[0].transcript;
         }
