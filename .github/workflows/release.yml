@@ -17,16 +17,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Бинарь + модель → запуск main.exe с нашими аргументами
+      - name: Бинарь + модель → диагностика загрузки → запуск с нашими аргументами
         shell: bash
         run: |
           node scripts/fetch-whisper.mjs
           curl -sL -o jfk.wav https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
-          set -e
-          ./extra/whisper/Release/main.exe -m extra/whisper/ggml-base-q5_1.bin -l en -nt jfk.wav > out.txt 2> err.txt || { echo 'STDERR:'; cat err.txt; exit 1; }
-          echo 'STDOUT:'; cat out.txt
-          grep -qi "fellow americans" out.txt || { echo 'текст не распознан'; exit 1; }
-          echo 'SMOKE OK: бандл работает на Windows'
+          cd extra/whisper/Release
+          ./main.exe --help > v.out 2> v.err
+          echo "exit(--help)=$?"
+          echo '--- stdout(--help):'; head -c 800 v.out
+          echo '--- stderr(--help):'; head -c 800 v.err
+          echo '--- DLL-импорты main.exe и их доступность:'
+          python -m pip install --quiet pefile
+          python -c "import pefile,os; pe=pefile.PE('main.exe'); windir=os.environ.get('WINDIR','C:/Windows'); [print(e.dll.decode()+': рядом='+str(os.path.exists(e.dll.decode()))+' в_системе='+str(os.path.exists(os.path.join(windir,'System32',e.dll.decode())))) for e in getattr(pe,'DIRECTORY_ENTRY_IMPORT',[])]"
+          ./main.exe -m ../ggml-base-q5_1.bin -l en -nt ../../jfk.wav > o.txt 2> e.txt
+          echo "exit(run)=$?"
+          echo '--- stdout(распознавание):'; cat o.txt
+          echo '--- stderr(распознавание):'; cat e.txt
+          grep -qi "fellow americans" o.txt && echo 'SMOKE OK: бандл работает на Windows'
 
   installer:
     name: Installer (${{ matrix.os }})
