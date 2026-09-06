@@ -36,6 +36,12 @@ describe('Server: валидация входа и безопасность от
     assert.match(srv(), /EADDRINUSE/);
   });
 
+  it('CORS: origin-список вместо открытого cors() (рекомендация прогон 14)', () => {
+    const s = srv();
+    assert.match(s, /CORS_ORIGINS/);
+    assert.match(s, /origin\(origin, cb\)/);
+  });
+
   it('V-09: интерфейс слушает только loopback (HOST env — явный оверрайд)', () => {
     assert.match(srv(), /process\.env\.HOST \|\| '127\.0\.0\.1'/);
   });

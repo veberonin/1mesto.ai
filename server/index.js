@@ -16,7 +16,24 @@ const app = express();
 // AN-08: простой query-парсер — убирает DoS-поверхность qs (вложенные скобки),
 // API работает на JSON-телах, сложные query нам не нужны
 app.set('query parser', 'simple');
-app.use(cors());
+// CORS-список источников (рекомендация организаторов, прогон 14):
+// по умолчанию только локальные дев-хосты и наш GitHub Pages; прочие origins
+// не получают CORS-заголовков. Расширяется env CORS_ORIGINS через запятую.
+const CORS_ORIGINS = (
+  process.env.CORS_ORIGINS ||
+  'http://localhost:5173,http://localhost:5000,http://127.0.0.1:5173,http://127.0.0.1:5000,https://veberonin.github.io'
+)
+  .split(',')
+  .map((x) => x.trim().replace(/\/$/, ''));
+app.use(
+  cors({
+    origin(origin, cb) {
+      // без Origin (desktop/curl/CLI) — пропускаем; чужой origin — без CORS-заголовков
+      if (!origin) return cb(null, true);
+      return cb(null, CORS_ORIGINS.includes(origin.replace(/\/$/, '')));
+    },
+  })
+);
 // V-08: если задан API_TOKEN — все методы кроме /api/health требуют Bearer-токен
 if (process.env.API_TOKEN) {
   app.use((req, res, next) => {
