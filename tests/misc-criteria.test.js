@@ -557,3 +557,24 @@ describe('Ввод букв (KEYEVENTF_UNICODE): вставка минуя Ctrl+
     assert.match(pill, /В буфере — жми Ctrl\+V/);
   });
 });
+
+describe('Юникод-ввод без NUL: числа вместо escape-литералов', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('WIN_TYPE_PS не содержит \\r/\\n/\\0 escape внутри C#-кода (они дают control-символы)', () => {
+    const src = readFileSync(new URL('../electron/paste.js', import.meta.url), 'utf8');
+    const m = src.match(/const WIN_TYPE_PS = `([\s\S]*?)`;/);
+    assert.ok(m, 'WIN_TYPE_PS найден');
+    const value = eval('`' + m[1] + '`'); // как его увидит Node
+    assert.ok(!value.includes('\0'), 'NUL в args недопустим');
+    assert.ok(!/'\r'|'\n'|'\0'/.test(value), 'C# char-литералы не должны собираться из escape');
+    assert.match(value, /c == 13/, 'CR числом');
+    assert.match(value, /c == 10/, 'LF числом');
+  });
+
+  it('баннер «у обоих» только когда оба способа упали', () => {
+    const st = read('../src/components/SettingsTab.jsx');
+    assert.match(st, /res\.every\(\(r\) => !r\.ok\)/);
+    assert.match(st, /res\.some\(\(r\) => r\.ok\)/);
+  });
+});

@@ -761,10 +761,18 @@ function InsertDiagCard() {
               {r.ok ? '✅' : '❌'} {r.name}: <span className="text-mute">{r.detail}</span>
             </div>
           ))}
-          <p className="text-[11px] text-mute">
-            ❌ у обоих? Целевое окно запущено от администратора (Windows блокирует ввод) — запусти его обычным
-            способом.
-          </p>
+          {res.length > 0 && res.every((r) => !r.ok) && (
+            <p className="text-[11px] text-mute">
+              ❌ у обоих? Целевое окно запущено от администратора (Windows блокирует ввод) — запусти его обычным
+              способом.
+            </p>
+          )}
+          {res.some((r) => r.ok) && (
+            <p className="text-[11px] text-mute">
+              ✅ живой способ будет использоваться автоматически при диктовке. Проверь, что маркеры появились в
+              Блокноте.
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -86,9 +86,16 @@ public static class FlowType {
     string t = System.IO.File.ReadAllText(path, Encoding.UTF8);
     var list = new System.Collections.Generic.List<INPUT>(t.Length * 2 + 8);
     foreach (char c in t) {
-      if (c == '\r') continue;
-      if (c == '\n') { list.Add(Key(0x0D, false)); list.Add(Key(0x0D, true)); continue; }
-      if (c == '\0') continue;
+      // CR=13, LF=10, NUL=0 — только числами: escape-последовательности в
+      // JS-шаблоннике превращаются в реальные control-символы (NUL в args,
+      // разрыв C#-литералов)
+      if (c == 13) continue;
+      if (c == 10) {
+        list.Add(Key(0x0D, false));
+        list.Add(Key(0x0D, true));
+        continue;
+      }
+      if (c == 0) continue;
       list.Add(Uni(c, 0x0004)); // KEYEVENTF_UNICODE
       list.Add(Uni(c, 0x0006)); // KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
     }
