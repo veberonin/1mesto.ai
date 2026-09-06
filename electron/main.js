@@ -18,7 +18,7 @@ import fs from 'fs';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 
-import { pickPasteCommand, pickTypeCommand } from './paste.js';
+import { pickPasteCommand, pickTypeCommand, pickWmPasteCommand } from './paste.js';
 import { aiFormat } from './ai.js';
 import { formatText } from '../src/lib/formatter.js';
 import { normalizeAccelerator, toElectronAccelerator, DEFAULT_HOTKEY } from '../src/lib/hotkey.js';
@@ -222,38 +222,45 @@ async function pasteIntoFocusedApp(toInsert = '') {
   const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
   if (!cmd) return { ok: true, method: 'clipboard-only' };
 
+  const fails = [];
+
+  // 1) Печать буквами (KEYEVENTF_UNICODE): блокируется антикейлоггерами — не приговор
   if (process.platform === 'win32' && toInsert && toInsert.length <= 1500) {
-    const typeCmd = pickTypeCommand('');
-    if (typeCmd) {
-      const typeFile = path.join(app.getPath('temp'), `flow-type-${Date.now()}.txt`);
+    const typeFile = path.join(app.getPath('temp'), `flow-type-${Date.now()}.txt`);
+    try {
+      fs.writeFileSync(typeFile, toInsert, 'utf8');
+      const { cmd: tcmd, args: targs, timeoutMs: ttimeout } = pickTypeCommand(typeFile);
+      const r = await execStep(tcmd, targs, ttimeout);
       try {
-        fs.writeFileSync(typeFile, toInsert, 'utf8');
-        const { cmd: tcmd, args: targs, timeoutMs: ttimeout } = pickTypeCommand(typeFile);
-        const r = await execStep(tcmd, targs, ttimeout);
-        try {
-          fs.unlinkSync(typeFile);
-        } catch {}
-        if (!r.err) return { ok: true, method: 'type' };
-        console.error('type-insert failed:', r.err.message, r.stderr);
-      } catch (e) {
-        console.error('type file failed:', e.message);
-        try {
-          fs.unlinkSync(typeFile);
-        } catch {}
-      }
-      // фолбэк: классический Ctrl+V
-      const v = await execStep(cmd, args, timeoutMs);
-      if (!v.err) return { ok: true, method: 'paste' };
-      console.error('ctrl-v failed:', v.err.message, v.stderr);
-      return { ok: true, method: 'clipboard-only', error: v.err.message || v.stderr };
+        fs.unlinkSync(typeFile);
+      } catch {}
+      if (!r.err) return { ok: true, method: 'type' };
+      fails.push(`печать: ${(r.stderr || r.err.message).slice(0, 120)}`);
+      console.error('type-insert failed:', r.err.message, r.stderr);
+    } catch (e) {
+      console.error('type file failed:', e.message);
+      try {
+        fs.unlinkSync(typeFile);
+      } catch {}
+    }
+
+    // 2) WM_PASTE — команда окну «возьми из буфера»: не имитация клавиш,
+    //    проходит там, где SendInput заблокирован
+    const w = pickWmPasteCommand();
+    if (w) {
+      const r = await execStep(w.cmd, w.args, w.timeoutMs);
+      if (!r.err) return { ok: true, method: 'wmpaste' };
+      fails.push(`WM_PASTE: ${(r.stderr || r.err.message).slice(0, 120)}`);
+      console.error('wm-paste failed:', r.err.message, r.stderr);
     }
   }
+
+  // 3) Ctrl+V (SendInput) — теперь честный: падает, если клавиши отклонены
   const v = await execStep(cmd, args, timeoutMs);
-  if (v.err) {
-    console.error('paste failed:', v.err.message);
-    return { ok: true, method: 'clipboard-only', error: v.err.message };
-  }
-  return { ok: true, method: 'paste' };
+  if (!v.err) return { ok: true, method: 'paste' };
+  fails.push(`Ctrl+V: ${(v.stderr || v.err.message).slice(0, 120)}`);
+  console.error('ctrl-v failed:', v.err.message, v.stderr);
+  return { ok: true, method: 'clipboard-only', error: fails.join(' · ') };
 }
 
 // ---------------------------------------------------------------------------
@@ -575,21 +582,35 @@ ipcMain.handle('paste:test', async () => {
     results.push({
       name: 'ввод букв (KEYEVENTF_UNICODE)',
       ok: !r.err,
-      detail: r.err ? `${r.err.message} ${r.stderr}` : 'команда выполнена',
+      detail: r.err ? `клавиши отклонены: ${(r.stderr || r.err.message).slice(0, 120)}` : 'команда выполнена',
     });
   } catch (e) {
     results.push({ name: 'ввод букв (KEYEVENTF_UNICODE)', ok: false, detail: e.message });
   }
-  await new Promise((r) => setTimeout(r, 2000));
-  // 2) Ctrl+V (буфер уже содержит маркер)
+  await new Promise((r) => setTimeout(r, 2500));
+  // 2) WM_PASTE — команда окну (не имитация клавиш)
+  try {
+    clipboard.writeText(`[2] команда окну ${stamp} OK?`);
+    const w = pickWmPasteCommand();
+    const r = await execStep(w.cmd, w.args, w.timeoutMs);
+    results.push({
+      name: 'команда окну (WM_PASTE)',
+      ok: !r.err,
+      detail: r.err ? `${(r.stderr || r.err.message).slice(0, 120)}` : 'команда выполнена',
+    });
+  } catch (e) {
+    results.push({ name: 'команда окну (WM_PASTE)', ok: false, detail: e.message });
+  }
+  await new Promise((r) => setTimeout(r, 2500));
+  // 3) Ctrl+V — теперь честный: SendInput проверяет доставку
   try {
     const { cmd, args, timeoutMs } = pickPasteCommand(process.platform);
-    clipboard.writeText(`[2] Ctrl+V ${stamp} OK?`);
+    clipboard.writeText(`[3] Ctrl+V ${stamp} OK?`);
     const v = await execStep(cmd, args, timeoutMs);
     results.push({
       name: 'Ctrl+V (SendInput)',
       ok: !v.err,
-      detail: v.err ? `${v.err.message} ${v.stderr}` : 'команда выполнена',
+      detail: v.err ? `${(v.stderr || v.err.message).slice(0, 120)}` : 'команда выполнена',
     });
   } catch (e) {
     results.push({ name: 'Ctrl+V (SendInput)', ok: false, detail: e.message });

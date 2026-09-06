@@ -55,13 +55,68 @@ public static class FlowKeys {
     a[1].type = 1; a[1].U.ki.wVk = 0x56;
     a[2].type = 1; a[2].U.ki.wVk = 0x56; a[2].U.ki.dwFlags = 2;
     a[3].type = 1; a[3].U.ki.wVk = 0x11; a[3].U.ki.dwFlags = 2;
-    SendInput(4, a, Marshal.SizeOf(typeof(INPUT)));
+    uint sent = SendInput(4, a, Marshal.SizeOf(typeof(INPUT)));
+    if (sent != 4) throw new Exception("SendInput отклонил клавиши (" + sent + "/4) — имитация ввода заблокирована");
   }
 }
 '@
 Add-Type -TypeDefinition $sig -Language CSharp
 [FlowKeys]::CtrlV()
 `;
+
+// ВСТАВКА КОМАНДОЙ ОКНА (WM_PASTE = 0x0302): не имитация клавиш, а сообщение
+// сфокусированному контролу целевого приложения «возьми из буфера». Антикеyлоггеры
+// и UIPI блокируют SendInput, но оконные сообщения — нет. Наш путь для машин,
+// где имитация ввода запрещена (насквозь детерминированный).
+const WIN_WMPASTE_PS = `
+$sig = @'
+using System;
+using System.Runtime.InteropServices;
+public static class FlowPaste {
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+  [StructLayout(LayoutKind.Sequential)] public struct GUITHREADINFO {
+    public uint cbSize; public uint flags; public IntPtr hwndActive; public IntPtr hwndFocus;
+    public IntPtr hwndCapture; public IntPtr hwndMenuOwner; public IntPtr hwndMoveSize;
+    public IntPtr hwndCaret; public RECT rcCaret;
+  }
+  [DllImport("user32.dll")] public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll", SetLastError=true)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr w, IntPtr l, uint flags, uint timeout, out UIntPtr result);
+  public static void Paste() {
+    GUITHREADINFO g = new GUITHREADINFO();
+    g.cbSize = (uint)Marshal.SizeOf(typeof(GUITHREADINFO));
+    IntPtr target = IntPtr.Zero;
+    if (GetGUIThreadInfo(0, ref g) && g.hwndFocus != IntPtr.Zero) target = g.hwndFocus;
+    else target = GetForegroundWindow();
+    if (target == IntPtr.Zero) throw new Exception("нет активного окна");
+    UIntPtr res;
+    IntPtr ok = SendMessageTimeout(target, 0x0302, UIntPtr.Zero, IntPtr.Zero, 2, 1000, out res);
+    if (ok == IntPtr.Zero) throw new Exception("окно не ответило на WM_PASTE (занято/заблокировано)");
+  }
+}
+'@
+Add-Type -TypeDefinition $sig -Language CSharp
+[FlowPaste]::Paste()
+`;
+
+/** Команда «вставь из буфера» в сфокусированный контрол активного окна */
+export function pickWmPasteCommand() {
+  if (process.platform !== 'win32') return null;
+  return {
+    cmd: 'powershell.exe',
+    args: [
+      '-NoProfile',
+      '-NonInteractive',
+      '-WindowStyle',
+      'Hidden',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      WIN_WMPASTE_PS,
+    ],
+    timeoutMs: 8000,
+  };
+}
 
 // ВВОД БУКВ (KEYEVENTF_UNICODE): текст «печатается» в активное окно напрямую,
 // минуя буфер и Ctrl+V. Работает там, где клавиатурная инъекция Ctrl+V глушится

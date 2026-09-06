@@ -558,6 +558,38 @@ describe('Ввод букв (KEYEVENTF_UNICODE): вставка минуя Ctrl+
   });
 });
 
+describe('WM_PASTE: вставка командой окну минуя имитацию клавиш', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('paste.js: FlowPaste.GetGUIThreadInfo -> hwndFocus -> WM_PASTE (0x0302)', () => {
+    const pj = read('../electron/paste.js');
+    assert.match(pj, /pickWmPasteCommand/);
+    assert.match(pj, /GetGUIThreadInfo/);
+    assert.match(pj, /hwndFocus/);
+    assert.match(pj, /0x0302/, 'WM_PASTE');
+    assert.match(pj, /SendMessageTimeout/);
+  });
+
+  it('Ctrl+V честный: бросает, если SendInput отклонил клавиши', () => {
+    const pj = read('../electron/paste.js');
+    assert.match(pj, /SendInput отклонил клавиши/);
+    assert.match(pj, /uint sent = SendInput\(4, a/);
+  });
+
+  it('main: цепочка type → wmpaste → paste; paste:test из 3 маркеров', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /method: 'wmpaste'/);
+    assert.match(mj, /pickWmPasteCommand/);
+    assert.match(mj, /команда окну \(WM_PASTE\)/);
+    assert.match(mj, /\[3\] Ctrl\+V/);
+  });
+
+  it('тост пилюли для wmpaste', () => {
+    const pill = read('../src/components/PillWindow.jsx');
+    assert.match(pill, /Вставлено ✓ \(командой окну\)/);
+  });
+});
+
 describe('Юникод-ввод без NUL: числа вместо escape-литералов', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
