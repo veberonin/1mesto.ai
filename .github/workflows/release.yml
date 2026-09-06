@@ -21,7 +21,9 @@ jobs:
         shell: bash
         run: |
           node scripts/fetch-whisper.mjs
-          curl -sL -o jfk.wav https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
+          curl -fL --retry 5 --retry-delay 3 -o jfk.wav https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/samples/jfk.wav
+          head -c 4 jfk.wav | grep -q RIFF || { echo 'jfk.wav битый (rate-limit?)'; exit 1; }
+          ls -la jfk.wav
           set +e  # диагностика не должна умирать молча: печатаем ВСЕ коды выхода
           cd extra/whisper/Release
           ls -la
