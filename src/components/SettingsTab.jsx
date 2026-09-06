@@ -506,6 +506,13 @@ function DictCard({ settings, onChange, onToast }) {
 /* ------------------------------------------------------------------ */
 /* Локальное распознавание (whisper.cpp)                               */
 /* ------------------------------------------------------------------ */
+/** Человеческое сообщение об ошибке: без IPC-префиксов и «TypeError: fetch failed» */
+const humanErr = (e) => {
+  const msg = String((e && e.message) || e || '').replace(/^Error invoking remote method '[^']+':\s*/, '');
+  return /fetch failed|network|ECONN|ENOTFOUND|ETIMEDOUT|EAI_AGAIN/i.test(msg)
+    ? 'сеть недоступна — проверь интернет/VPN и повтори (или скачай вручную по ссылке ниже)'
+    : msg;
+};
 function AsrCard({ settings, onChange, onToast }) {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -625,7 +632,7 @@ function AsrCard({ settings, onChange, onToast }) {
                 );
                 refresh();
               } catch (e) {
-                onToast('Ошибка загрузки: ' + (e.message || 'сеть'), 'error');
+                onToast('Не удалось скачать модель: ' + humanErr(e), 'error');
               } finally {
                 setBusy(false);
               }
@@ -640,17 +647,27 @@ function AsrCard({ settings, onChange, onToast }) {
           <button
             onClick={async () => {
               setBusy(true);
-              onToast('Скачиваю whisper.cpp ~21 МБ с официального релиза…', 'info');
+              onToast(
+                info?.whisperBin
+                  ? 'Проверяю установленный whisper…'
+                  : 'Скачиваю whisper.cpp ~21 МБ с официального релиза…',
+                'info'
+              );
               try {
                 const r = await desktopAPI.downloadBin();
                 if (r && r.ok) {
-                  onToast('whisper установлен, SHA-256 сходится ✓ Полностью офлайн', 'success');
+                  onToast(
+                    r.existing
+                      ? 'whisper уже установлен ✓ — можно диктовать'
+                      : 'whisper установлен, SHA-256 сходится ✓ Полностью офлайн',
+                    'success'
+                  );
                   refresh();
                 } else {
                   onToast(r?.reason || 'Для этой ОС: brew install whisper-cpp', 'info');
                 }
               } catch (e) {
-                onToast('Ошибка: ' + (e.message || 'сеть'), 'error');
+                onToast('Не удалось установить whisper: ' + humanErr(e), 'error');
               } finally {
                 setBusy(false);
               }
@@ -658,7 +675,7 @@ function AsrCard({ settings, onChange, onToast }) {
             disabled={busy}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12.5px] font-bold border border-line bg-card hover:border-accent disabled:opacity-60"
           >
-            Установить whisper в 1 клик (~21 МБ)
+            {info?.whisperBin ? 'whisper установлен ✓ — проверить' : 'Установить whisper в 1 клик (~21 МБ)'}
           </button>
           <span className="text-[11px] text-mute">
             проверяется по SHA-256 ·{' '}

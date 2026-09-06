@@ -748,6 +748,30 @@ ipcMain.handle('asr:download-model', async () => {
   return { ok: true, path: dest, sha256: hash };
 });
 
+// Скачивание с ретраями: домашний интернет рвёт соединение — 2 повторы спасают
+async function fetchAsset(url, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return res;
+      if (res.status >= 500 && i < tries - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      throw new Error(`GitHub ${res.status} — попробуй позже или скачай вручную по ссылке`);
+    } catch (e) {
+      if (/^GitHub \d/.test(e.message)) throw e; // 4xx/5xx — не сетевой сбой, ретрай бессмыслен
+      if (i < tries - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      throw new Error(
+        'сеть недоступна — проверь интернет/VPN и нажми ещё раз (или скачай вручную по ссылке)'
+      );
+    }
+  }
+}
+
 ipcMain.handle('asr:download-bin', async () => {
   // «Вставка из коробки как у лучшего конкурента, но легально»: официальный
   // прекомпилированный whisper.cpp в 1 клик — без сборки и ручных путей.
@@ -760,9 +784,21 @@ ipcMain.handle('asr:download-bin', async () => {
   }
   const binDir = path.join(app.getPath('userData'), 'bin', 'whisper');
   fs.mkdirSync(binDir, { recursive: true });
+  // Уже установлен? Не ходим в сеть вовсе (повторное нажатие кнопки — не ошибка)
+  const fallbackPath = path.join(binDir, process.platform === 'win32' ? 'main.exe' : 'whisper-cli');
+  const innerPath = path.join(binDir, meta.inner);
+  const present = fs.existsSync(innerPath) ? innerPath : fs.existsSync(fallbackPath) ? fallbackPath : '';
+  if (present) {
+    if (process.platform !== 'win32') {
+      try {
+        fs.chmodSync(present, 0o755);
+      } catch {}
+    }
+    if (readSettings().whisperBin !== present) writeSettings({ whisperBin: present });
+    return { ok: true, existing: true, path: present };
+  }
   const archive = path.join(binDir, meta.asset);
-  const res = await fetch(meta.url);
-  if (!res.ok) throw new Error(`GitHub ${res.status}`);
+  const res = await fetchAsset(meta.url);
   const buf = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(archive, buf);
   const hash = await sha256File(archive);

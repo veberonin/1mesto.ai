@@ -329,3 +329,21 @@ describe('UX: предупреждение о ненастроенном рас�
     assert.match(mj, /Установить whisper в 1 клик» — или вставь ключ Gemini/);
   });
 });
+
+describe('A-08+: one-click устойчив к сети и повторным нажатиям', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('main: уже установленный whisper не требует сети (existing) + ретраи скачивания', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /existing: true/, 'повторное нажатие — без скачивания');
+    assert.match(mj, /fetchAsset/, 'ретраи сети');
+    assert.match(mj, /сеть недоступна/, 'человеческое сообщение вместо TypeError');
+  });
+
+  it('настройки: кнопка показывает «whisper установлен ✓», ошибки человекочитаемы', () => {
+    const st = read('../src/components/SettingsTab.jsx');
+    assert.match(st, /humanErr/);
+    assert.match(st, /whisper установлен ✓ — проверить/);
+    assert.match(st, /whisper уже установлен ✓ — можно диктовать/);
+  });
+});
