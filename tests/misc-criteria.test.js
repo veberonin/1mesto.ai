@@ -171,3 +171,91 @@ describe('AM-04/D-10/AM-01: первый символ, короткие репл
     assert.match(app, /< 200/);
   });
 });
+
+describe('Батч дня 2: трей, микрофон, замеры, доки', () => {
+  it('B-11: трей в трёх состояниях без мигания (idle/recording/processing)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /setTrayState/);
+    assert.match(mj, /processing/);
+    assert.match(mj, /картинку не дёргаем/); // AM-11
+  });
+
+  it('C-16: шумоподавление — настройка + constraint getUserMedia', async () => {
+    const { readFileSync } = await import('node:fs');
+    const rec = readFileSync(new URL('../src/lib/recorder.js', import.meta.url), 'utf8');
+    assert.match(rec, /noiseSuppression/);
+    const st = readFileSync(new URL('../src/components/SettingsTab.jsx', import.meta.url), 'utf8');
+    assert.match(st, /Шумоподавление/);
+  });
+
+  it('C-01..C-06: MicCard — список, выбор, devicechange', async () => {
+    const { readFileSync } = await import('node:fs');
+    const mic = readFileSync(new URL('../src/components/MicCard.jsx', import.meta.url), 'utf8');
+    assert.match(mic, /enumerateDevices/);
+    assert.match(mic, /devicechange/);
+    assert.match(mic, /micDeviceId/);
+  });
+
+  it('AL-09: средний wpm по приложениям в сводке', async () => {
+    globalThis.localStorage = globalThis.localStorage || {};
+    const { addUtterance, clearJournal, journalSummary } = await import('../src/lib/journal.js');
+    clearJournal();
+    addUtterance({
+      text: 'тест',
+      words: 5,
+      wpm: 100,
+      durSec: 3,
+      app: 'telegram',
+      mode: 'clean',
+      lang: 'ru',
+      source: 'local',
+      latencies: {},
+      dictHits: [],
+      fillersRemoved: 0,
+    });
+    addUtterance({
+      text: 'тест два',
+      words: 5,
+      wpm: 140,
+      durSec: 3,
+      app: 'telegram',
+      mode: 'clean',
+      lang: 'ru',
+      source: 'local',
+      latencies: {},
+      dictHits: [],
+      fillersRemoved: 0,
+    });
+    const s = journalSummary();
+    assert.equal(s.wpmByApp.telegram.avgWpm, 120);
+    assert.equal(s.wpmByApp.telegram.count, 2);
+  });
+
+  it('AM-20: пауза перед вставкой задаётся настройкой', async () => {
+    const { readFileSync } = await import('node:fs');
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /insertDelayMs/);
+    const rd = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+    assert.match(rd, /insertDelayMs/);
+  });
+
+  it('Z-07/Z-09/AE-10: THIRD-PARTY и UNIQUENESS в репозитории', async () => {
+    const { readFileSync, existsSync } = await import('node:fs');
+    assert.ok(existsSync(new URL('../docs/THIRD-PARTY-NOTICES.md', import.meta.url)));
+    assert.match(
+      readFileSync(new URL('../docs/THIRD-PARTY-NOTICES.md', import.meta.url), 'utf8'),
+      /Third-party notices/
+    );
+    assert.ok(existsSync(new URL('../UNIQUENESS.md', import.meta.url)));
+    assert.match(readFileSync(new URL('../UNIQUENESS.md', import.meta.url), 'utf8'), /AE-06/);
+  });
+
+  it('W-10/T-16: чекер локально одной командой (npm run check)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    assert.ok(pkg.scripts.check, 'npm run check');
+    const rd = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+    assert.match(rd, /Прогон чекера локально/);
+  });
+});

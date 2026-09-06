@@ -1,0 +1,748 @@
+<!-- Сгенерировано scripts/third-party.mjs — не править руками -->
+# Third-party notices
+
+Зависимостей: 726. Сводка лицензий:
+
+- MIT: 567
+- ISC: 99
+- Apache-2.0: 19
+- BSD-3-Clause: 12
+- BSD-2-Clause: 11
+- BlueOak-1.0.0: 9
+- (MIT OR CC0-1.0): 2
+- Python-2.0: 1
+- CC-BY-4.0: 1
+- WTFPL OR ISC: 1
+- UNKNOWN: 1
+- WTFPL: 1
+- 0BSD: 1
+- (WTFPL OR MIT): 1
+
+## Полный перечень
+
+- **@alloc/quick-lru@5.3.0** — MIT
+- **@babel/code-frame@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-code-frame
+- **@babel/compat-data@7.29.7** — MIT
+- **@babel/core@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-core
+- **@babel/generator@7.29.8** — MIT · https://babel.dev/docs/en/next/babel-generator
+- **@babel/helper-compilation-targets@7.29.7** — MIT
+- **@babel/helper-globals@7.29.7** — MIT
+- **@babel/helper-module-imports@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-helper-module-imports
+- **@babel/helper-module-transforms@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-helper-module-transforms
+- **@babel/helper-plugin-utils@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-helper-plugin-utils
+- **@babel/helper-string-parser@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-helper-string-parser
+- **@babel/helper-validator-identifier@7.29.7** — MIT
+- **@babel/helper-validator-option@7.29.7** — MIT
+- **@babel/helpers@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-helpers
+- **@babel/parser@7.29.8** — MIT · https://babel.dev/docs/en/next/babel-parser
+- **@babel/plugin-transform-react-jsx-self@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-plugin-transform-react-jsx-self
+- **@babel/plugin-transform-react-jsx-source@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-plugin-transform-react-jsx-source
+- **@babel/runtime@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-runtime
+- **@babel/template@7.29.7** — MIT · https://babel.dev/docs/en/next/babel-template
+- **@babel/traverse@7.29.8** — MIT · https://babel.dev/docs/en/next/babel-traverse
+- **@babel/types@7.29.8** — MIT · https://babel.dev/docs/en/next/babel-types
+- **@bcoe/v8-coverage@0.2.3** — MIT · https://demurgos.github.io/v8-coverage
+- **@develar/schema-utils@2.6.5** — MIT · https://github.com/webpack/schema-utils
+- **@electron/asar@3.4.1** — MIT · https://github.com/electron/asar
+- **@electron/get@2.0.3** — MIT
+- **@electron/notarize@2.5.0** — MIT · https://github.com/electron/notarize#readme
+- **@electron/osx-sign@1.3.1** — BSD-2-Clause · https://github.com/electron/osx-sign
+- **@electron/rebuild@3.6.1** — MIT · https://github.com/electron/rebuild
+- **@electron/universal@2.0.1** — MIT
+- **@esbuild/linux-x64@0.21.5** — MIT
+- **@eslint-community/eslint-utils@4.10.1** — MIT · https://github.com/eslint-community/eslint-utils#readme
+- **@eslint-community/regexpp@4.12.2** — MIT · https://github.com/eslint-community/regexpp#readme
+- **@eslint/eslintrc@2.1.4** — MIT · https://github.com/eslint/eslintrc#readme
+- **@eslint/js@8.57.1** — MIT · https://eslint.org
+- **@gar/promisify@1.1.3** — MIT
+- **@humanwhocodes/config-array@0.13.0** — Apache-2.0 · https://github.com/humanwhocodes/config-array#readme
+- **@humanwhocodes/module-importer@1.0.1** — Apache-2.0
+- **@humanwhocodes/object-schema@2.0.3** — BSD-3-Clause · https://github.com/humanwhocodes/object-schema#readme
+- **@isaacs/cliui@8.0.2** — ISC
+- **@istanbuljs/schema@0.1.6** — MIT · https://github.com/istanbuljs/schema#readme
+- **@jest/schemas@29.6.3** — MIT
+- **@jridgewell/gen-mapping@0.3.13** — MIT · https://github.com/jridgewell/sourcemaps/tree/main/packages/gen-mapping
+- **@jridgewell/remapping@2.3.5** — MIT · https://github.com/jridgewell/sourcemaps/tree/main/packages/remapping
+- **@jridgewell/resolve-uri@3.1.2** — MIT
+- **@jridgewell/sourcemap-codec@1.6.0** — MIT · https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec
+- **@jridgewell/trace-mapping@0.3.31** — MIT · https://github.com/jridgewell/sourcemaps/tree/main/packages/trace-mapping
+- **@malept/cross-spawn-promise@2.0.0** — Apache-2.0
+- **@malept/flatpak-bundler@0.4.0** — MIT · https://github.com/malept/flatpak-bundler#readme
+- **@nodelib/fs.scandir@2.1.5** — MIT
+- **@nodelib/fs.stat@2.0.5** — MIT
+- **@nodelib/fs.walk@1.2.8** — MIT
+- **@npmcli/fs@2.1.2** — ISC
+- **@npmcli/move-file@2.0.1** — MIT
+- **@pkgjs/parseargs@0.11.0** — MIT · https://github.com/pkgjs/parseargs#readme
+- **@rolldown/pluginutils@1.0.0-beta.27** — MIT
+- **@rollup/rollup-linux-x64-gnu@4.63.1** — MIT · https://rollupjs.org/
+- **@rollup/rollup-linux-x64-musl@4.63.1** — MIT · https://rollupjs.org/
+- **@sinclair/typebox@0.27.12** — MIT
+- **@sindresorhus/is@4.6.0** — MIT
+- **@szmarczak/http-timer@4.0.6** — MIT · https://github.com/szmarczak/http-timer#readme
+- **@tootallnate/once@2.0.1** — MIT
+- **@types/babel__core@7.20.5** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/babel__core
+- **@types/babel__generator@7.27.0** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/babel__generator
+- **@types/babel__template@7.4.4** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/babel__template
+- **@types/babel__traverse@7.28.0** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/babel__traverse
+- **@types/cacheable-request@6.0.3** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/cacheable-request
+- **@types/debug@4.1.13** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/debug
+- **@types/estree@1.0.9** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/estree
+- **@types/fs-extra@9.0.13** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fs-extra
+- **@types/http-cache-semantics@4.2.0** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-cache-semantics
+- **@types/istanbul-lib-coverage@2.0.6** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/istanbul-lib-coverage
+- **@types/keyv@3.1.4** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/keyv
+- **@types/ms@2.1.0** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/ms
+- **@types/node@20.19.43** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node
+- **@types/prop-types@15.7.15** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/prop-types
+- **@types/react@18.3.31** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react
+- **@types/react-dom@18.3.7** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom
+- **@types/responselike@1.0.3** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/responselike
+- **@types/yauzl@2.10.3** — MIT · https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/yauzl
+- **@ungap/structured-clone@1.4.0** — ISC · https://github.com/ungap/structured-clone#readme
+- **@vitejs/plugin-react@4.7.0** — MIT · https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#readme
+- **@vitest/expect@1.6.1** — MIT · https://github.com/vitest-dev/vitest/tree/main/packages/expect#readme
+- **@vitest/runner@1.6.1** — MIT · https://github.com/vitest-dev/vitest/tree/main/packages/runner#readme
+- **@vitest/snapshot@1.6.1** — MIT · https://github.com/vitest-dev/vitest/tree/main/packages/snapshot#readme
+- **@vitest/spy@1.6.1** — MIT · https://github.com/vitest-dev/vitest/tree/main/packages/spy#readme
+- **@vitest/utils@1.6.1** — MIT · https://github.com/vitest-dev/vitest/tree/main/packages/utils#readme
+- **@xmldom/xmldom@0.9.12** — MIT · https://github.com/xmldom/xmldom
+- **7zip-bin@5.2.0** — MIT
+- **abbrev@1.1.1** — ISC
+- **accepts@1.3.8** — MIT
+- **acorn@8.18.0** — MIT · https://github.com/acornjs/acorn
+- **acorn-jsx@5.3.2** — MIT · https://github.com/acornjs/acorn-jsx
+- **acorn-walk@8.3.5** — MIT · https://github.com/acornjs/acorn
+- **agent-base@7.1.4** — MIT
+- **agent-base@6.0.2** — MIT
+- **agent-base@6.0.2** — MIT
+- **agentkeepalive@4.6.0** — MIT
+- **aggregate-error@3.1.0** — MIT
+- **ajv@6.15.0** — MIT · https://github.com/ajv-validator/ajv
+- **ajv-keywords@3.5.2** — MIT · https://github.com/epoberezkin/ajv-keywords#readme
+- **ansi-regex@6.3.0** — MIT
+- **ansi-regex@5.0.1** — MIT
+- **ansi-styles@6.2.3** — MIT
+- **ansi-styles@4.3.0** — MIT
+- **ansi-styles@5.2.0** — MIT
+- **any-promise@1.3.0** — MIT · http://github.com/kevinbeaty/any-promise
+- **anymatch@3.1.3** — ISC · https://github.com/micromatch/anymatch
+- **app-builder-bin@5.0.0-alpha.10** — MIT
+- **app-builder-lib@25.1.8** — MIT · https://github.com/electron-userland/electron-builder
+- **aproba@2.1.0** — ISC · https://github.com/iarna/aproba
+- **archiver@5.3.2** — MIT · https://github.com/archiverjs/node-archiver
+- **archiver-utils@2.1.0** — MIT · https://github.com/archiverjs/archiver-utils#readme
+- **archiver-utils@3.0.4** — MIT · https://github.com/archiverjs/archiver-utils#readme
+- **are-we-there-yet@3.0.1** — ISC · https://github.com/npm/are-we-there-yet
+- **arg@5.0.2** — MIT
+- **argparse@2.0.1** — Python-2.0
+- **array-flatten@1.1.1** — MIT · https://github.com/blakeembrey/array-flatten
+- **assertion-error@1.1.0** — MIT
+- **async@3.2.6** — MIT · https://caolan.github.io/async/
+- **async-exit-hook@2.0.1** — MIT
+- **asynckit@0.4.0** — MIT · https://github.com/alexindigo/asynckit#readme
+- **at-least-node@1.0.0** — ISC · https://github.com/RyanZim/at-least-node#readme
+- **autoprefixer@10.5.5** — MIT
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@4.0.4** — MIT
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **balanced-match@1.0.2** — MIT · https://github.com/juliangruber/balanced-match
+- **base64-js@1.5.1** — MIT · https://github.com/beatgammit/base64-js
+- **baseline-browser-mapping@2.11.21** — Apache-2.0
+- **binary-extensions@2.3.0** — MIT
+- **bl@4.1.0** — MIT · https://github.com/rvagg/bl
+- **bluebird@3.7.2** — MIT · https://github.com/petkaantonov/bluebird
+- **bluebird-lst@1.0.9** — MIT · https://github.com/develar/fs-extra-p
+- **body-parser@1.20.6** — MIT
+- **boolean@3.2.0** — MIT
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@5.0.9** — MIT
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@1.1.18** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **brace-expansion@2.1.4** — MIT · https://github.com/juliangruber/brace-expansion
+- **braces@3.0.3** — MIT · https://github.com/micromatch/braces
+- **browserslist@4.28.9** — MIT
+- **buffer@5.7.1** — MIT · https://github.com/feross/buffer
+- **buffer-crc32@0.2.13** — MIT · https://github.com/brianloveswords/buffer-crc32
+- **buffer-from@1.1.2** — MIT
+- **builder-util@25.1.7** — MIT · https://github.com/electron-userland/electron-builder
+- **builder-util-runtime@9.2.10** — MIT · https://github.com/electron-userland/electron-builder
+- **bytes@3.1.2** — MIT
+- **c8@10.1.2** — ISC
+- **cac@6.7.14** — MIT
+- **cacache@16.1.3** — ISC
+- **cacheable-lookup@5.0.4** — MIT · https://github.com/szmarczak/cacheable-lookup#readme
+- **cacheable-request@7.0.4** — MIT
+- **call-bind-apply-helpers@1.0.2** — MIT · https://github.com/ljharb/call-bind-apply-helpers#readme
+- **call-bound@1.0.4** — MIT · https://github.com/ljharb/call-bound#readme
+- **callsites@3.1.0** — MIT
+- **camelcase-css@2.0.1** — MIT
+- **caniuse-lite@1.0.30001810** — CC-BY-4.0
+- **chai@4.5.0** — MIT · http://chaijs.com
+- **chalk@4.1.2** — MIT
+- **check-error@1.0.3** — MIT
+- **chokidar@3.6.0** — MIT · https://github.com/paulmillr/chokidar
+- **chownr@2.0.0** — ISC
+- **chromium-pickle-js@0.2.0** — MIT
+- **ci-info@3.9.0** — MIT · https://github.com/watson/ci-info
+- **clean-stack@2.2.0** — MIT
+- **cli-cursor@3.1.0** — MIT
+- **cli-spinners@2.9.2** — MIT
+- **cliui@8.0.1** — ISC
+- **clone@1.0.4** — MIT
+- **clone-response@1.0.3** — MIT
+- **color-convert@2.0.1** — MIT
+- **color-name@1.1.4** — MIT · https://github.com/colorjs/color-name
+- **color-support@1.1.3** — ISC
+- **combined-stream@1.0.8** — MIT · https://github.com/felixge/node-combined-stream
+- **commander@5.1.0** — MIT
+- **commander@4.1.1** — MIT
+- **compare-version@0.1.2** — MIT
+- **compress-commons@4.1.2** — MIT · https://github.com/archiverjs/node-compress-commons
+- **concat-map@0.0.1** — MIT
+- **concurrently@8.2.2** — MIT
+- **confbox@0.1.8** — MIT
+- **config-file-ts@0.2.8-rc1** — MIT
+- **console-control-strings@1.1.0** — ISC
+- **content-disposition@0.5.4** — MIT
+- **content-type@1.0.5** — MIT
+- **convert-source-map@2.0.0** — MIT · https://github.com/thlorenz/convert-source-map
+- **cookie@0.7.2** — MIT
+- **cookie-signature@1.0.7** — MIT
+- **core-util-is@1.0.2** — MIT
+- **cors@2.8.6** — MIT
+- **crc-32@1.2.2** — Apache-2.0 · https://sheetjs.com/
+- **crc32-stream@4.0.3** — MIT · https://github.com/archiverjs/node-crc32-stream
+- **cross-spawn@7.0.6** — MIT · https://github.com/moxystudio/node-cross-spawn
+- **cssesc@3.0.0** — MIT · https://mths.be/cssesc
+- **csstype@3.2.3** — MIT
+- **date-fns@2.30.0** — MIT
+- **debug@2.6.9** — MIT
+- **debug@4.4.3** — MIT
+- **debug@2.6.9** — MIT
+- **debug@2.6.9** — MIT
+- **debug@2.6.9** — MIT
+- **decompress-response@6.0.0** — MIT
+- **deep-eql@4.1.4** — MIT
+- **deep-is@0.1.4** — MIT
+- **defaults@1.0.4** — MIT
+- **defer-to-connect@2.0.1** — MIT · https://github.com/szmarczak/defer-to-connect#readme
+- **define-data-property@1.1.4** — MIT · https://github.com/ljharb/define-data-property#readme
+- **define-properties@1.2.1** — MIT
+- **delayed-stream@1.0.0** — MIT · https://github.com/felixge/node-delayed-stream
+- **delegates@1.0.0** — MIT
+- **depd@2.0.0** — MIT
+- **destroy@1.2.0** — MIT
+- **detect-libc@2.1.2** — Apache-2.0
+- **detect-node@2.1.0** — MIT · https://github.com/iliakan/detect-node
+- **didyoumean@1.2.2** — Apache-2.0 · https://github.com/dcporter/didyoumean.js
+- **diff-sequences@29.6.3** — MIT
+- **dir-compare@4.2.0** — MIT
+- **dlv@1.1.3** — MIT
+- **dmg-builder@25.1.8** — MIT · https://github.com/electron-userland/electron-builder
+- **doctrine@3.0.0** — Apache-2.0 · https://github.com/eslint/doctrine
+- **dotenv@16.6.1** — BSD-2-Clause · https://github.com/motdotla/dotenv#readme
+- **dotenv-expand@11.0.7** — BSD-2-Clause
+- **dunder-proto@1.0.1** — MIT · https://github.com/es-shims/dunder-proto#readme
+- **eastasianwidth@0.2.0** — MIT
+- **ee-first@1.1.1** — MIT
+- **ejs@3.1.10** — Apache-2.0 · https://github.com/mde/ejs
+- **electron@31.7.7** — MIT
+- **electron-builder@25.1.8** — MIT · https://github.com/electron-userland/electron-builder
+- **electron-builder-squirrel-windows@25.1.8** — MIT · https://github.com/electron-userland/electron-builder
+- **electron-publish@25.1.7** — MIT · https://github.com/electron-userland/electron-builder
+- **electron-to-chromium@1.5.422** — ISC
+- **emoji-regex@9.2.2** — MIT · https://mths.be/emoji-regex
+- **emoji-regex@8.0.0** — MIT · https://mths.be/emoji-regex
+- **encodeurl@2.0.0** — MIT
+- **encoding@0.1.13** — MIT
+- **end-of-stream@1.4.5** — MIT · https://github.com/mafintosh/end-of-stream
+- **env-paths@2.2.1** — MIT
+- **err-code@2.0.3** — MIT
+- **es-define-property@1.0.1** — MIT · https://github.com/ljharb/es-define-property#readme
+- **es-errors@1.3.0** — MIT · https://github.com/ljharb/es-errors#readme
+- **es-object-atoms@1.1.2** — MIT · https://github.com/ljharb/es-object-atoms#readme
+- **es-set-tostringtag@2.1.0** — MIT · https://github.com/es-shims/es-set-tostringtag#readme
+- **es6-error@4.1.1** — MIT · https://github.com/bjyoungblood/es6-error
+- **esbuild@0.21.5** — MIT
+- **escalade@3.2.0** — MIT
+- **escape-html@1.0.3** — MIT
+- **escape-string-regexp@4.0.0** — MIT
+- **eslint@8.57.1** — MIT · https://eslint.org
+- **eslint-scope@7.2.2** — BSD-2-Clause · http://github.com/eslint/eslint-scope
+- **eslint-visitor-keys@3.4.3** — Apache-2.0 · https://github.com/eslint/eslint-visitor-keys#readme
+- **espree@9.6.1** — BSD-2-Clause · https://github.com/eslint/espree
+- **esquery@1.7.0** — BSD-3-Clause · https://github.com/estools/esquery/
+- **esrecurse@4.3.0** — BSD-2-Clause · https://github.com/estools/esrecurse
+- **estraverse@5.3.0** — BSD-2-Clause · https://github.com/estools/estraverse
+- **estree-walker@3.0.3** — MIT
+- **esutils@2.0.3** — BSD-2-Clause · https://github.com/estools/esutils
+- **etag@1.8.1** — MIT
+- **execa@8.0.1** — MIT
+- **exponential-backoff@3.1.3** — Apache-2.0 · https://github.com/coveooss/exponential-backoff#readme
+- **express@4.22.2** — MIT · http://expressjs.com/
+- **extract-zip@2.0.1** — BSD-2-Clause
+- **fast-deep-equal@3.1.3** — MIT · https://github.com/epoberezkin/fast-deep-equal#readme
+- **fast-glob@3.3.3** — MIT
+- **fast-json-stable-stringify@2.1.0** — MIT · https://github.com/epoberezkin/fast-json-stable-stringify
+- **fast-levenshtein@2.0.6** — MIT
+- **fastq@1.20.3** — ISC · https://github.com/mcollina/fastq#readme
+- **fd-slicer@1.1.0** — MIT
+- **fdir@6.5.0** — MIT · https://github.com/thecodrr/fdir#readme
+- **file-entry-cache@6.0.1** — MIT
+- **filelist@1.0.6** — Apache-2.0 · https://github.com/mde/filelist
+- **fill-range@7.1.1** — MIT · https://github.com/jonschlinkert/fill-range
+- **finalhandler@1.3.2** — MIT
+- **find-up@5.0.0** — MIT
+- **flat-cache@3.2.0** — MIT
+- **flatted@3.4.4** — ISC · https://github.com/WebReflection/flatted#readme
+- **foreground-child@3.3.1** — ISC
+- **form-data@4.0.6** — MIT
+- **forwarded@0.2.0** — MIT
+- **fraction.js@5.3.4** — MIT · https://raw.org/article/rational-numbers-in-javascript/
+- **fresh@0.5.2** — MIT
+- **fs-constants@1.0.0** — MIT · https://github.com/mafintosh/fs-constants
+- **fs-extra@9.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@11.4.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@9.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@8.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-extra@10.1.0** — MIT · https://github.com/jprichardson/node-fs-extra
+- **fs-minipass@2.1.0** — ISC · https://github.com/npm/fs-minipass#readme
+- **fs.realpath@1.0.0** — ISC
+- **function-bind@1.1.2** — MIT · https://github.com/Raynos/function-bind
+- **gauge@4.0.4** — ISC · https://github.com/npm/gauge
+- **gensync@1.0.0-beta.2** — MIT · https://github.com/loganfsmyth/gensync
+- **get-caller-file@2.0.5** — ISC · https://github.com/stefanpenner/get-caller-file#readme
+- **get-func-name@2.0.2** — MIT
+- **get-intrinsic@1.3.0** — MIT · https://github.com/ljharb/get-intrinsic#readme
+- **get-proto@1.0.1** — MIT · https://github.com/ljharb/get-proto#readme
+- **get-stream@8.0.1** — MIT
+- **get-stream@5.2.0** — MIT
+- **glob@8.1.0** — ISC
+- **glob@10.5.0** — ISC
+- **glob@7.2.3** — ISC
+- **glob@10.5.0** — ISC
+- **glob-parent@5.1.2** — ISC
+- **glob-parent@5.1.2** — ISC
+- **glob-parent@6.0.2** — ISC
+- **global-agent@3.0.0** — BSD-3-Clause
+- **globals@13.24.0** — MIT
+- **globalthis@1.0.4** — MIT
+- **gopd@1.2.0** — MIT · https://github.com/ljharb/gopd#readme
+- **got@11.8.6** — MIT
+- **graceful-fs@4.2.11** — ISC
+- **graphemer@1.4.0** — MIT · https://github.com/flmnt/graphemer
+- **has-flag@4.0.0** — MIT
+- **has-property-descriptors@1.0.2** — MIT · https://github.com/inspect-js/has-property-descriptors#readme
+- **has-symbols@1.1.0** — MIT · https://github.com/ljharb/has-symbols#readme
+- **has-tostringtag@1.0.2** — MIT · https://github.com/inspect-js/has-tostringtag#readme
+- **has-unicode@2.0.1** — ISC · https://github.com/iarna/has-unicode
+- **hasown@2.0.4** — MIT · https://github.com/inspect-js/hasOwn#readme
+- **hosted-git-info@4.1.0** — ISC · https://github.com/npm/hosted-git-info
+- **html-escaper@2.0.2** — MIT · https://github.com/WebReflection/html-escaper
+- **http-cache-semantics@4.2.0** — BSD-2-Clause
+- **http-errors@2.0.1** — MIT
+- **http-proxy-agent@7.0.2** — MIT
+- **http-proxy-agent@5.0.0** — MIT
+- **http2-wrapper@1.0.3** — MIT · https://github.com/szmarczak/http2-wrapper#readme
+- **https-proxy-agent@7.0.6** — MIT
+- **https-proxy-agent@5.0.1** — MIT
+- **human-signals@5.0.0** — Apache-2.0 · https://www.github.com/ehmicky/human-signals
+- **humanize-ms@1.2.1** — MIT
+- **iconv-lite@0.6.3** — MIT · https://github.com/ashtuchkin/iconv-lite
+- **iconv-lite@0.6.3** — MIT · https://github.com/ashtuchkin/iconv-lite
+- **iconv-lite@0.4.24** — MIT · https://github.com/ashtuchkin/iconv-lite
+- **ieee754@1.2.1** — BSD-3-Clause
+- **ignore@5.3.2** — MIT
+- **import-fresh@3.3.1** — MIT
+- **imurmurhash@0.1.4** — MIT · https://github.com/jensyt/imurmurhash-js
+- **indent-string@4.0.0** — MIT
+- **infer-owner@1.0.4** — ISC
+- **inflight@1.0.6** — ISC · https://github.com/isaacs/inflight
+- **inherits@2.0.4** — ISC
+- **ip-address@10.7.0** — MIT
+- **ipaddr.js@1.9.1** — MIT
+- **is-binary-path@2.1.0** — MIT
+- **is-ci@3.0.1** — MIT · https://github.com/watson/is-ci
+- **is-core-module@2.16.2** — MIT · https://github.com/inspect-js/is-core-module
+- **is-extglob@2.1.1** — MIT · https://github.com/jonschlinkert/is-extglob
+- **is-fullwidth-code-point@3.0.0** — MIT
+- **is-glob@4.0.3** — MIT · https://github.com/micromatch/is-glob
+- **is-interactive@1.0.0** — MIT
+- **is-lambda@1.0.1** — MIT · https://github.com/watson/is-lambda
+- **is-number@7.0.0** — MIT · https://github.com/jonschlinkert/is-number
+- **is-path-inside@3.0.3** — MIT
+- **is-stream@3.0.0** — MIT
+- **is-unicode-supported@0.1.0** — MIT
+- **isarray@1.0.0** — MIT · https://github.com/juliangruber/isarray
+- **isbinaryfile@4.0.10** — MIT
+- **isbinaryfile@5.0.7** — MIT
+- **isexe@2.0.0** — ISC · https://github.com/isaacs/isexe#readme
+- **istanbul-lib-coverage@3.2.2** — BSD-3-Clause · https://istanbul.js.org/
+- **istanbul-lib-report@3.0.1** — BSD-3-Clause · https://istanbul.js.org/
+- **istanbul-reports@3.2.0** — BSD-3-Clause · https://istanbul.js.org/
+- **jackspeak@3.4.3** — BlueOak-1.0.0
+- **jake@10.9.4** — Apache-2.0
+- **jiti@1.21.7** — MIT
+- **js-tokens@4.0.0** — MIT
+- **js-tokens@9.0.1** — MIT
+- **js-yaml@4.3.2** — MIT
+- **jsesc@3.1.0** — MIT · https://mths.be/jsesc
+- **json-buffer@3.0.1** — MIT · https://github.com/dominictarr/json-buffer
+- **json-schema-traverse@0.4.1** — MIT · https://github.com/epoberezkin/json-schema-traverse#readme
+- **json-stable-stringify-without-jsonify@1.0.1** — MIT · https://github.com/samn/json-stable-stringify
+- **json-stringify-safe@5.0.1** — ISC · https://github.com/isaacs/json-stringify-safe
+- **json5@2.2.3** — MIT · http://json5.org/
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@6.2.1** — MIT
+- **jsonfile@4.0.0** — MIT
+- **jsonfile@6.2.1** — MIT
+- **keyv@4.5.4** — MIT · https://github.com/jaredwray/keyv
+- **lazy-val@1.0.5** — MIT · https://github.com/develar/lazy-val
+- **lazystream@1.0.1** — MIT · https://github.com/jpommerening/node-lazystream
+- **levn@0.4.1** — MIT · https://github.com/gkz/levn
+- **lilconfig@3.1.3** — MIT
+- **lines-and-columns@1.2.4** — MIT · https://github.com/eventualbuddha/lines-and-columns#readme
+- **local-pkg@0.5.1** — MIT · https://github.com/antfu/local-pkg#readme
+- **locate-path@6.0.0** — MIT
+- **lodash@4.18.1** — MIT · https://lodash.com/
+- **lodash.defaults@4.2.0** — MIT · https://lodash.com/
+- **lodash.difference@4.5.0** — MIT · https://lodash.com/
+- **lodash.flatten@4.4.0** — MIT · https://lodash.com/
+- **lodash.isplainobject@4.0.6** — MIT · https://lodash.com/
+- **lodash.merge@4.6.2** — MIT · https://lodash.com/
+- **lodash.union@4.6.0** — MIT · https://lodash.com/
+- **log-symbols@4.1.0** — MIT
+- **loose-envify@1.4.0** — MIT · https://github.com/zertosh/loose-envify
+- **loupe@2.3.7** — MIT · https://github.com/chaijs/loupe
+- **lowercase-keys@2.0.0** — MIT
+- **lru-cache@7.18.3** — ISC
+- **lru-cache@6.0.0** — ISC
+- **lru-cache@5.1.1** — ISC
+- **lru-cache@7.18.3** — ISC
+- **lru-cache@10.4.3** — ISC
+- **lucide-react@0.363.0** — ISC · https://lucide.dev
+- **magic-string@0.30.21** — MIT
+- **make-dir@4.0.0** — MIT
+- **make-fetch-happen@10.2.1** — ISC
+- **matcher@3.0.0** — MIT
+- **math-intrinsics@1.1.0** — MIT · https://github.com/es-shims/math-intrinsics#readme
+- **media-typer@0.3.0** — MIT
+- **merge-descriptors@1.0.3** — MIT
+- **merge-stream@2.0.0** — MIT
+- **merge2@1.4.1** — MIT · https://github.com/teambition/merge2
+- **methods@1.1.2** — MIT
+- **micromatch@4.0.8** — MIT · https://github.com/micromatch/micromatch
+- **mime@2.6.0** — MIT
+- **mime@1.6.0** — MIT
+- **mime-db@1.52.0** — MIT
+- **mime-types@2.1.35** — MIT
+- **mimic-fn@4.0.0** — MIT
+- **mimic-fn@2.1.0** — MIT
+- **mimic-response@3.1.0** — MIT
+- **mimic-response@1.0.1** — MIT
+- **minimatch@3.1.5** — ISC
+- **minimatch@9.0.9** — ISC
+- **minimatch@3.1.5** — ISC
+- **minimatch@3.1.5** — ISC
+- **minimatch@5.1.9** — ISC
+- **minimatch@9.0.9** — ISC
+- **minimatch@3.1.5** — ISC
+- **minimatch@3.1.5** — ISC
+- **minimatch@5.1.9** — ISC
+- **minimatch@3.1.5** — ISC
+- **minimatch@10.2.6** — BlueOak-1.0.0
+- **minimatch@5.1.9** — ISC
+- **minimatch@9.0.9** — ISC
+- **minimist@1.2.8** — MIT · https://github.com/minimistjs/minimist
+- **minipass@7.1.3** — BlueOak-1.0.0
+- **minipass@3.3.6** — ISC
+- **minipass@7.1.3** — BlueOak-1.0.0
+- **minipass@5.0.0** — ISC
+- **minipass@7.1.3** — BlueOak-1.0.0
+- **minipass-collect@1.0.2** — ISC
+- **minipass-fetch@2.1.2** — MIT
+- **minipass-flush@1.0.7** — BlueOak-1.0.0
+- **minipass-pipeline@1.2.4** — ISC
+- **minipass-sized@1.0.3** — ISC
+- **minizlib@2.1.2** — MIT
+- **mkdirp@1.0.4** — MIT
+- **mlly@1.8.2** — MIT
+- **ms@2.0.0** — MIT
+- **ms@2.0.0** — MIT
+- **ms@2.0.0** — MIT
+- **ms@2.1.3** — MIT
+- **ms@2.0.0** — MIT
+- **mz@2.7.0** — MIT
+- **nanoid@3.3.18** — MIT
+- **natural-compare@1.4.0** — MIT
+- **negotiator@0.6.3** — MIT
+- **node-abi@3.96.0** — MIT · https://github.com/electron/node-abi#readme
+- **node-api-version@0.2.1** — MIT
+- **node-gyp@9.4.1** — MIT
+- **node-releases@2.0.54** — MIT
+- **nopt@6.0.0** — ISC
+- **normalize-path@3.0.0** — MIT · https://github.com/jonschlinkert/normalize-path
+- **normalize-url@6.1.0** — MIT
+- **npm-run-path@5.3.0** — MIT
+- **npmlog@6.0.2** — ISC
+- **object-assign@4.1.1** — MIT
+- **object-hash@3.0.0** — MIT · https://github.com/puleos/object-hash
+- **object-inspect@1.13.4** — MIT · https://github.com/inspect-js/object-inspect
+- **object-keys@1.1.1** — MIT
+- **on-finished@2.4.1** — MIT
+- **once@1.4.0** — ISC
+- **onetime@6.0.0** — MIT
+- **onetime@5.1.2** — MIT
+- **optionator@0.9.4** — MIT · https://github.com/gkz/optionator
+- **ora@5.4.1** — MIT
+- **p-cancelable@2.1.1** — MIT
+- **p-limit@5.0.0** — MIT
+- **p-limit@3.1.0** — MIT
+- **p-locate@5.0.0** — MIT
+- **p-map@4.0.0** — MIT
+- **package-json-from-dist@1.0.1** — BlueOak-1.0.0
+- **parent-module@1.0.1** — MIT
+- **parseurl@1.3.3** — MIT
+- **path-exists@4.0.0** — MIT
+- **path-is-absolute@1.0.1** — MIT
+- **path-key@4.0.0** — MIT
+- **path-key@3.1.1** — MIT
+- **path-parse@1.0.7** — MIT · https://github.com/jbgutierrez/path-parse#readme
+- **path-scurry@1.11.1** — BlueOak-1.0.0
+- **path-to-regexp@0.1.13** — MIT
+- **pathe@2.0.3** — MIT
+- **pathe@1.1.2** — MIT
+- **pathe@2.0.3** — MIT
+- **pathval@1.1.1** — MIT · https://github.com/chaijs/pathval
+- **pe-library@0.4.1** — MIT · https://github.com/jet2jet/pe-library-js
+- **pend@1.2.0** — MIT
+- **picocolors@1.1.1** — ISC
+- **picomatch@2.3.2** — MIT · https://github.com/micromatch/picomatch
+- **picomatch@4.0.7** — MIT · https://github.com/micromatch/picomatch
+- **pirates@4.0.7** — MIT · https://github.com/danez/pirates#readme
+- **pkg-types@1.3.1** — MIT
+- **plist@3.1.1** — MIT
+- **postcss@8.5.28** — MIT · https://postcss.org/
+- **postcss-import@15.1.0** — MIT
+- **postcss-js@4.1.0** — MIT
+- **postcss-load-config@6.0.1** — MIT
+- **postcss-nested@6.2.0** — MIT
+- **postcss-selector-parser@6.1.4** — MIT · https://github.com/postcss/postcss-selector-parser
+- **postcss-value-parser@4.2.0** — MIT · https://github.com/TrySound/postcss-value-parser
+- **prelude-ls@1.2.1** — MIT · http://preludels.com
+- **prettier@3.3.3** — MIT · https://prettier.io
+- **pretty-format@29.7.0** — MIT
+- **process-nextick-args@2.0.1** — MIT · https://github.com/calvinmetcalf/process-nextick-args
+- **progress@2.0.3** — MIT
+- **promise-inflight@1.0.1** — ISC · https://github.com/iarna/promise-inflight#readme
+- **promise-retry@2.0.1** — MIT
+- **proxy-addr@2.0.7** — MIT
+- **pump@3.0.4** — MIT
+- **punycode@2.3.1** — MIT · https://mths.be/punycode
+- **qs@6.15.3** — BSD-3-Clause · https://github.com/ljharb/qs
+- **queue-microtask@1.2.3** — MIT · https://github.com/feross/queue-microtask
+- **quick-lru@5.1.1** — MIT
+- **range-parser@1.2.1** — MIT
+- **raw-body@2.5.3** — MIT
+- **react@18.3.1** — MIT · https://reactjs.org/
+- **react-dom@18.3.1** — MIT · https://reactjs.org/
+- **react-is@18.3.1** — MIT · https://reactjs.org/
+- **react-refresh@0.17.0** — MIT · https://react.dev/
+- **read-binary-file-arch@1.0.6** — MIT · https://github.com/samuelmaddock/read-binary-file-arch#readme
+- **read-cache@1.0.2** — MIT · https://github.com/TrySound/read-cache#readme
+- **readable-stream@2.3.8** — MIT
+- **readable-stream@2.3.8** — MIT
+- **readable-stream@3.6.2** — MIT
+- **readdir-glob@1.1.3** — Apache-2.0 · https://github.com/Yqnn/node-readdir-glob
+- **readdirp@3.6.0** — MIT · https://github.com/paulmillr/readdirp
+- **require-directory@2.1.1** — MIT · https://github.com/troygoode/node-require-directory/
+- **resedit@1.7.2** — MIT · https://github.com/jet2jet/resedit-js
+- **resolve@1.22.12** — MIT
+- **resolve-alpn@1.2.1** — MIT · https://github.com/szmarczak/resolve-alpn#readme
+- **resolve-from@4.0.0** — MIT
+- **responselike@2.0.1** — MIT
+- **restore-cursor@3.1.0** — MIT
+- **retry@0.12.0** — MIT · https://github.com/tim-kos/node-retry
+- **reusify@1.1.0** — MIT · https://github.com/mcollina/reusify#readme
+- **rimraf@3.0.2** — ISC
+- **roarr@2.15.4** — BSD-3-Clause
+- **rollup@4.63.1** — MIT · https://rollupjs.org/
+- **run-parallel@1.2.0** — MIT · https://github.com/feross/run-parallel
+- **rxjs@7.8.2** — Apache-2.0 · https://rxjs.dev
+- **safe-buffer@5.1.2** — MIT · https://github.com/feross/safe-buffer
+- **safe-buffer@5.1.2** — MIT · https://github.com/feross/safe-buffer
+- **safe-buffer@5.2.1** — MIT · https://github.com/feross/safe-buffer
+- **safer-buffer@2.1.2** — MIT
+- **sanitize-filename@1.6.4** — WTFPL OR ISC
+- **sax@1.6.1** — BlueOak-1.0.0
+- **scheduler@0.23.2** — MIT · https://reactjs.org/
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@7.8.5** — ISC
+- **semver@6.3.1** — ISC
+- **semver@7.8.5** — ISC
+- **semver-compare@1.0.0** — MIT · https://github.com/substack/semver-compare
+- **send@0.19.2** — MIT
+- **serialize-error@7.0.1** — MIT
+- **serve-static@1.16.3** — MIT
+- **set-blocking@2.0.0** — ISC · https://github.com/yargs/set-blocking#readme
+- **setprototypeof@1.2.0** — ISC · https://github.com/wesleytodd/setprototypeof
+- **shebang-command@2.0.0** — MIT
+- **shebang-regex@3.0.0** — MIT
+- **shell-quote@1.10.0** — MIT · https://github.com/ljharb/shell-quote
+- **side-channel@1.1.1** — MIT · https://github.com/ljharb/side-channel#readme
+- **side-channel-list@1.0.1** — MIT · https://github.com/ljharb/side-channel-list#readme
+- **side-channel-map@1.0.1** — MIT · https://github.com/ljharb/side-channel-map#readme
+- **side-channel-weakmap@1.0.2** — MIT · https://github.com/ljharb/side-channel-weakmap#readme
+- **siginfo@2.0.0** — ISC · https://github.com/emilbayes/siginfo#readme
+- **signal-exit@4.1.0** — ISC
+- **signal-exit@4.1.0** — ISC
+- **signal-exit@3.0.7** — ISC · https://github.com/tapjs/signal-exit
+- **simple-update-notifier@2.0.0** — MIT · https://github.com/alexbrazier/simple-update-notifier.git
+- **smart-buffer@4.2.0** — MIT · https://github.com/JoshGlazebrook/smart-buffer/
+- **socks@2.8.10** — MIT · https://github.com/JoshGlazebrook/socks/
+- **socks-proxy-agent@7.0.0** — MIT · https://github.com/TooTallNate/node-socks-proxy-agent#readme
+- **source-map@0.6.1** — BSD-3-Clause · https://github.com/mozilla/source-map
+- **source-map-js@1.2.1** — BSD-3-Clause · https://github.com/7rulnik/source-map-js
+- **source-map-support@0.5.21** — MIT
+- **spawn-command@0.0.2** — UNKNOWN
+- **sprintf-js@1.1.3** — BSD-3-Clause
+- **ssri@9.0.1** — ISC
+- **stackback@0.0.2** — MIT
+- **stat-mode@1.0.0** — MIT · https://github.com/TooTallNate/stat-mode
+- **statuses@2.0.2** — MIT
+- **std-env@3.10.0** — MIT
+- **string_decoder@1.1.1** — MIT · https://github.com/nodejs/string_decoder
+- **string_decoder@1.1.1** — MIT · https://github.com/nodejs/string_decoder
+- **string_decoder@1.3.0** — MIT · https://github.com/nodejs/string_decoder
+- **string-width@5.1.2** — MIT
+- **string-width@4.2.3** — MIT
+- **string-width@4.2.3** — MIT
+- **strip-ansi@7.2.0** — MIT
+- **strip-ansi@6.0.1** — MIT
+- **strip-ansi@6.0.1** — MIT
+- **strip-final-newline@3.0.0** — MIT
+- **strip-json-comments@3.1.1** — MIT
+- **strip-literal@2.1.1** — MIT · https://github.com/antfu/strip-literal#readme
+- **sucrase@3.35.1** — MIT
+- **sumchecker@3.0.1** — Apache-2.0 · https://github.com/malept/sumchecker#readme
+- **supports-color@7.2.0** — MIT
+- **supports-color@7.2.0** — MIT
+- **supports-color@8.1.1** — MIT
+- **supports-preserve-symlinks-flag@1.0.0** — MIT · https://github.com/inspect-js/node-supports-preserve-symlinks-flag#readme
+- **tailwindcss@3.4.19** — MIT · https://tailwindcss.com
+- **tar@6.2.1** — ISC
+- **tar-stream@2.2.0** — MIT · https://github.com/mafintosh/tar-stream
+- **temp-file@3.4.0** — MIT · https://github.com/develar/temp-file
+- **test-exclude@7.0.2** — ISC · https://istanbul.js.org/
+- **text-table@0.2.0** — MIT · https://github.com/substack/text-table
+- **thenify@3.3.1** — MIT
+- **thenify-all@1.6.0** — MIT
+- **tinybench@2.9.0** — MIT
+- **tinyglobby@0.2.17** — MIT · https://superchupu.dev/tinyglobby
+- **tinypool@0.8.4** — MIT · https://github.com/tinylibs/tinypool#readme
+- **tinyspy@2.2.1** — MIT · https://github.com/tinylibs/tinyspy#readme
+- **tmp@0.2.7** — MIT · http://github.com/raszi/node-tmp
+- **tmp-promise@3.0.3** — MIT
+- **to-regex-range@5.0.1** — MIT · https://github.com/micromatch/to-regex-range
+- **toidentifier@1.0.1** — MIT
+- **tree-kill@1.2.2** — MIT · https://github.com/pkrumins/node-tree-kill
+- **truncate-utf8-bytes@1.0.2** — WTFPL · https://github.com/parshap/truncate-utf8-bytes#readme
+- **ts-interface-checker@0.1.13** — Apache-2.0
+- **tslib@2.8.1** — 0BSD · https://www.typescriptlang.org/
+- **type-check@0.4.0** — MIT · https://github.com/gkz/type-check
+- **type-detect@4.1.0** — MIT
+- **type-fest@0.20.2** — (MIT OR CC0-1.0)
+- **type-fest@0.13.1** — (MIT OR CC0-1.0)
+- **type-is@1.6.18** — MIT
+- **typescript@5.9.3** — Apache-2.0 · https://www.typescriptlang.org/
+- **ufo@1.6.4** — MIT
+- **undici-types@6.21.0** — MIT · https://undici.nodejs.org
+- **unique-filename@2.0.1** — ISC · https://github.com/iarna/unique-filename
+- **unique-slug@3.0.0** — ISC
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@2.0.1** — MIT · https://github.com/RyanZim/universalify#readme
+- **universalify@0.1.2** — MIT · https://github.com/RyanZim/universalify#readme
+- **unpipe@1.0.0** — MIT
+- **update-browserslist-db@1.3.2** — MIT
+- **uri-js@4.4.1** — BSD-2-Clause · https://github.com/garycourt/uri-js
+- **utf8-byte-length@1.0.5** — (WTFPL OR MIT) · https://github.com/parshap/utf8-byte-length#readme
+- **util-deprecate@1.0.2** — MIT · https://github.com/TooTallNate/util-deprecate
+- **utils-merge@1.0.1** — MIT
+- **v8-to-istanbul@9.3.0** — ISC
+- **vary@1.1.2** — MIT
+- **vite@5.4.21** — MIT · https://vite.dev
+- **vite-node@1.6.1** — MIT · https://github.com/vitest-dev/vitest/blob/main/packages/vite-node#readme
+- **vitest@1.6.1** — MIT · https://github.com/vitest-dev/vitest#readme
+- **wcwidth@1.0.1** — MIT · https://github.com/timoxley/wcwidth#readme
+- **which@2.0.2** — ISC
+- **why-is-node-running@2.3.0** — MIT · https://github.com/mafintosh/why-is-node-running
+- **wide-align@1.1.5** — ISC
+- **word-wrap@1.2.5** — MIT · https://github.com/jonschlinkert/word-wrap
+- **wrap-ansi@8.1.0** — MIT
+- **wrap-ansi@7.0.0** — MIT
+- **wrap-ansi@7.0.0** — MIT
+- **wrappy@1.0.2** — ISC · https://github.com/npm/wrappy
+- **xmlbuilder@15.1.1** — MIT · http://github.com/oozcitak/xmlbuilder-js
+- **y18n@5.0.8** — ISC · https://github.com/yargs/y18n
+- **yallist@4.0.0** — ISC
+- **yallist@4.0.0** — ISC
+- **yallist@4.0.0** — ISC
+- **yallist@4.0.0** — ISC
+- **yallist@3.1.1** — ISC
+- **yargs@17.7.3** — MIT · https://yargs.js.org/
+- **yargs-parser@21.1.1** — ISC
+- **yauzl@2.10.0** — MIT · https://github.com/thejoshwolfe/yauzl
+- **yocto-queue@1.2.2** — MIT
+- **yocto-queue@0.1.0** — MIT
+- **zip-stream@4.1.1** — MIT · https://github.com/archiverjs/node-zip-stream

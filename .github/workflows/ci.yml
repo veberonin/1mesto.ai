@@ -31,6 +31,15 @@ jobs:
         run: npm run coverage
       - name: Аудит рантайм-зависимостей без high и critical (AN-05)
         run: npm audit --omit=dev --audit-level=high
+      - name: Перечень лицензий зависимостей воспроизводится (Z-07)
+        run: node scripts/third-party.mjs && git diff --exit-code docs/THIRD-PARTY-NOTICES.md
+      - name: SBOM CycloneDX артефактом (Z-06)
+        run: npm run sbom
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 7
       - name: Публикуем отчёт покрытия артефактом (AB-16)
         uses: actions/upload-artifact@v4
         with:
