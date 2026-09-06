@@ -618,6 +618,53 @@ ipcMain.handle('paste:test', async () => {
   return results;
 });
 
+// АУДИОФАЙЛ → ТЕКСТ («голос в текст из файла»): лекция/войс/интервью →
+// whisper (локально, офлайн) → при недоступности — Gemini. Результат строкой.
+ipcMain.handle('audio:transcribe-file', async (_e, filePath, lang = 'ru') => {
+  try {
+    const st = fs.statSync(filePath);
+    if (!st.isFile()) return { error: 'это не файл' };
+    if (st.size > GEMINI_AUDIO_LIMIT) {
+      return { error: 'файл больше ~18 МБ — отрежь кусок или возьми покороче' };
+    }
+    const s = readSettings();
+    const model = firstAlive([
+      s.whisperModel,
+      process.env.WHISPER_MODEL,
+      bundledModel(),
+      defaultModelPath(),
+    ]);
+    if (model) {
+      const args = ['-m', model, '-nt', filePath];
+      if (lang && lang !== 'auto') args.splice(2, 0, '-l', lang);
+      const bins = aliveWhisperBins();
+      for (const bin of bins) {
+        const r = await new Promise((resolve) => {
+          execFile(bin, args, { timeout: 600000, windowsHide: true }, (err, stdout) => {
+            if (err) return resolve({ err });
+            const rawText = String(stdout || '')
+              .split('\n')
+              .filter((l) => l.trim() && !/^\s*\[|^\s*system_info|whisper_/i.test(l))
+              .join(' ')
+              .trim();
+            const clean = sanitizeTranscript(rawText);
+            resolve({ text: clean.text });
+          });
+        });
+        if (r.text) return { text: r.text, source: 'whisper' };
+        if (r.err) console.error(`file-whisper(${path.basename(bin)}) failed:`, r.err.message);
+      }
+    }
+    // фолбэк: Gemini принимает mp3/wav/m4a напрямую
+    const bytes = new Uint8Array(fs.readFileSync(filePath));
+    const g = await transcribeGeminiBytes(bytes, lang);
+    if (g && g.text) return { text: g.text, source: 'gemini' };
+    return { error: (g && g.error) || 'распознаватель недоступен — настрой whisper или Gemini' };
+  } catch (e) {
+    return { error: e.message || 'сбой обработки файла' };
+  }
+});
+
 ipcMain.handle('ai:format', async (_e, payload = {}) => {
   const s = readSettings();
   const { text = '', mode = s.mode, language = s.language } = payload;

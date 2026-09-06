@@ -18,6 +18,7 @@ export const desktopAPI =
         saveSettings: noop,
         insertText: noop,
         pasteTest: async () => [],
+        transcribeFile: async () => null,
         aiFormat: noop,
         hidePill: noop,
         onCommand: noop,

@@ -610,3 +610,32 @@ describe('Юникод-ввод без NUL: числа вместо escape-ли�
     assert.match(st, /res\.some\(\(r\) => r\.ok\)/);
   });
 });
+
+describe('Аудио в текст: файл → текст (лекция/войс/интервью)', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('main: audio:transcribe-file (whisper → Gemini фолбэк, лимит 18МБ)', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /audio:transcribe-file/);
+    assert.match(mj, /файл больше ~18 МБ/);
+    assert.match(mj, /aliveWhisperBins/);
+  });
+
+  it('мосты: preload.transcribeFile + desktop noop', () => {
+    const pl = read('../electron/preload.cjs');
+    assert.match(pl, /transcribeFile/);
+    const dj = read('../src/lib/desktop.js');
+    assert.match(dj, /transcribeFile/);
+  });
+
+  it('вкладка «Аудио в текст»: выбор файла, вставка в приложение, копирование', () => {
+    const at = read('../src/components/AudioTab.jsx');
+    assert.match(at, /Аудио в текст/);
+    assert.match(at, /Переписать в текст/);
+    assert.match(at, /Вставить в приложение/);
+    const sb = read('../src/components/Sidebar.jsx');
+    assert.match(sb, /Аудио в текст/);
+    const app = read('../src/App.jsx');
+    assert.match(app, /tab === 'audio'/);
+  });
+});

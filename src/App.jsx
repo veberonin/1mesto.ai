@@ -9,6 +9,7 @@ import HistoryTab from './components/HistoryTab.jsx';
 import SettingsTab from './components/SettingsTab.jsx';
 import AboutTab from './components/AboutTab.jsx';
 import ScratchpadTab from './components/ScratchpadTab.jsx';
+import AudioTab from './components/AudioTab.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import Toasts from './components/Toasts.jsx';
 
@@ -656,6 +657,10 @@ export default function App() {
               refreshKey={journalTick}
               onToast={toast}
             />
+          )}
+
+          {tab === 'audio' && (
+            <AudioTab onToast={toast} />
           )}
 
           {tab === 'scratchpad' && (
