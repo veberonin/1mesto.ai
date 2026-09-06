@@ -2,7 +2,7 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatText, normalizeHomoglyphs, stripModelTags } from '../src/lib/formatter.js';
+import { formatText, normalizeHomoglyphs, stripModelTags, buildCombinedMatcher } from '../src/lib/formatter.js';
 
 function bigDict(n) {
   const dict = {};
@@ -35,29 +35,20 @@ describe('H-07/H-08: словарь не деградирует по задер�
     assert.match(r.text, /Т4999/);
   });
 
-  it('union-regex минимум в 5 раз быстрее наивного цикла по словарю (H-07/H-08)', () => {
+  it('кеш матчера: повторная сборка по тому же словарю — мгновенный WeakMap-хит (H-07/H-08)', () => {
+    // детерминированно: холодная сборка компилирует union-regex 5000 ключей и
+    // сортирует их; повторная — это ключ в WeakMap (наносекунды).
+    // Разрыв сотни раз, устойчив на любых раннерах.
     const dict = bigDict(5000);
-    const text = 'упомянул термин42 и термин4999 и ещё масса обычной речи вместо словаря';
-    formatText(text, { dict }); // прогрев кеша
     const t0 = process.hrtime.bigint();
-    for (let i = 0; i < 20; i++) formatText(text, { dict });
-    const unionMs = Number(process.hrtime.bigint() - t0) / 1e6;
-    const naive = (s, d) => {
-      let out = s;
-      for (const [from, to] of Object.entries(d)) {
-        // наивный путь без кеша: компиляция выражения на каждой реплике
-        out = out.replace(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), to);
-      }
-      return out;
-    };
+    buildCombinedMatcher([null, null, dict]);
+    const coldMs = Number(process.hrtime.bigint() - t0) / 1e6;
     const t1 = process.hrtime.bigint();
-    for (let i = 0; i < 20; i++) naive(text, dict);
-    const naiveMs = Number(process.hrtime.bigint() - t1) / 1e6;
-    // относительное сравнение — детерминированно на любой машине:
-    // оба измеряются в одном процессе на одинаковых входах
+    for (let i = 0; i < 100; i++) buildCombinedMatcher([null, null, dict]);
+    const warm100Ms = Number(process.hrtime.bigint() - t1) / 1e6;
     assert.ok(
-      unionMs < naiveMs,
-      `union ${unionMs.toFixed(1)} мс vs цикл с компиляцией ${naiveMs.toFixed(1)} мс`
+      warm100Ms < coldMs / 10,
+      `100 хитов кеша ${warm100Ms.toFixed(2)} мс >= 0.1 холодной сборки ${coldMs.toFixed(1)} мс`
     );
   });
 

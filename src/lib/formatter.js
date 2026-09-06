@@ -426,7 +426,7 @@ const dictCache = new WeakMap();
  * словарь на 5000 позиций обрабатывается без роста задержки). Приоритет: последняя
  * карта побеждает (dict > DEFAULT_TERMS > macros). Кеш по объекту словаря (WeakMap).
  */
-function buildCombinedMatcher(maps) {
+export function buildCombinedMatcher(maps) {
   const dictKey = maps[maps.length - 1];
   const cacheable = dictKey && typeof dictKey === 'object';
   const cached = cacheable ? dictCache.get(dictKey) : null;
