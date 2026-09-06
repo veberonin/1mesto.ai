@@ -24,7 +24,9 @@
     "lint": "eslint src electron server scripts tests --ext .js,.jsx,.mjs,.cjs --max-warnings 0",
     "format": "prettier --write src electron server scripts tests",
     "format:check": "prettier --check src electron server scripts tests",
-    "coverage": "c8 --reporter=text --reporter=lcov --include=src/lib --include=server node --test tests/"
+    "coverage": "c8 --reporter=text --reporter=lcov --include=src/lib --include=server node --test tests/",
+    "check": "npm run lint && npm test && npm run format:check && npm run summary",
+    "sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom.json"
   },
   "dependencies": {
     "cors": "^2.8.5",

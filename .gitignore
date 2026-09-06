@@ -8,3 +8,6 @@ release/
 
 # c8 coverage-отчёты (артефакт CI, не исходники)
 coverage/
+
+# SBOM — артефакт CI (Z-06), не исходники
+sbom.json
