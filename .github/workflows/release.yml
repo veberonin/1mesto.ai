@@ -25,6 +25,10 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Предустановить whisper.cpp + модель в установщик (фулл-офлайн из коробки)
+        shell: bash
+        run: node scripts/fetch-whisper.mjs
+
       - name: Build installers (без авто-паблиша)
         shell: bash
         run: |

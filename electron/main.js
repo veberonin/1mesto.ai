@@ -274,7 +274,9 @@ function createPill() {
     show: false,
     hasShadow: false,
     alwaysOnTop: true,
-    focusable: true,
+    // ФОКУС НЕ КРАДЁМ: если пилюля заберёт клавиатурный фокус, Ctrl+V уйдёт в
+    // пилюлю вместо приложения юзера — «текст не вставляется». Клики работают.
+    focusable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -308,8 +310,7 @@ function showPill() {
     workArea.x + Math.floor((workArea.width - w) / 2),
     workArea.y + workArea.height - 200 - 24
   );
-  pill.show();
-  pill.focus();
+  pill.showInactive(); // без фокуса: диктуем в то приложение, где стоял курсор
   // каждое появление = новая диктовка: рендерер сбросит состояние и начнёт запись
   pill.webContents.send('flow:command', 'start');
 }
@@ -505,6 +506,13 @@ ipcMain.handle('pill:insert', async (_e, text) => {
     lastInsert = { at: Date.now(), tail: toInsert };
   }
   // AM-20: настраиваемая пауза перед вставкой (медленным приложениям нужно время сфокусироваться)
+  // Пилюля обязана быть скрыта ДО Ctrl+V: иначе вставка уйдёт в неё, а не в приложение юзера
+  try {
+    if (pill && !pill.isDestroyed() && pill.isVisible()) {
+      pill.hide();
+      await new Promise((r) => setTimeout(r, 180)); // Windows: фокус возвращается предыдущему окну
+    }
+  } catch {}
   const delay = Number(readSettings().insertDelayMs) || 0;
   if (delay > 0) await new Promise((r) => setTimeout(r, Math.min(delay, 2000)));
   const result = await pasteIntoFocusedApp();
@@ -567,11 +575,25 @@ ipcMain.handle('ai:format', async (_e, payload = {}) => {
 // ---------------------------------------------------------------------------
 // Локальное распознавание речи (ASR): whisper.cpp → Gemini → понятная ошибка
 // ---------------------------------------------------------------------------
+// Предустановленный whisper (extraResources, «фулл-офлайн из коробки»):
+// установщик уже содержит бинарь и модель — настройки юзера не обязательны
+function bundledBin() {
+  if (process.platform === 'win32')
+    return path.join(process.resourcesPath || '', 'whisper', 'Release', 'main.exe');
+  if (process.platform === 'linux')
+    return path.join(process.resourcesPath || '', 'whisper', 'whisper-bin-ubuntu-x64', 'whisper-cli');
+  return '';
+}
+function bundledModel() {
+  return path.join(process.resourcesPath || '', 'whisper', 'ggml-base-q5_1.bin');
+}
+
 async function transcribeWhisper(wavPath, lang) {
   const s = readSettings();
-  const bin = s.whisperBin || process.env.WHISPER_BIN || '';
+  const bin = s.whisperBin || process.env.WHISPER_BIN || (fs.existsSync(bundledBin()) ? bundledBin() : '');
   let model = s.whisperModel || process.env.WHISPER_MODEL || '';
   if (!model && fs.existsSync(defaultModelPath())) model = defaultModelPath();
+  if (!model && fs.existsSync(bundledModel())) model = bundledModel();
   if (!bin || !model) return null;
 
   const args = ['-m', model, '-nt', wavPath];
@@ -839,15 +861,17 @@ ipcMain.handle('asr:download-bin', async () => {
 
 ipcMain.handle('asr:check', async () => {
   const s = readSettings();
-  const bin = s.whisperBin || process.env.WHISPER_BIN || '';
+  const bin = s.whisperBin || process.env.WHISPER_BIN || (fs.existsSync(bundledBin()) ? bundledBin() : '');
   const model =
     s.whisperModel ||
     process.env.WHISPER_MODEL ||
-    (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '');
+    (fs.existsSync(defaultModelPath()) ? defaultModelPath() : '') ||
+    (fs.existsSync(bundledModel()) ? bundledModel() : '');
   return {
     platform: process.platform,
     whisperBin: !!bin && fs.existsSync(bin),
     whisperModel: !!model && fs.existsSync(model),
+    bundled: !!process.resourcesPath && fs.existsSync(bundledModel()) && fs.existsSync(bundledBin()),
     modelDownloaded: fs.existsSync(defaultModelPath()),
     modelPath: defaultModelPath(),
     geminiKey: !!resolveGeminiKey(s),

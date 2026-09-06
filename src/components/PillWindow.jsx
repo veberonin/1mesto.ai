@@ -9,6 +9,7 @@ import { formatText, countWordsIn } from '../lib/formatter.js';
 import { parsePairsText } from '../lib/dictio.js';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { saveSession } from '../lib/stats.js';
+import { addUtterance } from '../lib/journal.js';
 import { WavCapture } from '../lib/recorder.js';
 
 const MAX_SEC = 300; // авто-стоп длинной реплики
@@ -178,6 +179,26 @@ export default function PillWindow() {
         saveSession({ words, wpm, peakWpm: wpm, durSec, mode: s.mode, lang: s.language });
       } catch {
         // статистика не критична
+      }
+      // Журнал: реплика из пилюли попадает в Историю дашборда (тот же localStorage)
+      try {
+        addUtterance({
+          text,
+          words,
+          wpm,
+          durSec,
+          app: 'pill',
+          mode: s.mode,
+          lang: s.language,
+          source: 'local',
+          latencies: {},
+          dictHits: [],
+          fillersRemoved: 0,
+          interims: 0,
+          privacy: !!s.privacy,
+        });
+      } catch {
+        // журнал не критичен
       }
 
       sound.success();

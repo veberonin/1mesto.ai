@@ -94,7 +94,13 @@
         "deb"
       ],
       "category": "Utility"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "extra/whisper",
+        "to": "whisper"
+      }
+    ]
   },
   "homepage": "https://github.com/veberonin/1mesto.ai",
   "author": {

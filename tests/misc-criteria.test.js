@@ -347,3 +347,38 @@ describe('A-08+: one-click устойчив к сети и повторным н
     assert.match(st, /whisper уже установлен ✓ — можно диктовать/);
   });
 });
+
+describe('INSERT-фикс: пилюля не крадёт фокус, вставка гарантирована', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('пилюля focusable:false + showInactive + hide перед Ctrl+V', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /focusable: false/, 'пилюля не забирает фокус');
+    assert.match(mj, /showInactive/, 'показ без кражи фокуса');
+    assert.match(mj, /pill\.hide\(\);\s*\n\s*await new Promise/, 'фокус возвращён до вставки');
+  });
+
+  it('Windows: SendInput (WinAPI) вместо WScript SendKeys', () => {
+    const pj = read('../electron/paste.js');
+    assert.match(pj, /SendInput/);
+    assert.match(pj, /FlowKeys/);
+  });
+
+  it('фулл-офлайн: whisper + модель предустановлены в установщик', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /bundledBin/);
+    assert.match(mj, /bundledModel/);
+    const pkg = JSON.parse(read('../package.json'));
+    assert.deepEqual(pkg.build.extraResources, [{ from: 'extra/whisper', to: 'whisper' }]);
+    const yml = read('../.github/workflows/release.yml');
+    assert.match(yml, /fetch-whisper\.mjs/);
+    const fw = read('../scripts/fetch-whisper.mjs');
+    assert.match(fw, /422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898/);
+  });
+
+  it('пилюля пишет в журнал (История оживает)', () => {
+    const pill = read('../src/components/PillWindow.jsx');
+    assert.match(pill, /addUtterance/);
+    assert.match(pill, /app: 'pill'/);
+  });
+});

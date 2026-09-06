@@ -11,3 +11,7 @@ coverage/
 
 # SBOM — артефакт CI (Z-06), не исходники
 sbom.json
+
+# extra/whisper наполняется скриптом (тяжёлые бинарники не в git)
+extra/whisper/*
+!extra/whisper/README.md

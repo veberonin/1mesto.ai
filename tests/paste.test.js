@@ -14,7 +14,10 @@ test('macOS: osascript + Cmd+V', () => {
 test('Windows: powershell SendKeys ^v', () => {
   const c = pickPasteCommand('win32');
   assert.equal(c.cmd, 'powershell.exe');
-  assert.ok(c.args.includes("(New-Object -ComObject WScript.Shell).SendKeys('^v')"));
+  // INSERT-фикс: SendInput (WinAPI) — не крадёт фокус и не мигает окном
+  assert.ok(c.args.some((a) => /SendInput/.test(a)));
+  assert.ok(c.cmd === 'powershell.exe');
+  assert.ok(c.timeoutMs >= 6000);
 });
 
 test('Linux: xdotool ctrl+v', () => {
