@@ -111,7 +111,20 @@ const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
 
 function readSettings() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(settingsPath(), 'utf8')) };
+    const s = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(settingsPath(), 'utf8')) };
+    // Разовая миграция: у старых установок сохранён insertDelayMs 0 (бывший дефолт) —
+    // без паузы Ctrl+V прилетает раньше, чем Telegram/браузер возвращают фокус
+    if (!s.settingsVersion) {
+      s.settingsVersion = 2;
+      if (!s.insertDelayMs) {
+        s.insertDelayMs = 400;
+        try {
+          fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2));
+        } catch {}
+        console.log('[settings] миграция: insertDelayMs 0 → 400 (вставка в Telegram/браузеры)');
+      }
+    }
+    return s;
   } catch {
     return { ...DEFAULTS };
   }

@@ -488,6 +488,21 @@ describe('VC runtime: бандл самодостаточен на чистой 
   });
 });
 
+describe('Миграция паузы вставки: старый ноль мешал Telegram', () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('readSettings поднимает insertDelayMs 0 → 400 один раз (settingsVersion)', () => {
+    const mj = read('../electron/main.js');
+    assert.match(mj, /settingsVersion/);
+    assert.match(mj, /insertDelayMs 0 → 400/);
+  });
+
+  it('журнал пилюли хранит insertMethod (видно, дошёл ли Ctrl+V)', () => {
+    const pill = read('../src/components/PillWindow.jsx');
+    assert.match(pill, /insertMethod: method/);
+  });
+});
+
 describe('Тёплая вставка: мгновенный Ctrl+V без холодного старта PowerShell', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 

@@ -180,7 +180,8 @@ export default function PillWindow() {
       } catch {
         // статистика не критична
       }
-      // Журнал: реплика из пилюли попадает в Историю дашборда (тот же localStorage)
+      // Журнал: реплика из пилюли попадает в Историю дашборда (тот же localStorage);
+      // insertMethod — виден в History-детали: paste = Ctrl+V дошёл, clipboard-only = нет
       try {
         addUtterance({
           text,
@@ -196,6 +197,7 @@ export default function PillWindow() {
           fillersRemoved: 0,
           interims: 0,
           privacy: !!s.privacy,
+          insertMethod: method,
         });
       } catch {
         // журнал не критичен
