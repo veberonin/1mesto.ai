@@ -392,7 +392,7 @@ describe('ASR self-heal: мёртвый путь whisper не убивает д�
     assert.match(mj, /firstAlive\(\[s\.whisperBin, process\.env\.WHISPER_BIN, bundledBin\(\)\]\)/);
     assert.match(
       mj,
-      /firstAlive\(\[s\.whisperModel, process\.env\.WHISPER_MODEL, defaultModelPath\(\), bundledModel\(\)\]\)/
+      /firstAlive\(\[\s*s\.whisperModel,\s*process\.env\.WHISPER_MODEL,\s*bundledModel\(\),\s*defaultModelPath\(\),?\s*\]\)/
     );
   });
 
@@ -430,6 +430,16 @@ describe('Whisper-фолбэк: карантин main.exe не убивает д
 
 describe('VC runtime: бандл самодостаточен на чистой Windows', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  it('бандл: small-q5_1 (точнее по-русски) — SHA, приоритет перед base', () => {
+    const fw = read('../scripts/fetch-whisper.mjs');
+    assert.match(fw, /ggml-small-q5_1\.bin/);
+    assert.match(fw, /ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb/);
+    const mj = read('../electron/main.js');
+    assert.match(mj, /small-q5_1 точнее по-русски/, 'bundledModel предпочитает small');
+    assert.match(mj, /small из установщика точнее ранее скачанной base/, 'приоритет моделей');
+    assert.match(mj, /deprecated main\.exe/, 'миграция старого пути в настройках');
+  });
 
   it('fetch-whisper кладёт VC++ DLL рядом с main.exe (app-local)', () => {
     const fw = read('../scripts/fetch-whisper.mjs');

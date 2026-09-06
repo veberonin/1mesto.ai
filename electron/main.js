@@ -586,6 +586,9 @@ function bundledBin() {
   return '';
 }
 function bundledModel() {
+  // small-q5_1 точнее по-русски и шипится по умолчанию; base — запасной
+  const small = path.join(process.resourcesPath || '', 'whisper', 'ggml-small-q5_1.bin');
+  if (fs.existsSync(small)) return small;
   return path.join(process.resourcesPath || '', 'whisper', 'ggml-base-q5_1.bin');
 }
 /**
@@ -642,8 +645,8 @@ async function transcribeWhisper(wavPath, lang) {
   const model = firstAlive([
     readSettings().whisperModel,
     process.env.WHISPER_MODEL,
+    bundledModel(), // small из установщика точнее ранее скачанной base
     defaultModelPath(),
-    bundledModel(),
   ]);
   const bins = aliveWhisperBins();
   if (!bins.length || !model) return null; // реально не настроено — покажем честную подсказку
@@ -929,8 +932,16 @@ ipcMain.handle('asr:download-bin', async () => {
 
 ipcMain.handle('asr:check', async () => {
   const s = readSettings();
+  // миграция старых установок: в настройках мог остаться deprecated main.exe
+  if (s.whisperBin && /main\.exe$/i.test(s.whisperBin)) {
+    const cli = path.join(path.dirname(s.whisperBin), 'whisper-cli.exe');
+    if (fs.existsSync(cli)) {
+      writeSettings({ whisperBin: cli });
+      s.whisperBin = cli;
+    }
+  }
   const bin = firstAlive([s.whisperBin, process.env.WHISPER_BIN, bundledBin()]);
-  const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, defaultModelPath(), bundledModel()]);
+  const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, bundledModel(), defaultModelPath()]);
   return {
     platform: process.platform,
     whisperBin: !!bin && fs.existsSync(bin),

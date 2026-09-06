@@ -15,6 +15,10 @@ import { execFileSync } from 'node:child_process';
 const TAG = process.env.WHISPER_BIN_TAG || 'b4938';
 const MODEL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin';
 const MODEL_SHA = '422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898';
+// «Главное чтобы всё работало»: small-q5_1 заметно точнее по-русски (~181 МБ),
+// конкуренты шипят 500 МБ–1.5 ГБ — место не экономим, качество приоритетно
+const MODEL_SMALL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin';
+const MODEL_SMALL_SHA = 'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb';
 
 const BINS = {
   win32: {
@@ -32,16 +36,24 @@ const out = path.join(process.cwd(), 'extra', 'whisper');
 fs.mkdirSync(out, { recursive: true });
 const sha = (p) => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 
-// 1) Модель — на всех платформах (whisper на mac ставится через brew, модель наша)
-const modelDst = path.join(out, 'ggml-base-q5_1.bin');
-if (fs.existsSync(modelDst) && sha(modelDst) === MODEL_SHA) {
-  console.log('модель уже в extra/whisper ✓');
-} else {
-  console.log('качаю модель…');
-  execFileSync('curl', ['-fL', '--retry', '3', '-o', modelDst, MODEL_URL], { stdio: 'inherit' });
-  if (sha(modelDst) !== MODEL_SHA) throw new Error('SHA-256 модели не сошёлся');
-  console.log('модель ✓');
+// 1) Модели — на всех платформах (whisper на mac ставится через brew, модели наши)
+async function grabModel(dst, url, sha256, label) {
+  if (fs.existsSync(dst) && sha(dst) === sha256) {
+    console.log(`${label} уже в extra/whisper ✓`);
+    return;
+  }
+  console.log(`качаю ${label}…`);
+  execFileSync('curl', ['-fL', '--retry', '3', '-o', dst, url], { stdio: 'inherit' });
+  if (sha(dst) !== sha256) throw new Error(`SHA-256 ${label} не сошёлся`);
+  console.log(`${label} ✓`);
 }
+await grabModel(path.join(out, 'ggml-base-q5_1.bin'), MODEL_URL, MODEL_SHA, 'базовая модель');
+await grabModel(
+  path.join(out, 'ggml-small-q5_1.bin'),
+  MODEL_SMALL_URL,
+  MODEL_SMALL_SHA,
+  'модель small (точнее)'
+);
 
 // 2) Бинарь — где есть официальные прекомпилы (win/linux)
 const meta = BINS[process.platform];
