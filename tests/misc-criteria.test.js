@@ -12,6 +12,7 @@ globalThis.localStorage = {
 };
 
 const { addUtterance, clearJournal, journalSummary } = await import('../src/lib/journal.js');
+const { formatText } = await import('../src/lib/formatter.js');
 
 describe('T: статистика и журнал — явные признаки', () => {
   it('T-04: счётчик слов за день присутствует в сводке', () => {
@@ -115,5 +116,25 @@ describe('T: статистика и журнал — явные признак�
       fillersRemoved: 0,
     });
     assert.notEqual(a.id, b.id);
+  });
+});
+
+describe('F-11/F-12: даты и время из речи', () => {
+  const t = (s) => formatText(s, { mode: 'clean', lang: 'ru' }).text;
+
+  it('F-11: «пятое марта» → «5 марта»', () => {
+    assert.match(t('встретимся пятое марта в парке'), /5 марта/);
+    assert.match(t('дедлайн двадцать пятое декабря'), /25 декабря/);
+  });
+
+  it('F-12: «три часа дня» → «15:00», «девять утра» → «09:00»', () => {
+    assert.match(t('звонок в три часа дня'), /15:00/);
+    assert.match(t('созвон в девять утра завтра'), /09:00/);
+    assert.match(t('ужин в семь вечера'), /19:00/);
+    assert.match(t('встреча в полдень'), /12:00/);
+  });
+
+  it('F-10 не сломан: числа и деньги', () => {
+    assert.match(t('зарплата пять тысяч'), /5000/);
   });
 });

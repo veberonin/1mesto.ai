@@ -305,6 +305,13 @@ describe('redesign: светлая система как в оригинале',
     assert.match(pl, /setStatus/);
   });
 
+  it('L-01/AM-06: буфер сохраняется и восстанавливается после вставки (без гонки)', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    assert.match(mj, /clipboardBackup/);
+    assert.match(mj, /clipboard\.readText/);
+    assert.match(mj, /setTimeout\(\(\) => \{\s*try \{\s*clipboard\.writeText\(clipboardBackup\.text\)/);
+  });
+
   it('AM-03: умный пробел между подряд идущими репликами', () => {
     const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
     assert.match(mj, /lastInsert/);

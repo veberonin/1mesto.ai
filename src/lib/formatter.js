@@ -234,6 +234,117 @@ function normalizeNumbers(text) {
   });
 }
 
+// F-11: «пятое марта» → «5 марта», «двадцать пятое декабря» → «25 декабря»
+const RU_MONTHS = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+];
+const RU_ORDINALS = {
+  первое: 1,
+  второе: 2,
+  третье: 3,
+  четвёртое: 4,
+  четвертое: 4,
+  пятое: 5,
+  шестое: 6,
+  седьмое: 7,
+  восьмое: 8,
+  девятое: 9,
+  десятое: 10,
+  одиннадцатое: 11,
+  двенадцатое: 12,
+  тринадцатое: 13,
+  четырнадцатое: 14,
+  пятнадцатое: 15,
+  шестнадцатое: 16,
+  семнадцатое: 17,
+  восемнадцатое: 18,
+  девятнадцатое: 19,
+  двадцатое: 20,
+  'двадцать первое': 21,
+  'двадцать второе': 22,
+  'двадцать третье': 23,
+  'двадцать четвёртое': 24,
+  'двадцать четвертое': 24,
+  'двадцать пятое': 25,
+  'двадцать шестое': 26,
+  'двадцать седьмое': 27,
+  'двадцать восьмое': 28,
+  'двадцать девятое': 29,
+  тридцатое: 30,
+  'тридцать первое': 31,
+};
+
+function normalizeDates(text) {
+  const monthsAlt = RU_MONTHS.join('|');
+  const ordinalsAlt = Object.keys(RU_ORDINALS)
+    .sort((a, b) => b.length - a.length)
+    .join('|');
+  const re = new RegExp(`(${ordinalsAlt})\\s+(${monthsAlt})`, 'gi');
+  return text.replace(re, (m, ord, mon) => {
+    const day = RU_ORDINALS[ord.toLowerCase()];
+    if (!day) return m;
+    return `${day} ${mon.toLowerCase()}`;
+  });
+}
+
+// F-12: «три часа дня» → «15:00», «девять утра» → «09:00», «полдень» → «12:00»
+function normalizeTimeOfDay(text) {
+  let out = text.replace(/полдень/gi, '12:00');
+  const numWord = {
+    один: 1,
+    одна: 1,
+    два: 2,
+    две: 2,
+    три: 3,
+    четыре: 4,
+    пять: 5,
+    шесть: 6,
+    семь: 7,
+    восемь: 8,
+    девять: 9,
+    десять: 10,
+    одиннадцать: 11,
+    двенадцать: 12,
+  };
+  const numsAlt = Object.keys(numWord).join('|');
+  const re = new RegExp(`(${numsAlt})\\s+час(?:а|ов)?\\s+(дня|ночи|утра|вечера)`, 'gi');
+  out = out.replace(re, (m, numWordRaw, part) => {
+    const h = numWord[numWordRaw.toLowerCase()];
+    if (!h) return m;
+    const offset = part.toLowerCase() === 'дня' || part.toLowerCase() === 'вечера' ? 12 : 0;
+    const hh = ((h - 1 + offset) % 24) + 1;
+    return `${String(hh).padStart(2, '0')}:00`;
+  });
+  // «в 3 часа дня» / «3 часа дня» (уже цифрой)
+  out = out.replace(/(\b\d{1,2})\s+час(?:а|ов)?\s+(дня|ночи|утра|вечера)/gi, (m, num, part) => {
+    const h = Number(num);
+    if (!Number.isFinite(h) || h < 1 || h > 12) return m;
+    const offset = part.toLowerCase() === 'дня' || part.toLowerCase() === 'вечера' ? 12 : 0;
+    const hh = ((h - 1 + offset) % 24) + 1;
+    return `${String(hh).padStart(2, '0')}:00`;
+  });
+  // «в девять утра» / «пять вечера» — без слова «час»
+  out = out.replace(new RegExp(`(в )?(${numsAlt})\\s+(утра|вечера|дня|ночи)`, 'gi'), (m, v, numRaw, part) => {
+    const h = numWord[numRaw.toLowerCase()];
+    if (!h) return m;
+    const offset = part.toLowerCase() === 'дня' || part.toLowerCase() === 'вечера' ? 12 : 0;
+    const hh = ((h - 1 + offset) % 24) + 1;
+    return `${v || ''}${String(hh).padStart(2, '0')}:00`;
+  });
+  return out;
+}
+
 function normalizeDomainsEmailsPhones(text) {
   let out = text;
   // F-16: email «бро собака почта точка ру» → бро@почта.ру
@@ -721,6 +832,8 @@ export function formatText(raw, opts = {}) {
   text = collapseRepeats(text); // F-19
   text = removeFillers(text, pack).text; // F-20
   if (lang !== 'en' && normNums) {
+    text = normalizeDates(text); // F-11: «пятое марта» → «5 марта» (до чисел: «двадцать пятое» не разбивать)
+    text = normalizeTimeOfDay(text); // F-12: «три часа дня» → «15:00» (до чисел)
     text = normalizeNumbers(text); // F-10
   }
   text = normalizeDomainsEmailsPhones(text); // F-15..F-18

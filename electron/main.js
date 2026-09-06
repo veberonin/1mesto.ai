@@ -411,6 +411,12 @@ ipcMain.on('pill:status', (_e, on) => setRecordingState(!!on));
 
 // AM-03: между подряд идущими репликами вставляем разделяющий пробел
 let lastInsert = { at: 0, tail: '' };
+// L-01/AM-06: буфер пользователя сохраняется и восстанавливается после вставки.
+// Восстановление — с задержкой (целевое приложение должно принять Ctrl+V первым,
+// иначе вставится восстановленный старый текст), при неудаче вставки наш текст
+// остаётся в буфере (O-15: ошибка вставки → текст доступен для ручной вставки).
+let clipboardBackup = { text: null, at: 0 };
+let clipboardRestoreTimer = null;
 ipcMain.handle('pill:insert', async (_e, text) => {
   if (typeof text === 'string' && text.trim()) {
     let toInsert = text;
@@ -418,10 +424,34 @@ ipcMain.handle('pill:insert', async (_e, text) => {
     if (fresh && lastInsert.tail && !/\s$/.test(lastInsert.tail) && !/^\s/.test(toInsert)) {
       toInsert = ' ' + toInsert;
     }
+    // L-01: запоминаем прежний буфер один раз (не затирая бэкап бэкапом при серии реплик)
+    try {
+      const cur = clipboard.readText();
+      if (!clipboardBackup.text || Date.now() - clipboardBackup.at > 5000) {
+        clipboardBackup = { text: cur, at: Date.now() };
+      }
+    } catch {
+      /* буфер недоступен — вставляем без бэкапа */
+    }
     clipboard.writeText(toInsert);
     lastInsert = { at: Date.now(), tail: toInsert };
   }
-  return pasteIntoFocusedApp();
+  const result = await pasteIntoFocusedApp();
+  // AM-06: без гонки — восстанавливаем буфер только после успешной вставки
+  // и только если целевое приложение успело забрать наш текст (задержка > обработки Ctrl+V)
+  const pasteOk = result && result.method === 'paste' && !result.error;
+  if (pasteOk && clipboardBackup.text !== null) {
+    if (clipboardRestoreTimer) clearTimeout(clipboardRestoreTimer);
+    clipboardRestoreTimer = setTimeout(() => {
+      try {
+        clipboard.writeText(clipboardBackup.text);
+      } catch {
+        /* не смогли восстановить — в буфере остаётся реплика, не страшно */
+      }
+      clipboardBackup = { text: null, at: 0 };
+    }, 600);
+  }
+  return result;
 });
 
 ipcMain.handle('ai:format', async (_e, payload = {}) => {
