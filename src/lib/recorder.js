@@ -92,6 +92,10 @@ export class WavCapture {
     const audio = { echoCancellation: true, noiseSuppression: opts.noiseSuppression !== false };
     if (opts.deviceId) audio.deviceId = { exact: opts.deviceId };
     this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+    // C-04: устройство отключилось во время записи → колбэк с понятной причиной
+    this.stream.getTracks().forEach((t) => {
+      t.onended = () => this.onDeviceLost && this.onDeviceLost();
+    });
     const AC = window.AudioContext || window.webkitAudioContext;
     this.ctx = new AC();
     if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});

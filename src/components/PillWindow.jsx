@@ -258,6 +258,12 @@ export default function PillWindow() {
           noiseSuppression: s.noiseSuppression !== false, // C-16
           deviceId: s.micDeviceId || null, // C-02/C-03
         });
+        captureRef.current.onDeviceLost = () => {
+          if (!recordingRef.current || doneRef.current) return;
+          setError('Микрофон отключился — проверь разъём/Bluetooth и попробуй ещё раз (C-04)');
+          sound.error();
+          finishRef.current && finishRef.current(true);
+        };
       } catch {
         captureRef.current = null;
       }

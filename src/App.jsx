@@ -367,6 +367,12 @@ export default function App() {
           noiseSuppression: settingsRef.current?.noiseSuppression !== false, // C-16
           deviceId: settingsRef.current?.micDeviceId || null, // C-02/C-03
         });
+        captureRef.current.onDeviceLost = () => {
+          if (!recordingRef.current) return;
+          toast('Микрофон отключился — проверь разъём/Bluetooth и попробуй ещё раз (C-04)', 'error');
+          sound.error();
+          abortRecording();
+        };
       } catch {
         captureRef.current = null;
       }
