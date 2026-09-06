@@ -628,12 +628,7 @@ ipcMain.handle('audio:transcribe-file', async (_e, filePath, lang = 'ru') => {
       return { error: 'файл больше ~18 МБ — отрежь кусок или возьми покороче' };
     }
     const s = readSettings();
-    const model = firstAlive([
-      s.whisperModel,
-      process.env.WHISPER_MODEL,
-      bundledModel(),
-      defaultModelPath(),
-    ]);
+    const model = firstAlive([s.whisperModel, process.env.WHISPER_MODEL, bundledModel(), defaultModelPath()]);
     if (model) {
       const args = ['-m', model, '-nt', filePath];
       if (lang && lang !== 'auto') args.splice(2, 0, '-l', lang);

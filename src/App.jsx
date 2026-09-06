@@ -659,9 +659,7 @@ export default function App() {
             />
           )}
 
-          {tab === 'audio' && (
-            <AudioTab onToast={toast} />
-          )}
+          {tab === 'audio' && <AudioTab onToast={toast} />}
 
           {tab === 'scratchpad' && (
             <div className="pt-2">

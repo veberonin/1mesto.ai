@@ -115,8 +115,8 @@ export default function AudioTab({ onToast, onInsert }) {
           <h2 className="text-xl font-black">Аудио в текст</h2>
         </div>
         <p className="text-[13px] text-mute leading-relaxed">
-          Готовый звук — лекция, войс, интервью — переписываем в текст. Распознавание локальное (whisper внутри
-          приложения, офлайн), результат можно вставить в любой редактор курсором.
+          Готовый звук — лекция, войс, интервью — переписываем в текст. Распознавание локальное (whisper
+          внутри приложения, офлайн), результат можно вставить в любой редактор курсором.
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -143,7 +143,9 @@ export default function AudioTab({ onToast, onInsert }) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-accent" />
-              <h3 className="font-bold">Результат ({result.source === 'gemini' ? 'Gemini' : 'whisper офлайн'})</h3>
+              <h3 className="font-bold">
+                Результат ({result.source === 'gemini' ? 'Gemini' : 'whisper офлайн'})
+              </h3>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -166,7 +168,9 @@ export default function AudioTab({ onToast, onInsert }) {
             {result.text}
           </div>
           {inserted && (
-            <p className="text-[11px] text-mute mt-2">Курсор был в редакторе? Текст уже там. Иначе — он в буфере.</p>
+            <p className="text-[11px] text-mute mt-2">
+              Курсор был в редакторе? Текст уже там. Иначе — он в буфере.
+            </p>
           )}
         </div>
       )}
