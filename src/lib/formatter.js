@@ -352,6 +352,163 @@ function normalizeTimeOfDay(text) {
   return out;
 }
 
+// AO: точные структуры — версии (AO-04), адрес:порт (AO-06), формулы (AO-09),
+// величины (AO-11). Токен-сканер: слова-числа разбираются parseRuNumber с якорями,
+// замена накрывает ровно найденный диапазон слов.
+const cleanTok = (t) =>
+  String(t || '')
+    .toLowerCase()
+    .replace(/[^а-яё0-9]/g, '');
+const AO_UNITS = {
+  миллисекунда: 'мс',
+  миллисекунды: 'мс',
+  миллисекунд: 'мс',
+  килогерц: 'кГц',
+  килогерца: 'кГц',
+  килогерце: 'кГц',
+  мегабайта: 'МБ',
+  мегабайт: 'МБ',
+  гигабайт: 'ГБ',
+  гигабайта: 'ГБ',
+  килобайт: 'КБ',
+  килобайта: 'КБ',
+};
+const SUFFIX_MAP = { бета: 'beta', альфа: 'alpha', rc: 'rc', дев: 'dev' };
+
+function aoScan(text) {
+  const re = /\S+/g;
+  const toks = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    toks.push({ w: m[0], raw: m[0], start: m.index, end: m.index + m[0].length });
+  }
+  if (toks.length < 2) return text;
+
+  const numAt = (i) => {
+    // parseRuNumber по чистым токенам с позиции i → [значение, следующийИндекс] | null
+    const clean = toks.slice(i, i + 8).map((t) => cleanTok(t.w));
+    const parsed = parseRuNumber(clean, 0);
+    if (!parsed || parsed[1] === 0) return null;
+    return { value: parsed[0], next: i + parsed[1] };
+  };
+  const isWord = (i, word) => i < toks.length && cleanTok(toks[i].w) === word;
+  const out = [];
+  let cursor = 0; // смещение в исходном тексте
+
+  const flushUntil = (endOffset) => {
+    out.push(text.slice(cursor, endOffset));
+    cursor = endOffset;
+  };
+
+  let i = 0;
+  while (i < toks.length) {
+    let handled = null;
+
+    // AO-06: N точка N точка N точка N двоеточие P
+    if (isWord(i + 1, 'точка') || isWord(i + 1, 'запятая') === false) {
+      const a = numAt(i);
+      if (a && a.value >= 0 && a.value <= 255 && isWord(a.next, 'точка')) {
+        const b = numAt(a.next + 1);
+        if (b && b.value >= 0 && b.value <= 255 && isWord(b.next, 'точка')) {
+          const c = numAt(b.next + 1);
+          if (c && c.value >= 0 && c.value <= 255 && isWord(c.next, 'точка')) {
+            const d = numAt(c.next + 1);
+            if (d && d.value >= 0 && d.value <= 255 && isWord(d.next, 'двоеточие')) {
+              const p = numAt(d.next + 1);
+              if (p && p.value >= 1 && p.value <= 65535) {
+                handled = { end: p.next, text: `${a.value}.${b.value}.${c.value}.${d.value}:${p.value}` };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // AO-04: N точка N точка N [-суффикс [N]]
+    if (!handled && isWord(i + 1, 'точка')) {
+      const a = numAt(i);
+      if (a && a.value >= 0 && a.value <= 255 && isWord(a.next, 'точка')) {
+        const b = numAt(a.next + 1);
+        if (b && b.value >= 0 && b.value <= 255 && isWord(b.next, 'точка')) {
+          const c = numAt(b.next + 1);
+          if (c && c.value >= 0 && c.value <= 255) {
+            let endTok = c.next;
+            let extra = '';
+            const sufTok = cleanTok(toks[endTok] ? toks[endTok].w : '');
+            if (SUFFIX_MAP[sufTok]) {
+              extra += `-${SUFFIX_MAP[sufTok]}`;
+              endTok += 1;
+              const n = numAt(endTok);
+              if (n) {
+                extra += String(n.value);
+                endTok = n.next;
+              }
+            }
+            handled = { end: endTok, text: `${a.value}.${b.value}.${c.value}${extra}` };
+          }
+        }
+      }
+    }
+
+    // AO-09: N (плюс|минус|умножить на|разделить на) N [оп N]… — с цепочками
+    if (!handled) {
+      const first = numAt(i);
+      if (first && first.next < toks.length) {
+        const parts = [String(first.value)];
+        let cursor2 = first.next;
+        let last = first;
+        while (cursor2 < toks.length) {
+          const opTok = cleanTok(toks[cursor2].w);
+          let op = null;
+          let operandsFrom = cursor2 + 1;
+          if (opTok === 'плюс') op = '+';
+          else if (opTok === 'минус') op = '-';
+          else if (opTok === 'умножить' && isWord(cursor2 + 1, 'на')) {
+            op = '*';
+            operandsFrom = cursor2 + 2;
+          } else if (opTok === 'разделить' && isWord(cursor2 + 1, 'на')) {
+            op = '/';
+            operandsFrom = cursor2 + 2;
+          }
+          if (!op) break;
+          const b = numAt(operandsFrom);
+          if (!b) break;
+          parts.push(op, String(b.value));
+          last = b;
+          cursor2 = b.next;
+        }
+        if (parts.length >= 3) {
+          handled = { end: last.next, text: parts.join(' ') };
+        }
+      }
+    }
+
+    // AO-11: N величина → N аббр (nbsp)
+    if (!handled) {
+      const a = numAt(i);
+      if (a && a.next < toks.length) {
+        const u = cleanTok(toks[a.next].w);
+        if (AO_UNITS[u]) {
+          handled = { end: a.next + 1, text: `${a.value}\u00A0${AO_UNITS[u]}` };
+        }
+      }
+    }
+
+    if (handled) {
+      flushUntil(toks[i].start);
+      // хвостовая пунктуация последнего съеденного токена («миллисекунд,» → «мс,»)
+      const tailM = toks[handled.end - 1].raw.match(/[^\wа-яё]+$/);
+      out.push(handled.text + (tailM ? tailM[0] : ''));
+      cursor = toks[handled.end - 1].end;
+      i = handled.end;
+    } else {
+      i += 1;
+    }
+  }
+  flushUntil(text.length);
+  return out.join('');
+}
+
 // ASR-выхлоп: «5.000 руб» — точка как группировка разрядов склеивается
 function normalizeDotGroups(text) {
   return text.replace(/\b(\d{1,3})\.(\d{3})\b(?![\d])/g, '$1$2');
@@ -846,6 +1003,7 @@ export function formatText(raw, opts = {}) {
   if (lang !== 'en' && normNums) {
     text = normalizeDates(text); // F-11: «пятое марта» → «5 марта» (до чисел: «двадцать пятое» не разбивать)
     text = normalizeDotGroups(text); // ASR: «5.000» → «5000»
+    text = aoScan(text); // AO-04/06/09/11: версии, адрес:порт, формулы, величины
     text = normalizeTimeOfDay(text); // F-12: «три часа дня» → «15:00» (до чисел)
     text = normalizeNumbers(text); // F-10
   }
