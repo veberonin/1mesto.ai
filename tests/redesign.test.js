@@ -312,6 +312,24 @@ describe('redesign: светлая система как в оригинале',
     assert.match(mj, /setTimeout\(\(\) => \{\s*try \{\s*clipboard\.writeText\(clipboardBackup\.text\)/);
   });
 
+  it('горячий путь вставки: текст в буфер → paste → восстановление (порядок операций)', () => {
+    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
+    const writeIdx = mj.indexOf('clipboard.writeText(toInsert);');
+    const pasteIdx = mj.indexOf('const result = await pasteIntoFocusedApp();');
+    const restoreIdx = mj.indexOf('clipboard.writeText(clipboardBackup.text)');
+    assert.ok(writeIdx !== -1 && pasteIdx !== -1 && restoreIdx !== -1, 'все три шага на месте');
+    assert.ok(writeIdx < pasteIdx, 'сначала текст в буфер, затем Ctrl+V');
+    assert.ok(pasteIdx < restoreIdx, 'восстановление буфера только после вставки');
+    assert.match(mj, /insertDelayMs/); // AM-20
+  });
+
+  it('E2E-экзамен ASR лежит в репо (assets + скрипт, ключ только из env)', () => {
+    assert.ok(existsSync(join(process.cwd(), 'assets', 'e2e-sample.mp3')));
+    const sc = readFileSync(join(process.cwd(), 'scripts', 'e2e-asr.mjs'), 'utf8');
+    assert.match(sc, /GEMINI_API_KEY/);
+    assert.doesNotMatch(sc, /AQ\./); // ключ не захардкожен
+  });
+
   it('AM-03: умный пробел между подряд идущими репликами', () => {
     const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
     assert.match(mj, /lastInsert/);

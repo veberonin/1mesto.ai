@@ -26,7 +26,8 @@
     "format:check": "prettier --check src electron server scripts tests",
     "coverage": "c8 --reporter=text --reporter=lcov --include=src/lib --include=server node --test tests/",
     "check": "npm run lint && npm test && npm run format:check && npm run summary",
-    "sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom.json"
+    "sbom": "npx @cyclonedx/cyclonedx-npm --output-file sbom.json",
+    "e2e:asr": "node scripts/e2e-asr.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
