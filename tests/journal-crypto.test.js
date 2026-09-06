@@ -4,6 +4,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
+// Node 18 не экспортирует WebCrypto глобально (глобальный crypto с Node 19) —
+// в браузере globalThis.crypto есть всегда, в старом node-раннере берём из node:crypto
+if (!globalThis.crypto) {
+  const { webcrypto } = await import('node:crypto');
+  globalThis.crypto = webcrypto;
+}
+
 const store = new Map();
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
