@@ -54,6 +54,7 @@ const DEFAULTS = {
   hotkey: 'Alt+Space', // переназначаемый глобальный хоткей
   backgroundMode: true, // закрытие окна = жить в трее
   startToTray: false, // запуск свёрнутым в трей
+  autostart: false, // B-10: автозапуск при входе в систему (настройка)
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
   restoreYo: false, // Ё: восстановление «ё» (опция)
@@ -389,6 +390,9 @@ ipcMain.handle('settings:save', (_e, patch) => {
   const next = writeSettings(patch || {});
   registerHotkey(); // хоткей мог измениться — перерегистрируем
   refreshTray(); // и обновляем подпись в трее
+  try {
+    app.setLoginItemSettings({ openAtLogin: next.autostart === true }); // B-10
+  } catch {}
   return next;
 });
 
@@ -693,11 +697,30 @@ ipcMain.handle('asr:check', async () => {
 // ---------------------------------------------------------------------------
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
+  // O-14: вторая копия завершается с понятным сообщением (stderr + лог)
+  const msg = '1mesto Flow уже запущен — активирую существующее окно и завершаю эту копию.';
+  console.error(msg);
+  process.stderr.write(`${msg}
+`);
+  try {
+    const logPath = path.join(app.getPath('userData'), 'flow.log');
+    fs.appendFileSync(
+      logPath,
+      `${new Date().toISOString()} second-instance: ${msg}
+`
+    );
+  } catch {}
   app.quit();
 } else {
   app.on('second-instance', showDashboard);
 
   app.whenReady().then(() => {
+    // B-10: автозапуск включается настройкой из settings.json
+    try {
+      app.setLoginItemSettings({ openAtLogin: readSettings().autostart === true });
+    } catch (e) {
+      console.error('login item failed:', e.message);
+    }
     // Разрешаем микрофон для распознавания речи
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => {
       const allowed = [

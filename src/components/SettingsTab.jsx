@@ -823,9 +823,9 @@ function BackgroundCard({ settings, onChange, onToast }) {
         />
         <Toggle
           label="Автозапуск при входе в систему"
-          desc="Flow стартует вместе с Windows/macOS/Linux"
-          value={login}
-          onChange={toggleLogin}
+          desc="Flow стартует вместе с Windows/macOS/Linux (B-10 — настройка в settings.json)"
+          value={settings.autostart !== false ? !!settings.autostart : false}
+          onChange={(v) => onChange({ ...settings, autostart: v })}
         />
       </div>
     </div>
