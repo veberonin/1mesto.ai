@@ -22,11 +22,12 @@ function tone(freq, { t0 = 0, dur = 0.09, type = 'sine', gain = 0.12, slide = nu
   const osc = c.createOscillator();
   const g = c.createGain();
   const start = c.currentTime + t0;
+  const vol = Math.max(0, Math.min(1, sound.volume ?? 1)); // AG-16: громкость настройкой
   osc.type = type;
   osc.frequency.setValueAtTime(freq, start);
   if (slide) osc.frequency.exponentialRampToValueAtTime(slide, start + dur);
   g.gain.setValueAtTime(0.0001, start);
-  g.gain.exponentialRampToValueAtTime(gain, start + 0.015);
+  g.gain.exponentialRampToValueAtTime(gain * vol, start + 0.015);
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
   osc.connect(g).connect(c.destination);
   osc.start(start);
@@ -35,6 +36,7 @@ function tone(freq, { t0 = 0, dur = 0.09, type = 'sine', gain = 0.12, slide = nu
 
 export const sound = {
   enabled: true,
+  volume: 1, // AG-16: 0..1, задаётся из настроек
   start() {
     if (!this.enabled) return;
     tone(660, { dur: 0.08 });
@@ -52,8 +54,11 @@ export const sound = {
     tone(784, { t0: 0.12, dur: 0.14 });
   },
   error() {
+    // AG-15: сигнал ошибки отличается от сигналов записи —
+    // низкий нисходящий пилообразный, два тона (у записи — чистые синусы вверх/вниз)
     if (!this.enabled) return;
-    tone(220, { dur: 0.18, type: 'sawtooth', gain: 0.08, slide: 140 });
+    tone(220, { dur: 0.16, type: 'sawtooth', gain: 0.08, slide: 140 });
+    tone(165, { t0: 0.14, dur: 0.2, type: 'sawtooth', gain: 0.07, slide: 90 });
   },
   tick() {
     if (!this.enabled) return;

@@ -26,6 +26,11 @@ import { isDesktop, desktopAPI } from './lib/desktop.js';
 
 const SETTINGS_KEY = 'flow-settings-v1';
 
+const applySoundSettings = (st) => {
+  sound.enabled = st.soundOn !== false;
+  sound.volume = Number.isFinite(Number(st.soundVolume)) ? Number(st.soundVolume) : 1; // AG-16
+};
+
 const DEFAULT_SETTINGS = {
   provider: 'none',
   apiKey: '',
@@ -49,6 +54,7 @@ const DEFAULT_SETTINGS = {
   triggerMode: 'toggle', // AM-01: 'toggle' | 'hold'
   micDeviceId: '', // C-02: выбор микрофона
   noiseSuppression: true, // C-16
+  soundVolume: 1, // AG-16: громкость сигналов 0..1
   onboarded: false,
 };
 
@@ -67,6 +73,7 @@ export default function App() {
   const [language, setLanguage] = useState('ru');
   const [mode, setMode] = useState('clean');
   const [settings, setSettings] = useState(loadSettings);
+  applySoundSettings(settings); // AG-15/16: громкость и вкл/выкл звуков из настроек
   const [serverOnline, setServerOnline] = useState(false);
   const [toasts, setToasts] = useState([]);
 
@@ -74,6 +81,7 @@ export default function App() {
   const [micDenied, setMicDenied] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
+  const interimsRef = useRef(0); // E-09: счётчик промежуточных гипотез (потоковая подача)
   const [formatted, setFormatted] = useState('');
   const [formatMeta, setFormatMeta] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -128,6 +136,7 @@ export default function App() {
       /* noop */
     }
     sound.enabled = settings.soundOn;
+    sound.volume = Number.isFinite(Number(settings.soundVolume)) ? Number(settings.soundVolume) : 1; // AG-16
     if (isDesktop()) {
       desktopAPI.saveSettings({ ...settings, language, mode }).catch(() => {});
     }
@@ -302,6 +311,7 @@ export default function App() {
         latencies: {},
         dictHits: lastMetaRef.current?.dictHits || [],
         fillersRemoved: lastMetaRef.current?.removedFillers || 0,
+        interims: interimsRef.current, // E-09: гипотез за реплику
         privacy: !!settingsRef.current.privacy,
       });
       setJournalTick((t) => t + 1);
@@ -330,6 +340,7 @@ export default function App() {
     startRef.current = Date.now();
     wordsRef.current = countWordsIn(transcriptRef.current);
     peakRef.current = 0;
+    interimsRef.current = 0; // E-09
     engineDeadRef.current = false;
     prevSourceRef.current = 'local';
     setPeakWpm(0);
@@ -363,7 +374,10 @@ export default function App() {
 
     engineRef.current = new SpeechEngine({
       onFinal: (piece) => appendTranscript(piece),
-      onInterim: (text) => setInterim(text),
+      onInterim: (text) => {
+        interimsRef.current += 1; // E-09: гипотезы приходят потоково во время речи
+        setInterim(text);
+      },
       onError: (code) => {
         if (code === 'denied') {
           setMicDenied('denied');
