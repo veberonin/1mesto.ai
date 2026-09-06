@@ -242,6 +242,8 @@ export default function PillWindow() {
       // Параллельно пишем WAV: если Speech API молчит — распознаем локально
       try {
         captureRef.current = new WavCapture();
+        if (settingsRef.current?.vadThreshold)
+          captureRef.current.vadThreshold = settingsRef.current.vadThreshold; // E-04
         await captureRef.current.start(() => {});
       } catch {
         captureRef.current = null;

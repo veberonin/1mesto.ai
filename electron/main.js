@@ -55,6 +55,7 @@ const DEFAULTS = {
   backgroundMode: true, // закрытие окна = жить в трее
   startToTray: false, // запуск свёрнутым в трей
   autostart: false, // B-10: автозапуск при входе в систему (настройка)
+  vadThreshold: 0.01, // E-04: порог VAD (амплитуда 0..1)
   geminiKey: '', // ключ Gemini для резервного распознавания (ASR)
   voiceCommands: true, // K: голосовые команды пунктуации («запятая», «новый абзац»…)
   restoreYo: false, // Ё: восстановление «ё» (опция)
@@ -126,6 +127,15 @@ function sanitizeSettings(next) {
   }
   if (next.language !== undefined && !['ru', 'en', 'auto'].includes(next.language)) {
     next.language = 'ru';
+  }
+  if (next.vadThreshold !== undefined) {
+    const n = Number(next.vadThreshold);
+    if (!Number.isFinite(n) || n < 0.0005 || n > 0.5) {
+      console.warn(
+        `[settings] vadThreshold ${next.vadThreshold} вне 0.0005..0.5 — вернул ${DEFAULTS.vadThreshold}`
+      );
+      next.vadThreshold = DEFAULTS.vadThreshold;
+    }
   }
   return next;
 }

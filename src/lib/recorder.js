@@ -51,6 +51,30 @@ export function resample(f32, from, to) {
 
 const MAX_SECONDS = 900; // C-15: до 15 минут одной реплики
 
+/**
+ * E-01/E-02: обрезка тишины в начале и конце записи.
+ * E-04: порог VAD настраивается (vadThreshold, амплитуда 0..1).
+ * Оставляет paddingMs тишины с каждой стороны, чтобы не срезать мягкую атаку речи.
+ * Чистая функция — покрывается тестами без микрофона (AB-06).
+ * @param {Float32Array} samples
+ * @param {{threshold?: number, paddingMs?: number}} [opts]
+ * @returns {Float32Array}
+ */
+export function trimSilence(samples, opts = {}) {
+  const threshold = Number.isFinite(opts.threshold) ? opts.threshold : 0.01;
+  const pad = Math.round((opts.paddingMs ?? 120) * 16); // 16 кГц
+  if (!samples || samples.length === 0) return samples || new Float32Array(0);
+  const loud = (i) => Math.abs(samples[i]) > threshold;
+  let start = 0;
+  while (start < samples.length && !loud(start)) start++;
+  let end = samples.length - 1;
+  while (end > start && !loud(end)) end--;
+  if (start >= end) return samples.slice(0, Math.min(samples.length, pad * 2)); // одна тишина
+  const from = Math.max(0, start - pad);
+  const to = Math.min(samples.length, end + 1 + pad);
+  return samples.slice(from, to);
+}
+
 export class WavCapture {
   constructor() {
     this.chunks = [];
@@ -59,6 +83,7 @@ export class WavCapture {
     this.stream = null;
     this.node = null;
     this.source = null;
+    this.vadThreshold = 0.01; // E-04: порог VAD, переопределяется настройкой
   }
 
   async start(onLevel) {
@@ -108,6 +133,8 @@ export class WavCapture {
     }
     this.chunks = [];
     this.total = 0;
-    return encodeWav(all, 16000);
+    // E-01/E-02: тишина в начале и конце обрезается перед кодированием
+    const trimmed = trimSilence(all, { threshold: this.vadThreshold });
+    return encodeWav(trimmed, 16000);
   }
 }

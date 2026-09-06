@@ -347,6 +347,8 @@ export default function App() {
     if (isDesktop()) {
       try {
         captureRef.current = new WavCapture();
+        if (settingsRef.current?.vadThreshold)
+          captureRef.current.vadThreshold = settingsRef.current.vadThreshold; // E-04
         await captureRef.current.start(() => {});
       } catch {
         captureRef.current = null;
