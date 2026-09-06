@@ -86,10 +86,12 @@ export class WavCapture {
     this.vadThreshold = 0.01; // E-04: порог VAD, переопределяется настройкой
   }
 
-  async start(onLevel) {
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
-    });
+  async start(onLevel, opts = {}) {
+    // C-16: шумоподавление включается настройкой; C-02/C-03: выбор устройства
+    // (deviceId применяется к следующей реплике и к живой сессии без перезапуска)
+    const audio = { echoCancellation: true, noiseSuppression: opts.noiseSuppression !== false };
+    if (opts.deviceId) audio.deviceId = { exact: opts.deviceId };
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio });
     const AC = window.AudioContext || window.webkitAudioContext;
     this.ctx = new AC();
     if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});

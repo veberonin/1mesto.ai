@@ -47,6 +47,8 @@ const DEFAULT_SETTINGS = {
   hotkeyStyle: 'Ctrl+Alt+S',
   aiTimeoutMs: 25000,
   triggerMode: 'toggle', // AM-01: 'toggle' | 'hold'
+  micDeviceId: '', // C-02: выбор микрофона
+  noiseSuppression: true, // C-16
   onboarded: false,
 };
 
@@ -350,7 +352,10 @@ export default function App() {
         captureRef.current = new WavCapture();
         if (settingsRef.current?.vadThreshold)
           captureRef.current.vadThreshold = settingsRef.current.vadThreshold; // E-04
-        await captureRef.current.start(() => {});
+        await captureRef.current.start(() => {}, {
+          noiseSuppression: settingsRef.current?.noiseSuppression !== false, // C-16
+          deviceId: settingsRef.current?.micDeviceId || null, // C-02/C-03
+        });
       } catch {
         captureRef.current = null;
       }

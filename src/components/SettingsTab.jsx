@@ -24,6 +24,7 @@ import { useState, useEffect, useRef } from 'react';
 import { isDesktop, desktopAPI } from '../lib/desktop.js';
 import { parsePairsText, mergeIntoText, DICT_TEMPLATE } from '../lib/dictio.js';
 import { exportProfile, importProfile } from '../lib/profile.js';
+import MicCard from './MicCard.jsx';
 import { normalizeAccelerator, hotkeyFromEvent, isValidAccelerator, DEFAULT_HOTKEY } from '../lib/hotkey.js';
 
 function Toggle({ label, desc, value, onChange }) {
@@ -226,6 +227,12 @@ export default function SettingsTab({
             onChange={(v) => set({ voiceCheck: v })}
           />
           <Toggle
+            label="Шумоподавление"
+            desc="Фильтр шума браузера/ОС на входе — выключи, если глотаешь согласные (C-16)"
+            value={settings.noiseSuppression !== false}
+            onChange={(v) => set({ noiseSuppression: v })}
+          />
+          <Toggle
             label="Приватный режим"
             desc="История ведётся без текста реплик — только метрики (P-12/T-10)"
             value={!!settings.privacy}
@@ -356,6 +363,9 @@ export default function SettingsTab({
 
       {/* Горячие клавиши (переназначаемые) */}
       <HotkeyCard settings={settings} onChange={set} onToast={onToast} />
+
+      {/* Микрофон: список устройств, выбор, смена на лету (C-01..C-06) */}
+      <MicCard settings={settings} onChange={onChange} onToast={onToast} />
 
       {/* Фоновый режим (десктоп) */}
       <BackgroundCard settings={settings} onChange={set} onToast={onToast} />
