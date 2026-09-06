@@ -2,7 +2,12 @@
 // Copyright (c) 2026 1mesto Flow team (veberonin)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatText, normalizeHomoglyphs, stripModelTags, buildCombinedMatcher } from '../src/lib/formatter.js';
+import {
+  formatText,
+  normalizeHomoglyphs,
+  stripModelTags,
+  buildCombinedMatcher,
+} from '../src/lib/formatter.js';
 
 function bigDict(n) {
   const dict = {};
