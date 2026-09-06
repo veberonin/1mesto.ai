@@ -311,22 +311,17 @@ describe('redesign: светлая система как в оригинале',
     assert.match(pl, /setStatus/);
   });
 
-  it('L-01/AM-06: буфер сохраняется и восстанавливается после вставки (без гонки)', () => {
-    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
-    assert.match(mj, /clipboardBackup/);
-    assert.match(mj, /clipboard\.readText/);
-    assert.match(mj, /setTimeout\(\(\) => \{\s*try \{\s*clipboard\.writeText\(clipboardBackup\.text\)/);
+  it('L-01 v2: буфер НЕ восстанавливается — диктовка остаётся доступной для ручной вставки', () => {
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(mj, /clipboardBackup/);
+    assert.match(mj, /clipboard\.writeText\(toInsert\)/);
   });
 
-  it('горячий путь вставки: текст в буфер → paste → восстановление (порядок операций)', () => {
-    const mj = readFileSync(join(process.cwd(), 'electron', 'main.js'), 'utf8');
-    const writeIdx = mj.indexOf('clipboard.writeText(toInsert);');
-    const pasteIdx = mj.indexOf('const result = await pasteIntoFocusedApp();');
-    const restoreIdx = mj.indexOf('clipboard.writeText(clipboardBackup.text)');
-    assert.ok(writeIdx !== -1 && pasteIdx !== -1 && restoreIdx !== -1, 'все три шага на месте');
-    assert.ok(writeIdx < pasteIdx, 'сначала текст в буфер, затем Ctrl+V');
-    assert.ok(pasteIdx < restoreIdx, 'восстановление буфера только после вставки');
-    assert.match(mj, /insertDelayMs/); // AM-20
+  it('горячий путь вставки: буфер → пауза → Ctrl+V (без пост-обработки буфера)', () => {
+    const mj = readFileSync(new URL('../electron/main.js', import.meta.url), 'utf8');
+    assert.match(mj, /clipboard\.writeText\(toInsert\)/);
+    assert.match(mj, /await new Promise\(\(r\) => setTimeout\(r, Math\.min\(delay, 2000\)\)\)/);
+    assert.match(mj, /pasteIntoFocusedApp\(\)/);
   });
 
   it('E2E-экзамен ASR лежит в репо (assets + скрипт, ключ только из env)', () => {

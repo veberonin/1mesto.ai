@@ -503,21 +503,18 @@ describe('Миграция паузы вставки: старый ноль ме
   });
 });
 
-describe('Тёплая вставка: мгновенный Ctrl+V без холодного старта PowerShell', () => {
+describe('Вставка без гонок: предсказуемый Ctrl+V, буфер остаётся с диктовкой', () => {
   const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-  it('paste.js: тёплый хост (persist-процесс + warmCtrlV + прогрев)', () => {
+  it('тёплый хост УДАЛЁН (вероятностные задержки ломали тайминг)', () => {
     const pj = read('../electron/paste.js');
-    assert.match(pj, /warmCtrlV/);
-    assert.match(pj, /warmUpPaste/);
-    assert.match(pj, /ReadLine/, 'хост ждёт команды по stdin');
+    assert.doesNotMatch(pj, /warmCtrlV|warmUpPaste|ReadLine/);
   });
 
-  it('main: вставка идёт через тёплый хост, дефолт-пауза 200 мс', () => {
+  it('main: без восстановления буфера и без тёплого хоста, пауза не ниже 250 мс', () => {
     const mj = read('../electron/main.js');
-    assert.match(mj, /warmCtrlV\(\)/);
-    assert.match(mj, /insertDelayMs: 200/);
-    assert.match(mj, /warmUpPaste, 3000/, 'прогрев после старта');
+    assert.doesNotMatch(mj, /clipboardBackup|warmCtrlV/);
+    assert.match(mj, /Math\.max\(250, Number\(readSettings\(\)\.insertDelayMs\)/);
   });
 
   it('настройки: ползунок «Пауза перед вставкой» с подсказкой про Telegram', () => {
