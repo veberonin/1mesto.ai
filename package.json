@@ -43,7 +43,7 @@
     "concurrently": "^8.2.2",
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8",
-    "eslint": "^8.57.1",
+    "eslint": "^10.11.0",
     "lucide-react": "^0.363.0",
     "postcss": "^8.4.38",
     "prettier": "^3.3.3",
